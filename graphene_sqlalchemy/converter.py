@@ -3,7 +3,7 @@ from enum import EnumMeta
 from singledispatch import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.orm import interfaces, strategies
+from sqlalchemy.orm import interfaces
 
 from graphene import (ID, Boolean, Dynamic, Enum, Field, Float, Int, List,
                       String)
@@ -22,9 +22,6 @@ except ImportError:
     ChoiceType = JSONType = ScalarListType = TSVectorType = object
 
 
-is_selectin_available = getattr(strategies, 'SelectInLoader', None)
-
-
 def get_column_doc(column):
     return getattr(column, "doc", None)
 
@@ -33,7 +30,7 @@ def is_column_nullable(column):
     return bool(getattr(column, "nullable", True))
 
 
-def convert_sqlalchemy_relationship(relationship_prop, obj_type, connection_field_factory, batching,
+def convert_sqlalchemy_relationship(relationship_prop, obj_type, connection_field_factory,
                                     orm_field_name, **field_kwargs):
     """
     :param sqlalchemy.RelationshipProperty relationship_prop:
@@ -48,23 +45,24 @@ def convert_sqlalchemy_relationship(relationship_prop, obj_type, connection_fiel
         """:rtype: Field|None"""
         direction = relationship_prop.direction
         child_type = obj_type._meta.registry.get_type_for_model(relationship_prop.mapper.entity)
-        batching_ = batching if is_selectin_available else False
 
         if not child_type:
             return None
 
         if direction == interfaces.MANYTOONE or not relationship_prop.uselist:
-            return _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, batching_, orm_field_name,
-                                                    **field_kwargs)
+            return _convert_o2o_or_m2o_relationship(
+                relationship_prop, obj_type, orm_field_name, **field_kwargs
+            )
 
         if direction in (interfaces.ONETOMANY, interfaces.MANYTOMANY):
-            return _convert_o2m_or_m2m_relationship(relationship_prop, obj_type, batching_,
-                                                    connection_field_factory, **field_kwargs)
+            return _convert_o2m_or_m2m_relationship(
+                relationship_prop, obj_type, connection_field_factory, **field_kwargs
+            )
 
     return Dynamic(dynamic_type)
 
 
-def _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, batching, orm_field_name, **field_kwargs):
+def _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, orm_field_name, **field_kwargs):
     """
     Convert one-to-one or many-to-one relationshsip. Return an object field.
 
@@ -79,13 +77,12 @@ def _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, batching, orm_
 
     resolver = get_custom_resolver(obj_type, orm_field_name)
     if resolver is None:
-        resolver = get_batch_resolver(relationship_prop) if batching else \
-            get_attr_resolver(obj_type, relationship_prop.key)
+        resolver = get_batch_resolver(relationship_prop)
 
     return Field(child_type, resolver=resolver, **field_kwargs)
 
 
-def _convert_o2m_or_m2m_relationship(relationship_prop, obj_type, batching, connection_field_factory, **field_kwargs):
+def _convert_o2m_or_m2m_relationship(relationship_prop, obj_type, connection_field_factory, **field_kwargs):
     """
     Convert one-to-many or many-to-many relationshsip. Return a list field or a connection field.
 
@@ -103,8 +100,7 @@ def _convert_o2m_or_m2m_relationship(relationship_prop, obj_type, batching, conn
 
     # TODO Allow override of connection_field_factory and resolver via ORMField
     if connection_field_factory is None:
-        connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship if batching else \
-            default_connection_field_factory
+        connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
 
     return connection_field_factory(relationship_prop, obj_type._meta.registry, **field_kwargs)
 

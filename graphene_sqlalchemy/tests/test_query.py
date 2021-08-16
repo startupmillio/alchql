@@ -145,7 +145,7 @@ def test_query_node(session):
         "myArticle": {"id": "QXJ0aWNsZU5vZGU6MQ==", "headline": "Hi!"},
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session})
+    result = schema.execute(query, context_value={"session": session, "loadres": {}})
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -212,7 +212,7 @@ def test_orm_field(session):
         },
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session})
+    result = schema.execute(query, context_value={"session": session, "loadres": {}})
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -253,7 +253,7 @@ def test_custom_identifier(session):
     }
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session})
+    result = schema.execute(query, context_value={"session": session, "loadres": {}})
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -332,7 +332,7 @@ def test_mutation(session):
     }
 
     schema = graphene.Schema(query=Query, mutation=Mutation)
-    result = schema.execute(query, context_value={"session": session})
+    result = schema.execute(query, context_value={"session": session, "loadres": {}})
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected

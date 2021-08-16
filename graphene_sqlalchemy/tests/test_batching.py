@@ -112,7 +112,7 @@ def test_many_to_one(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -203,7 +203,7 @@ def test_one_to_one(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -306,7 +306,7 @@ def test_one_to_many(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -433,7 +433,7 @@ def test_many_to_many(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -557,7 +557,7 @@ def test_disable_batching_via_ormfield(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     select_statements = [message for message in messages if 'SELECT' in message and 'FROM articles' in message]
@@ -579,7 +579,7 @@ def test_disable_batching_via_ormfield(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     select_statements = [message for message in messages if 'SELECT' in message and 'FROM articles' in message]
@@ -632,7 +632,7 @@ def test_connection_factory_field_overrides_batching_is_false(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     if is_sqlalchemy_version_less_than('1.3'):
@@ -691,7 +691,7 @@ def test_connection_factory_field_overrides_batching_is_true(session_factory):
               }
             }
           }
-        """, context_value={"session": session})
+        """, context_value={"session": session, "loadres": {}})
         messages = sqlalchemy_logging_handler.messages
 
     select_statements = [message for message in messages if 'SELECT' in message and 'FROM articles' in message]

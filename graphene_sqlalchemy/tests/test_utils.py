@@ -24,7 +24,7 @@ def test_get_session():
     """
 
     schema = Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session})
+    result = schema.execute(query, context_value={"session": session, "loadres": {}})
     assert not result.errors
     assert result.data["x"] == session
 

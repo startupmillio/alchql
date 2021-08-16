@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from database import db_session, init_db
-from flask import Flask
+from flask import Flask, request
 from schema import schema
 
 from flask_graphql import GraphQLView
@@ -31,6 +31,13 @@ example_query = """
 """
 
 
+class GraphQLView(GraphQLView):
+    def get_context(self):
+        request.session = db_session
+        request.loaders = {}
+
+        return request
+
 app.add_url_rule(
     "/graphql", view_func=GraphQLView.as_view("graphql", schema=schema, graphiql=True)
 )
@@ -43,4 +50,4 @@ def shutdown_session(exception=None):
 
 if __name__ == "__main__":
     init_db()
-    app.run()
+    app.run(debug=False)

@@ -4,23 +4,15 @@ import warnings
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
+import sqlalchemy as sa
 
 
 def get_session(context):
     return context.get("session")
 
 
-def get_query(model, context):
-    query = getattr(model, "query", None)
-    if not query:
-        session = get_session(context)
-        if not session:
-            raise Exception(
-                "A query in the model Base or a session in the schema is required for querying.\n"
-                "Read more http://docs.graphene-python.org/projects/sqlalchemy/en/latest/tips/#querying"
-            )
-        query = session.query(model)
-    return query
+def get_query(model, info):
+    return sa.select([model])
 
 
 def is_mapped_class(cls):

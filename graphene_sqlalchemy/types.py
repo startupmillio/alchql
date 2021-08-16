@@ -18,6 +18,7 @@ from .converter import (convert_sqlalchemy_column,
                         convert_sqlalchemy_relationship)
 from .enums import (enum_for_field, sort_argument_for_object_type,
                     sort_enum_for_object_type)
+from .loader_fk import generate_loader_by_foreign_key
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, is_mapped_class, is_mapped_instance
@@ -89,7 +90,7 @@ class ORMField(OrderedType):
 
 
 def construct_fields(
-    obj_type, model, registry, only_fields, exclude_fields, batching, connection_field_factory
+    obj_type, model, registry, only_fields, exclude_fields, connection_field_factory
 ):
     """
     Construct all the fields for a SQLAlchemyObjectType.
@@ -150,6 +151,7 @@ def construct_fields(
             continue
         orm_fields[orm_field_name] = ORMField(model_attr=orm_field_name)
 
+    loaders = {}
     # Build all the field dictionary
     fields = OrderedDict()
     for orm_field_name, orm_field in orm_fields.items():
@@ -160,9 +162,9 @@ def construct_fields(
         if isinstance(attr, ColumnProperty):
             field = convert_sqlalchemy_column(attr, registry, resolver, **orm_field.kwargs)
         elif isinstance(attr, RelationshipProperty):
-            batching_ = orm_field.kwargs.pop('batching', batching)
+            loaders[(attr.parent.entity, attr.mapper.entity)] = generate_loader_by_foreign_key(attr)
             field = convert_sqlalchemy_relationship(
-                attr, obj_type, connection_field_factory, batching_, orm_field_name, **orm_field.kwargs)
+                attr, obj_type, connection_field_factory, orm_field_name, **orm_field.kwargs)
         elif isinstance(attr, CompositeProperty):
             if attr_name != orm_field_name or orm_field.kwargs:
                 # TODO Add a way to override composite property fields
@@ -177,6 +179,8 @@ def construct_fields(
 
         registry.register_orm_field(obj_type, orm_field_name, attr)
         fields[orm_field_name] = field
+
+    fields['loaders'] = loaders
 
     return fields
 
@@ -229,7 +233,6 @@ class SQLAlchemyObjectType(ObjectType):
                 registry=registry,
                 only_fields=only_fields,
                 exclude_fields=exclude_fields,
-                batching=batching,
                 connection_field_factory=connection_field_factory,
             ),
             _as=Field,
@@ -289,7 +292,7 @@ class SQLAlchemyObjectType(ObjectType):
     @classmethod
     def get_query(cls, info):
         model = cls._meta.model
-        return get_query(model, info.context)
+        return get_query(model, info)
 
     @classmethod
     def get_node(cls, info, id):

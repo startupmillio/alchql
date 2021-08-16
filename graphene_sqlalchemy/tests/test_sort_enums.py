@@ -336,7 +336,7 @@ def test_sort_query(session):
     }  # yapf: disable
 
     schema = Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session})
+    result = schema.execute(query, context_value={"session": session, "loadres": {}})
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -352,7 +352,7 @@ def test_sort_query(session):
             }
         }
     """
-    result = schema.execute(queryError, context_value={"session": session})
+    result = schema.execute(queryError, context_value={"session": session, "loadres": {}})
     assert result.errors is not None
     assert '"sort" has invalid value' in result.errors[0].message
 
@@ -375,7 +375,7 @@ def test_sort_query(session):
         }
     """
 
-    result = schema.execute(queryNoSort, context_value={"session": session})
+    result = schema.execute(queryNoSort, context_value={"session": session, "loadres": {}})
     assert not result.errors
     # TODO: SQLite usually returns the results ordered by primary key,
     # so we cannot test this way whether sorting actually happens or not.

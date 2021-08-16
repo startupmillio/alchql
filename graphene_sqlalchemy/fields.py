@@ -1,17 +1,25 @@
 import warnings
+from collections import defaultdict
 from functools import partial
 
 import six
+from promise.dataloader import DataLoader
+
 from promise import Promise, is_thenable
 from sqlalchemy.orm.query import Query
 
 from graphene import NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import PageInfo
-from graphql_relay.connection.arrayconnection import connection_from_list_slice
+from graphql_relay.connection.arrayconnection import connection_from_list, connection_from_list_slice
 
 from .batching import get_batch_resolver
+from .loader_fk import generate_loader_by_foreign_key
+from .slice import connection_from_query
 from .utils import get_query
+
+import sqlalchemy as sa
+
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -43,32 +51,52 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
     @classmethod
     def get_query(cls, model, info, **args):
-        return get_query(model, info.context)
+        return get_query(model, info)
 
     @classmethod
     def resolve_connection(cls, connection_type, model, info, args, resolved):
-        if resolved is None:
-            resolved = cls.get_query(model, info, **args)
-        if isinstance(resolved, Query):
-            _len = resolved.count()
+        query = cls.get_query(model, info, **args)
+        if hasattr(info.context, 'session'):
+            session = info.context.session
         else:
-            _len = len(resolved)
-        connection = connection_from_list_slice(
-            resolved,
-            args,
-            slice_start=0,
-            list_length=_len,
-            list_slice_length=_len,
-            connection_type=connection_type,
-            pageinfo_type=PageInfo,
-            edge_type=connection_type.Edge,
-        )
-        connection.iterable = resolved
-        connection.length = _len
+            session = info.context['session']
+
+        if resolved is None:
+            _len = session.execute(sa.select([sa.func.count()]).select_from(
+                query.with_only_columns(sa.inspect(model).primary_key))
+            ).scalar()
+            connection = connection_from_query(
+                query,
+                model,
+                session,
+                args,
+                slice_start=0,
+                list_length=_len,
+                list_slice_length=_len,
+                connection_type=connection_type,
+                pageinfo_type=PageInfo,
+                edge_type=connection_type.Edge,
+            )
+        else:
+            connection = connection_from_list(
+                resolved,
+                args,
+                connection_type=connection_type,
+                pageinfo_type=PageInfo,
+                edge_type=connection_type.Edge,
+            )
+
         return connection
 
     @classmethod
     def connection_resolver(cls, resolver, connection_type, model, root, info, **args):
+        # inspected_model = sa.inspect(model)
+        # for v in inspected_model.relationships.values():
+        #     k = (v.parent.entity, v.mapper.entity)
+        #     info.context['loaders'][k] = generate_loader_by_foreign_key(v)(
+        #         info.context['session']
+        #     )
+            
         resolved = resolver(root, info, **args)
 
         on_resolve = partial(cls.resolve_connection, connection_type, model, info, args)
@@ -107,7 +135,7 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
 
     @classmethod
     def get_query(cls, model, info, sort=None, **args):
-        query = get_query(model, info.context)
+        query = get_query(model, info)
         if sort is not None:
             if isinstance(sort, six.string_types):
                 query = query.order_by(sort.value)
