@@ -151,7 +151,6 @@ def construct_fields(
             continue
         orm_fields[orm_field_name] = ORMField(model_attr=orm_field_name)
 
-    loaders = {}
     # Build all the field dictionary
     fields = OrderedDict()
     for orm_field_name, orm_field in orm_fields.items():
@@ -162,7 +161,6 @@ def construct_fields(
         if isinstance(attr, ColumnProperty):
             field = convert_sqlalchemy_column(attr, registry, resolver, **orm_field.kwargs)
         elif isinstance(attr, RelationshipProperty):
-            loaders[(attr.parent.entity, attr.mapper.entity)] = generate_loader_by_foreign_key(attr)
             field = convert_sqlalchemy_relationship(
                 attr, obj_type, connection_field_factory, orm_field_name, **orm_field.kwargs)
         elif isinstance(attr, CompositeProperty):
@@ -179,8 +177,6 @@ def construct_fields(
 
         registry.register_orm_field(obj_type, orm_field_name, attr)
         fields[orm_field_name] = field
-
-    fields['loaders'] = loaders
 
     return fields
 
@@ -206,7 +202,6 @@ class SQLAlchemyObjectType(ObjectType):
         use_connection=None,
         interfaces=(),
         id=None,
-        batching=False,
         connection_field_factory=None,
         _meta=None,
         **options
@@ -273,6 +268,15 @@ class SQLAlchemyObjectType(ObjectType):
         _meta.id = id or "id"
 
         cls.connection = connection  # Public way to get the connection
+
+        loaders = {}
+        inspected_model = sqlalchemy.inspect(model)
+        for relationship in inspected_model.relationships.values():
+            key = (relationship.parent.entity, relationship.mapper.entity)
+            loaders[key] = generate_loader_by_foreign_key(relationship)
+
+        # _meta.loaders = loaders
+        cls.loaders = loaders
 
         super(SQLAlchemyObjectType, cls).__init_subclass_with_meta__(
             _meta=_meta, interfaces=interfaces, **options

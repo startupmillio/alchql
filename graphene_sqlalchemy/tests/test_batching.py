@@ -1,13 +1,19 @@
 import contextlib
 import logging
+from functools import partial
 
 import pytest
 
 import graphene
-from graphene import relay
+from graphene import Context, relay
+from graphql.execution.executors.sync import SyncExecutor
+from graphql.graphql import execute_graphql
+
+from graphene_sqlalchemy import get_session
 
 from ..fields import (BatchSQLAlchemyConnectionField,
                       default_connection_field_factory)
+from ..loaders_middleware import LoaderMiddleware
 from ..types import ORMField, SQLAlchemyObjectType
 from .models import Article, HairKind, Pet, Reporter
 from .utils import is_sqlalchemy_version_less_than, to_std_dicts
@@ -63,10 +69,10 @@ def get_schema():
         reporters = graphene.Field(graphene.List(ReporterType))
 
         def resolve_articles(self, info):
-            return info.context.get('session').query(Article).all()
+            return get_session(info.context).query(Article).all()
 
         def resolve_reporters(self, info):
-            return info.context.get('session').query(Reporter).all()
+            return get_session(info.context).query(Reporter).all()
 
     return graphene.Schema(query=Query)
 
@@ -74,6 +80,20 @@ def get_schema():
 if is_sqlalchemy_version_less_than('1.2'):
     pytest.skip('SQL batching only works for SQLAlchemy 1.2+', allow_module_level=True)
 
+class SessionMiddleware:
+    def __init__(self, session):
+        self.session = session
+
+    def resolve(self, next, root, info, **args):
+        context = info.context or Context()
+
+        if callable(self.session):
+            context.session = self.session()
+        else:
+            context.session = self.session
+
+        info.context = context
+        return next(root, info, **args)
 
 def test_many_to_one(session_factory):
     session = session_factory()
@@ -102,17 +122,25 @@ def test_many_to_one(session_factory):
 
     with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
         # Starts new session to fully reset the engine / connection logging level
-        session = session_factory()
-        result = schema.execute("""
-          query {
-            articles {
-              headline
-              reporter {
-                firstName
+        # session = session_factory()
+        result = execute_graphql(
+            schema,
+            """
+              query {
+                articles {
+                  headline
+                  reporter {
+                    firstName
+                  }
+                }
               }
-            }
-          }
-        """, context_value={"session": session, "loadres": {}})
+            """,
+            context_value=Context(),
+            middleware=[
+                LoaderMiddleware([Article, Reporter]),
+                SessionMiddleware(session_factory()),
+            ]
+        )
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -203,7 +231,7 @@ def test_one_to_one(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value={"session": session}, )
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5

@@ -3,12 +3,13 @@ from collections import defaultdict
 from functools import partial
 
 import six
+from graphene_sqlalchemy.registry import get_global_registry
 from promise.dataloader import DataLoader
 
 from promise import Promise, is_thenable
 from sqlalchemy.orm.query import Query
 
-from graphene import NonNull
+from graphene import Context, NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import PageInfo
 from graphql_relay.connection.arrayconnection import connection_from_list, connection_from_list_slice
@@ -16,7 +17,7 @@ from graphql_relay.connection.arrayconnection import connection_from_list, conne
 from .batching import get_batch_resolver
 from .loader_fk import generate_loader_by_foreign_key
 from .slice import connection_from_query
-from .utils import get_query
+from .utils import get_query, get_session
 
 import sqlalchemy as sa
 
@@ -56,10 +57,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     @classmethod
     def resolve_connection(cls, connection_type, model, info, args, resolved):
         query = cls.get_query(model, info, **args)
-        if hasattr(info.context, 'session'):
-            session = info.context.session
-        else:
-            session = info.context['session']
+        session = get_session(info.context)
 
         if resolved is None:
             _len = session.execute(sa.select([sa.func.count()]).select_from(
@@ -90,13 +88,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
     @classmethod
     def connection_resolver(cls, resolver, connection_type, model, root, info, **args):
-        # inspected_model = sa.inspect(model)
-        # for v in inspected_model.relationships.values():
-        #     k = (v.parent.entity, v.mapper.entity)
-        #     info.context['loaders'][k] = generate_loader_by_foreign_key(v)(
-        #         info.context['session']
-        #     )
-            
         resolved = resolver(root, info, **args)
 
         on_resolve = partial(cls.resolve_connection, connection_type, model, info, args)
@@ -163,7 +154,8 @@ class BatchSQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
     def from_relationship(cls, relationship, registry, **field_kwargs):
         model = relationship.mapper.entity
         model_type = registry.get_type_for_model(model)
-        return cls(model_type.connection, resolver=get_batch_resolver(relationship), **field_kwargs)
+        resolver = get_batch_resolver(relationship)
+        return cls(model_type.connection, resolver=resolver, **field_kwargs)
 
 
 def default_connection_field_factory(relationship, registry, **field_kwargs):

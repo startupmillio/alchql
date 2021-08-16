@@ -8,7 +8,12 @@ import sqlalchemy as sa
 
 
 def get_session(context):
-    return context.get("session")
+    if hasattr(context, 'session'):
+        return context.session
+    elif hasattr(context, 'get'):
+        return context.get("session")
+    else:
+        raise Exception('Session not found')
 
 
 def get_query(model, info):
