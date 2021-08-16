@@ -196,7 +196,7 @@ def test_should_manytomany_convert_connectionorlist():
             model = Article
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     assert not dynamic_field.get_type()
@@ -208,7 +208,7 @@ def test_should_manytomany_convert_connectionorlist_list():
             model = Pet
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -224,7 +224,7 @@ def test_should_manytomany_convert_connectionorlist_connection():
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     assert isinstance(dynamic_field.get_type(), UnsortedSQLAlchemyConnectionField)
@@ -236,7 +236,7 @@ def test_should_manytoone_convert_connectionorlist():
             model = Article
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     assert not dynamic_field.get_type()
@@ -248,7 +248,7 @@ def test_should_manytoone_convert_connectionorlist_list():
             model = Reporter
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Article.reporter.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Article.reporter.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -263,7 +263,7 @@ def test_should_manytoone_convert_connectionorlist_connection():
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Article.reporter.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Article.reporter.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -278,7 +278,7 @@ def test_should_onetoone_convert_field():
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.favorite_article.property, A, default_connection_field_factory, True, 'orm_field_name',
+        Reporter.favorite_article.property, A, default_connection_field_factory, 'orm_field_name',
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()

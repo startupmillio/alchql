@@ -1,14 +1,12 @@
 #!/usr/bin/env python
+from flask import Flask, request
+from flask_graphql import GraphQLView
 from graphene import Context
 
-from database import Base, db_session, init_db
-from flask import Flask, request
-
+import models
+from database import db_session, init_db
 from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
 from schema import schema
-
-from flask_graphql import GraphQLView
-import models
 
 app = Flask(__name__)
 app.debug = True

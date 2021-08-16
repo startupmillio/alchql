@@ -1,7 +1,7 @@
 import pytest
 import sqlalchemy as sa
 
-from graphene import Enum, List, ObjectType, Schema, String
+from graphene import Context, Enum, List, ObjectType, Schema, String
 
 from ..utils import (get_session, sort_argument_for_model, sort_enum_for_model,
                      to_enum_value_name, to_type_name)
@@ -24,7 +24,7 @@ def test_get_session():
     """
 
     schema = Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session, "loadres": {}})
+    result = schema.execute(query, context_value=Context(session=session))
     assert not result.errors
     assert result.data["x"] == session
 

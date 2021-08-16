@@ -2,12 +2,13 @@ import pytest
 from graphql.backend import GraphQLCachedBackend, GraphQLCoreBackend
 
 import graphene
-from graphene import relay
+from graphene import Context, relay
 
 from ..fields import BatchSQLAlchemyConnectionField
+from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
-from .models import Article, HairKind, Pet, Reporter
-from .utils import is_sqlalchemy_version_less_than
+from .models import Article, HairKind, Pet, Reporter, association_table
+from .utils import SessionMiddleware, is_sqlalchemy_version_less_than
 
 if is_sqlalchemy_version_less_than('1.2'):
     pytest.skip('SQL batching only works for SQLAlchemy 1.2+', allow_module_level=True)
@@ -37,10 +38,10 @@ def get_schema():
         reporters = graphene.Field(graphene.List(ReporterType))
 
         def resolve_articles(self, info):
-            return info.context.get('session').query(Article).all()
+            return info.context.session.query(Article).all()
 
         def resolve_reporters(self, info):
-            return info.context.get('session').query(Reporter).all()
+            return info.context.session.query(Reporter).all()
 
     return graphene.Schema(query=Query)
 
@@ -54,8 +55,12 @@ def benchmark_query(session_factory, benchmark, query):
     def execute_query():
         result = schema.execute(
           query,
-          context_value={"session": session_factory()},
+          context_value=Context(),
           backend=cached_backend,
+          middleware=[
+            LoaderMiddleware([Article, Reporter, Pet]),
+            SessionMiddleware(session_factory),
+          ]
         )
         assert not result.errors
 

@@ -1,26 +1,22 @@
 import contextlib
 import logging
-from functools import partial
 
 import pytest
 
 import graphene
 from graphene import Context, relay
-from graphql.execution.executors.sync import SyncExecutor
-from graphql.graphql import execute_graphql
-
-from graphene_sqlalchemy import get_session
 
 from ..fields import (BatchSQLAlchemyConnectionField,
                       default_connection_field_factory)
 from ..loaders_middleware import LoaderMiddleware
 from ..types import ORMField, SQLAlchemyObjectType
 from .models import Article, HairKind, Pet, Reporter
-from .utils import is_sqlalchemy_version_less_than, to_std_dicts
+from .utils import SessionMiddleware, is_sqlalchemy_version_less_than, to_std_dicts
 
 
 class MockLoggingHandler(logging.Handler):
     """Intercept and store log messages in a list."""
+
     def __init__(self, *args, **kwargs):
         self.messages = []
         logging.Handler.__init__(self, *args, **kwargs)
@@ -69,10 +65,10 @@ def get_schema():
         reporters = graphene.Field(graphene.List(ReporterType))
 
         def resolve_articles(self, info):
-            return get_session(info.context).query(Article).all()
+            return info.context.session.query(Article).all()
 
         def resolve_reporters(self, info):
-            return get_session(info.context).query(Reporter).all()
+            return info.context.session.query(Reporter).all()
 
     return graphene.Schema(query=Query)
 
@@ -80,30 +76,16 @@ def get_schema():
 if is_sqlalchemy_version_less_than('1.2'):
     pytest.skip('SQL batching only works for SQLAlchemy 1.2+', allow_module_level=True)
 
-class SessionMiddleware:
-    def __init__(self, session):
-        self.session = session
-
-    def resolve(self, next, root, info, **args):
-        context = info.context or Context()
-
-        if callable(self.session):
-            context.session = self.session()
-        else:
-            context.session = self.session
-
-        info.context = context
-        return next(root, info, **args)
 
 def test_many_to_one(session_factory):
     session = session_factory()
 
     reporter_1 = Reporter(
-      first_name='Reporter_1',
+        first_name='Reporter_1',
     )
     session.add(reporter_1)
     reporter_2 = Reporter(
-      first_name='Reporter_2',
+        first_name='Reporter_2',
     )
     session.add(reporter_2)
 
@@ -123,7 +105,7 @@ def test_many_to_one(session_factory):
     with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
         # Starts new session to fully reset the engine / connection logging level
         # session = session_factory()
-        result = execute_graphql(
+        result = schema.execute(
             schema,
             """
               query {
@@ -154,43 +136,43 @@ def test_many_to_one(session_factory):
         return
 
     assert messages == [
-      'BEGIN (implicit)',
+        'BEGIN (implicit)',
 
-      'SELECT articles.id AS articles_id, '
-      'articles.headline AS articles_headline, '
-      'articles.pub_date AS articles_pub_date, '
-      'articles.reporter_id AS articles_reporter_id \n'
-      'FROM articles',
-      '()',
+        'SELECT articles.id AS articles_id, '
+        'articles.headline AS articles_headline, '
+        'articles.pub_date AS articles_pub_date, '
+        'articles.reporter_id AS articles_reporter_id \n'
+        'FROM articles',
+        '()',
 
-      'SELECT reporters.id AS reporters_id, '
-      '(SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-      'reporters.first_name AS reporters_first_name, '
-      'reporters.last_name AS reporters_last_name, '
-      'reporters.email AS reporters_email, '
-      'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-      'FROM reporters \n'
-      'WHERE reporters.id IN (?, ?)',
-      '(1, 2)',
+        'SELECT reporters.id AS reporters_id, '
+        '(SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
+        'reporters.first_name AS reporters_first_name, '
+        'reporters.last_name AS reporters_last_name, '
+        'reporters.email AS reporters_email, '
+        'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
+        'FROM reporters \n'
+        'WHERE reporters.id IN (?, ?)',
+        '(1, 2)',
     ]
 
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == {
-      "articles": [
-        {
-          "headline": "Article_1",
-          "reporter": {
-            "firstName": "Reporter_1",
-          },
-        },
-        {
-          "headline": "Article_2",
-          "reporter": {
-            "firstName": "Reporter_2",
-          },
-        },
-      ],
+        "articles": [
+            {
+                "headline": "Article_1",
+                "reporter": {
+                    "firstName": "Reporter_1",
+                },
+            },
+            {
+                "headline": "Article_2",
+                "reporter": {
+                    "firstName": "Reporter_2",
+                },
+            },
+        ],
     }
 
 
@@ -198,11 +180,11 @@ def test_one_to_one(session_factory):
     session = session_factory()
 
     reporter_1 = Reporter(
-      first_name='Reporter_1',
+        first_name='Reporter_1',
     )
     session.add(reporter_1)
     reporter_2 = Reporter(
-      first_name='Reporter_2',
+        first_name='Reporter_2',
     )
     session.add(reporter_2)
 
@@ -231,7 +213,13 @@ def test_one_to_one(session_factory):
               }
             }
           }
-        """, context_value={"session": session}, )
+        """,
+                                context_value=Context(),
+                                middleware=[
+                                    LoaderMiddleware([Article, Reporter]),
+                                    SessionMiddleware(session_factory()),
+                                ]
+                                )
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -245,43 +233,43 @@ def test_one_to_one(session_factory):
         return
 
     assert messages == [
-      'BEGIN (implicit)',
+        'BEGIN (implicit)',
 
-      'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-      'reporters.id AS reporters_id, '
-      'reporters.first_name AS reporters_first_name, '
-      'reporters.last_name AS reporters_last_name, '
-      'reporters.email AS reporters_email, '
-      'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-      'FROM reporters',
-      '()',
+        'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
+        'reporters.id AS reporters_id, '
+        'reporters.first_name AS reporters_first_name, '
+        'reporters.last_name AS reporters_last_name, '
+        'reporters.email AS reporters_email, '
+        'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
+        'FROM reporters',
+        '()',
 
-      'SELECT articles.reporter_id AS articles_reporter_id, '
-      'articles.id AS articles_id, '
-      'articles.headline AS articles_headline, '
-      'articles.pub_date AS articles_pub_date \n'
-      'FROM articles \n'
-      'WHERE articles.reporter_id IN (?, ?)',
-      '(1, 2)'
+        'SELECT articles.reporter_id AS articles_reporter_id, '
+        'articles.id AS articles_id, '
+        'articles.headline AS articles_headline, '
+        'articles.pub_date AS articles_pub_date \n'
+        'FROM articles \n'
+        'WHERE articles.reporter_id IN (?, ?)',
+        '(1, 2)'
     ]
 
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == {
-      "reporters": [
-        {
-          "firstName": "Reporter_1",
-          "favoriteArticle": {
-            "headline": "Article_1",
-          },
-        },
-        {
-          "firstName": "Reporter_2",
-          "favoriteArticle": {
-            "headline": "Article_2",
-          },
-        },
-      ],
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "favoriteArticle": {
+                    "headline": "Article_1",
+                },
+            },
+            {
+                "firstName": "Reporter_2",
+                "favoriteArticle": {
+                    "headline": "Article_2",
+                },
+            },
+        ],
     }
 
 
@@ -289,11 +277,11 @@ def test_one_to_many(session_factory):
     session = session_factory()
 
     reporter_1 = Reporter(
-      first_name='Reporter_1',
+        first_name='Reporter_1',
     )
     session.add(reporter_1)
     reporter_2 = Reporter(
-      first_name='Reporter_2',
+        first_name='Reporter_2',
     )
     session.add(reporter_2)
 
@@ -334,7 +322,11 @@ def test_one_to_many(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value=Context(),
+                                middleware=[
+                                    LoaderMiddleware([Article, Reporter]),
+                                    SessionMiddleware(session_factory()),
+                                ])
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -348,65 +340,65 @@ def test_one_to_many(session_factory):
         return
 
     assert messages == [
-      'BEGIN (implicit)',
+        'BEGIN (implicit)',
 
-      'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-      'reporters.id AS reporters_id, '
-      'reporters.first_name AS reporters_first_name, '
-      'reporters.last_name AS reporters_last_name, '
-      'reporters.email AS reporters_email, '
-      'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-      'FROM reporters',
-      '()',
+        'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
+        'reporters.id AS reporters_id, '
+        'reporters.first_name AS reporters_first_name, '
+        'reporters.last_name AS reporters_last_name, '
+        'reporters.email AS reporters_email, '
+        'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
+        'FROM reporters',
+        '()',
 
-      'SELECT articles.reporter_id AS articles_reporter_id, '
-      'articles.id AS articles_id, '
-      'articles.headline AS articles_headline, '
-      'articles.pub_date AS articles_pub_date \n'
-      'FROM articles \n'
-      'WHERE articles.reporter_id IN (?, ?)',
-      '(1, 2)'
+        'SELECT articles.reporter_id AS articles_reporter_id, '
+        'articles.id AS articles_id, '
+        'articles.headline AS articles_headline, '
+        'articles.pub_date AS articles_pub_date \n'
+        'FROM articles \n'
+        'WHERE articles.reporter_id IN (?, ?)',
+        '(1, 2)'
     ]
 
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == {
-      "reporters": [
-        {
-          "firstName": "Reporter_1",
-          "articles": {
-            "edges": [
-              {
-                "node": {
-                  "headline": "Article_1",
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "articles": {
+                    "edges": [
+                        {
+                            "node": {
+                                "headline": "Article_1",
+                            },
+                        },
+                        {
+                            "node": {
+                                "headline": "Article_2",
+                            },
+                        },
+                    ],
                 },
-              },
-              {
-                "node": {
-                  "headline": "Article_2",
+            },
+            {
+                "firstName": "Reporter_2",
+                "articles": {
+                    "edges": [
+                        {
+                            "node": {
+                                "headline": "Article_3",
+                            },
+                        },
+                        {
+                            "node": {
+                                "headline": "Article_4",
+                            },
+                        },
+                    ],
                 },
-              },
-            ],
-          },
-        },
-        {
-          "firstName": "Reporter_2",
-          "articles": {
-            "edges": [
-              {
-                "node": {
-                  "headline": "Article_3",
-                },
-              },
-              {
-                "node": {
-                  "headline": "Article_4",
-                },
-              },
-            ],
-          },
-        },
-      ],
+            },
+        ],
     }
 
 
@@ -414,11 +406,11 @@ def test_many_to_many(session_factory):
     session = session_factory()
 
     reporter_1 = Reporter(
-      first_name='Reporter_1',
+        first_name='Reporter_1',
     )
     session.add(reporter_1)
     reporter_2 = Reporter(
-      first_name='Reporter_2',
+        first_name='Reporter_2',
     )
     session.add(reporter_2)
 
@@ -461,7 +453,11 @@ def test_many_to_many(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value=Context(),
+                                middleware=[
+                                    LoaderMiddleware([Article, Reporter]),
+                                    SessionMiddleware(session_factory()),
+                                ])
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
@@ -475,70 +471,70 @@ def test_many_to_many(session_factory):
         return
 
     assert messages == [
-      'BEGIN (implicit)',
+        'BEGIN (implicit)',
 
-      'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-      'reporters.id AS reporters_id, '
-      'reporters.first_name AS reporters_first_name, '
-      'reporters.last_name AS reporters_last_name, '
-      'reporters.email AS reporters_email, '
-      'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-      'FROM reporters',
-      '()',
+        'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
+        'reporters.id AS reporters_id, '
+        'reporters.first_name AS reporters_first_name, '
+        'reporters.last_name AS reporters_last_name, '
+        'reporters.email AS reporters_email, '
+        'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
+        'FROM reporters',
+        '()',
 
-      'SELECT reporters_1.id AS reporters_1_id, '
-      'pets.id AS pets_id, '
-      'pets.name AS pets_name, '
-      'pets.pet_kind AS pets_pet_kind, '
-      'pets.hair_kind AS pets_hair_kind, '
-      'pets.reporter_id AS pets_reporter_id \n'
-      'FROM reporters AS reporters_1 '
-      'JOIN association AS association_1 ON reporters_1.id = association_1.reporter_id '
-      'JOIN pets ON pets.id = association_1.pet_id \n'
-      'WHERE reporters_1.id IN (?, ?) '
-      'ORDER BY pets.id',
-      '(1, 2)'
+        'SELECT reporters_1.id AS reporters_1_id, '
+        'pets.id AS pets_id, '
+        'pets.name AS pets_name, '
+        'pets.pet_kind AS pets_pet_kind, '
+        'pets.hair_kind AS pets_hair_kind, '
+        'pets.reporter_id AS pets_reporter_id \n'
+        'FROM reporters AS reporters_1 '
+        'JOIN association AS association_1 ON reporters_1.id = association_1.reporter_id '
+        'JOIN pets ON pets.id = association_1.pet_id \n'
+        'WHERE reporters_1.id IN (?, ?) '
+        'ORDER BY pets.id',
+        '(1, 2)'
     ]
 
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == {
-      "reporters": [
-        {
-          "firstName": "Reporter_1",
-          "pets": {
-            "edges": [
-              {
-                "node": {
-                  "name": "Pet_1",
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "pets": {
+                    "edges": [
+                        {
+                            "node": {
+                                "name": "Pet_1",
+                            },
+                        },
+                        {
+                            "node": {
+                                "name": "Pet_2",
+                            },
+                        },
+                    ],
                 },
-              },
-              {
-                "node": {
-                  "name": "Pet_2",
+            },
+            {
+                "firstName": "Reporter_2",
+                "pets": {
+                    "edges": [
+                        {
+                            "node": {
+                                "name": "Pet_3",
+                            },
+                        },
+                        {
+                            "node": {
+                                "name": "Pet_4",
+                            },
+                        },
+                    ],
                 },
-              },
-            ],
-          },
-        },
-        {
-          "firstName": "Reporter_2",
-          "pets": {
-            "edges": [
-              {
-                "node": {
-                  "name": "Pet_3",
-                },
-              },
-              {
-                "node": {
-                  "name": "Pet_4",
-                },
-              },
-            ],
-          },
-        },
-      ],
+            },
+        ],
     }
 
 
@@ -569,7 +565,7 @@ def test_disable_batching_via_ormfield(session_factory):
         reporters = graphene.Field(graphene.List(ReporterType))
 
         def resolve_reporters(self, info):
-            return info.context.get('session').query(Reporter).all()
+            return info.context.session.query(Reporter).all()
 
     schema = graphene.Schema(query=Query)
 
@@ -585,7 +581,11 @@ def test_disable_batching_via_ormfield(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value=Context(),
+                       middleware=[
+                           LoaderMiddleware([Article, Reporter]),
+                           SessionMiddleware(session_factory()),
+                       ])
         messages = sqlalchemy_logging_handler.messages
 
     select_statements = [message for message in messages if 'SELECT' in message and 'FROM articles' in message]
@@ -607,7 +607,11 @@ def test_disable_batching_via_ormfield(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value=Context(),
+                       middleware=[
+                           LoaderMiddleware([Article, Reporter]),
+                           SessionMiddleware(session),
+                       ])
         messages = sqlalchemy_logging_handler.messages
 
     select_statements = [message for message in messages if 'SELECT' in message and 'FROM articles' in message]
@@ -641,13 +645,12 @@ def test_connection_factory_field_overrides_batching_is_false(session_factory):
         reporters = graphene.Field(graphene.List(ReporterType))
 
         def resolve_reporters(self, info):
-            return info.context.get('session').query(Reporter).all()
+            return info.context.session.query(Reporter).all()
 
     schema = graphene.Schema(query=Query)
 
     with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
         # Starts new session to fully reset the engine / connection logging level
-        session = session_factory()
         schema.execute("""
           query {
             reporters {
@@ -660,7 +663,11 @@ def test_connection_factory_field_overrides_batching_is_false(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value=Context(),
+                       middleware=[
+                           LoaderMiddleware([Article, Reporter]),
+                           SessionMiddleware(session_factory()),
+                       ])
         messages = sqlalchemy_logging_handler.messages
 
     if is_sqlalchemy_version_less_than('1.3'):
@@ -700,13 +707,12 @@ def test_connection_factory_field_overrides_batching_is_true(session_factory):
         reporters = graphene.Field(graphene.List(ReporterType))
 
         def resolve_reporters(self, info):
-            return info.context.get('session').query(Reporter).all()
+            return info.context.session.query(Reporter).all()
 
     schema = graphene.Schema(query=Query)
 
     with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
         # Starts new session to fully reset the engine / connection logging level
-        session = session_factory()
         schema.execute("""
           query {
             reporters {
@@ -719,7 +725,11 @@ def test_connection_factory_field_overrides_batching_is_true(session_factory):
               }
             }
           }
-        """, context_value={"session": session, "loadres": {}})
+        """, context_value=Context(),
+                       middleware=[
+                           LoaderMiddleware([Article, Reporter]),
+                           SessionMiddleware(session_factory()),
+                       ])
         messages = sqlalchemy_logging_handler.messages
 
     select_statements = [message for message in messages if 'SELECT' in message and 'FROM articles' in message]

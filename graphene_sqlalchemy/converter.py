@@ -1,5 +1,6 @@
 from enum import EnumMeta
 
+from promise import Promise
 from singledispatch import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
@@ -62,7 +63,7 @@ def convert_sqlalchemy_relationship(relationship_prop, obj_type, connection_fiel
     return Dynamic(dynamic_type)
 
 
-def _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, orm_field_name, **field_kwargs):
+def _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, orm_field_name, batching=True, **field_kwargs):
     """
     Convert one-to-one or many-to-one relationshsip. Return an object field.
 
@@ -77,7 +78,7 @@ def _convert_o2o_or_m2o_relationship(relationship_prop, obj_type, orm_field_name
 
     resolver = get_custom_resolver(obj_type, orm_field_name)
     if resolver is None:
-        resolver = get_batch_resolver(relationship_prop)
+        resolver = get_batch_resolver(relationship_prop, single=True)
 
     return Field(child_type, resolver=resolver, **field_kwargs)
 

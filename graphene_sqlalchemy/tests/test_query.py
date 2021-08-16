@@ -1,11 +1,15 @@
 import graphene
+from graphene import Context
 from graphene.relay import Node
+from graphql import GraphQLBackend, graphql
+from graphql.execution.executors.sync import SyncExecutor
 
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField
+from ..loaders_middleware import LoaderMiddleware
 from ..types import ORMField, SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Editor, HairKind, Pet, Reporter
-from .utils import to_std_dicts
+from .utils import SessionMiddleware, to_std_dicts
 
 
 def add_test_data(session):
@@ -145,7 +149,14 @@ def test_query_node(session):
         "myArticle": {"id": "QXJ0aWNsZU5vZGU6MQ==", "headline": "Hi!"},
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session, "loadres": {}})
+    result = schema.execute(
+        query,
+        context_value=Context(),
+        middleware=[
+            LoaderMiddleware([Article, Reporter]),
+            SessionMiddleware(session),
+        ]
+    )
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -212,7 +223,14 @@ def test_orm_field(session):
         },
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session, "loadres": {}})
+    result = schema.execute(
+        query,
+        context_value=Context(),
+        middleware=[
+            LoaderMiddleware([Article, Reporter]),
+            SessionMiddleware(session),
+        ]
+    )
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -253,7 +271,14 @@ def test_custom_identifier(session):
     }
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, context_value={"session": session, "loadres": {}})
+    result = schema.execute(
+        query,
+        context_value=Context(),
+        middleware=[
+            LoaderMiddleware([Article, Reporter]),
+            SessionMiddleware(session),
+        ]
+    )
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -332,7 +357,14 @@ def test_mutation(session):
     }
 
     schema = graphene.Schema(query=Query, mutation=Mutation)
-    result = schema.execute(query, context_value={"session": session, "loadres": {}})
+    result = schema.execute(
+        query,
+        context_value=Context(),
+        middleware=[
+            LoaderMiddleware([Article, Reporter]),
+            SessionMiddleware(session),
+        ]
+    )
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected

@@ -21,7 +21,7 @@ from .enums import (enum_for_field, sort_argument_for_object_type,
 from .loader_fk import generate_loader_by_foreign_key
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
-from .utils import get_query, is_mapped_class, is_mapped_instance
+from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
 
 
 class ORMField(OrderedType):
@@ -300,8 +300,18 @@ class SQLAlchemyObjectType(ObjectType):
 
     @classmethod
     def get_node(cls, info, id):
+        session = get_session(info.context)
+        model = cls._meta.model
+
+        pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
+        q = sqlalchemy.select([model]).where(
+            pk == id
+        )
+
         try:
-            return cls.get_query(info).get(id)
+            result = session.execute(q).fetchone()
+            if result:
+                return model(**result)
         except NoResultFound:
             return None
 
