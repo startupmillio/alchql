@@ -59,7 +59,7 @@ def benchmark_query(session_factory, benchmark, query):
           backend=cached_backend,
           middleware=[
             LoaderMiddleware([Article, Reporter, Pet]),
-            SessionMiddleware(session_factory),
+            SessionMiddleware(session_factory()),
           ]
         )
         assert not result.errors

@@ -31,6 +31,9 @@ class Editor(Base):
     editor_id = Column(Integer(), primary_key=True)
     name = Column(String(100))
 
+    def __repr__(self):
+        return f'{self.__tablename__}(editor_id={self.editor_id}, name={self.name})'
+
 
 class Pet(Base):
     __tablename__ = "pets"
@@ -39,6 +42,9 @@ class Pet(Base):
     pet_kind = Column(PetKind, nullable=False)
     hair_kind = Column(Enum(HairKind, name="hair_kind"), nullable=False)
     reporter_id = Column(Integer(), ForeignKey("reporters.id"))
+
+    def __repr__(self):
+        return f'{self.__tablename__}(id={self.id})'
 
 
 class CompositeFullName(object):
@@ -75,6 +81,9 @@ class Reporter(Base):
 
     composite_prop = composite(CompositeFullName, first_name, last_name, doc="Composite")
 
+    def __repr__(self):
+        return f'{self.__tablename__}(id={self.id})'
+
 
 class Article(Base):
     __tablename__ = "articles"
@@ -82,6 +91,9 @@ class Article(Base):
     headline = Column(String(100))
     pub_date = Column(Date())
     reporter_id = Column(Integer(), ForeignKey("reporters.id"))
+
+    def __repr__(self):
+        return f'{self.__tablename__}(id={self.id})'
 
 
 class ReflectedEditor(type):
