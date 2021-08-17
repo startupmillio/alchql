@@ -1,7 +1,5 @@
 from graphql_relay.connection.arrayconnection import get_offset_with_default, offset_to_cursor
 
-from .sa_version import __sa_version__
-
 
 def connection_from_query(query, model, session, args=None, connection_type=None,
                                edge_type=None, pageinfo_type=None,
@@ -48,22 +46,13 @@ def connection_from_query(query, model, session, args=None, connection_type=None
 
     # If supplied slice is too large, trim it down before mapping over it.
     _slice = query.limit(end_offset).offset(start_offset)
-    if __sa_version__ > (1, 4):
-        edges = [
-            edge_type(
-                node=node[0],
-                cursor=offset_to_cursor(start_offset + i)
-            )
-            for i, node in enumerate(session.execute(_slice))
-        ]
-    else:
-        edges = [
-            edge_type(
-                node=model(**node),
-                cursor=offset_to_cursor(start_offset + i)
-            )
-            for i, node in enumerate(session.execute(_slice))
-        ]
+    edges = [
+        edge_type(
+            node=model(**node),
+            cursor=offset_to_cursor(start_offset + i)
+        )
+        for i, node in enumerate(session.execute(_slice))
+    ]
 
     first_edge_cursor = edges[0].cursor if edges else None
     last_edge_cursor = edges[-1].cursor if edges else None

@@ -43,20 +43,19 @@ def collect_fields(node, fragments):
 
     field = {}
 
-    if node.get('selection_set'):
-        for leaf in node['selection_set']['selections']:
-            if leaf['kind'] == 'Field':
-                field.update({
-                    leaf['name']['value']: collect_fields(leaf, fragments)
-                })
-            elif leaf['kind'] == 'FragmentSpread':
-                field.update(collect_fields(fragments[leaf['name']['value']],
-                                            fragments))
+    if node.get("selection_set"):
+        for leaf in node["selection_set"]["selections"]:
+            if leaf["kind"] == "Field":
+                field.update({leaf["name"]["value"]: collect_fields(leaf, fragments)})
+            elif leaf["kind"] == "FragmentSpread":
+                field.update(
+                    collect_fields(fragments[leaf["name"]["value"]], fragments)
+                )
 
     return field
 
 
-def get_fields(info):
+def get_tree(info):
     """A convenience function to call collect_fields with info
 
     Args:
@@ -73,3 +72,25 @@ def get_fields(info):
         fragments[name] = ast_to_dict(value)
 
     return collect_fields(node, fragments)
+
+
+def get_fields(model, info):
+    tree = get_tree(info)
+
+    if 'edges' in tree:
+        tree = tree['edges']
+        if 'node' in tree:
+            tree = tree['node']
+
+    fields = []
+    for k in tree.keys():
+        ex = getattr(model, k).expression
+        if hasattr(ex, "left") and hasattr(ex, "right"):
+            if model.__table__ == ex.left.table:
+                fields.append(ex.left)
+            elif model.__table__ == ex.right.table:
+                fields.append(ex.right)
+        else:
+            fields.append(ex)
+
+    return fields

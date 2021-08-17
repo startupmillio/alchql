@@ -27,8 +27,9 @@ from ..types import SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Pet, Reporter
 from ..sa_version import __sa_version__
 
+
 def mock_resolver():
-    pass
+    """Empty resolver"""
 
 
 def get_field(sqlalchemy_type, **column_kwargs):

@@ -41,7 +41,14 @@ def test_sqlalchemy_node(session):
     session.commit()
     info = mock.Mock(context={'session': session})
     reporter_node = ReporterType.get_node(info, reporter.id)
-    assert reporter == reporter_node
+    assert reporter.id == reporter_node.id
+    assert reporter.first_name == reporter_node.first_name
+    assert reporter.last_name == reporter_node.last_name
+    assert reporter.email == reporter_node.email
+    assert reporter.favorite_pet_kind == reporter_node.favorite_pet_kind
+    assert reporter.pets == reporter_node.pets
+    assert reporter.articles == reporter_node.articles
+    assert reporter.favorite_article == reporter_node.favorite_article
 
 
 def test_connection():

@@ -6,18 +6,25 @@ from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
 
+from graphene_sqlalchemy.gql_fields import get_fields
+
 
 def get_session(context):
-    if hasattr(context, 'session'):
+    if hasattr(context, "session"):
         return context.session
-    elif hasattr(context, 'get'):
+    elif hasattr(context, "get"):
         return context.get("session")
     else:
-        raise Exception('Session not found')
+        raise Exception("Session not found")
 
 
 def get_query(model, info):
-    return sa.select([model])
+    try:
+        fields = get_fields(model, info)
+    except Exception as e:
+        fields = model.__table__.columns
+
+    return sa.select(fields)
 
 
 def is_mapped_class(cls):

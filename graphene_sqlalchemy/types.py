@@ -235,9 +235,7 @@ class SQLAlchemyObjectType(ObjectType):
         )
 
         if use_connection is None and interfaces:
-            use_connection = any(
-                (issubclass(interface, Node) for interface in interfaces)
-            )
+            use_connection = any(issubclass(interface, Node) for interface in interfaces)
 
         if use_connection and not connection:
             # We create the connection automatically
@@ -304,17 +302,14 @@ class SQLAlchemyObjectType(ObjectType):
         model = cls._meta.model
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
-        q = sqlalchemy.select([model]).where(
+        q = sqlalchemy.select(model.__table__.columns).where(
             pk == id
         )
 
         try:
             result = session.execute(q).fetchone()
             if result:
-                if __sa_version__ > (1, 4):
-                    return result[0]
-                else:
-                    return model(**result)
+                return model(**result)
         except NoResultFound:
             return None
 
