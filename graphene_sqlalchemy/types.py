@@ -311,7 +311,10 @@ class SQLAlchemyObjectType(ObjectType):
         try:
             result = session.execute(q).fetchone()
             if result:
-                return model(**result)
+                if sqlalchemy.__version__.startswith('1.4.'):
+                    return result[0]
+                else:
+                    return model(**result)
         except NoResultFound:
             return None
 

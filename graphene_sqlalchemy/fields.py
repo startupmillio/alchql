@@ -60,9 +60,16 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         session = get_session(info.context)
 
         if resolved is None:
-            _len = session.execute(sa.select([sa.func.count()]).select_from(
-                query.with_only_columns(sa.inspect(model).primary_key))
-            ).scalar()
+            if sa.__version__.startswith('1.4.'):
+                q = sa.select(sa.func.count()).select_from(
+                    query.with_only_columns(*sa.inspect(model).primary_key)
+                )
+            else:
+                q = sa.select([sa.func.count()]).select_from(
+                    query.with_only_columns(sa.inspect(model).primary_key)
+                )
+            _len = session.execute(q).scalar()
+
             connection = connection_from_query(
                 query,
                 model,
@@ -166,35 +173,6 @@ def default_connection_field_factory(relationship, registry, **field_kwargs):
 
 # TODO Remove in next major version
 __connectionFactory = UnsortedSQLAlchemyConnectionField
-
-
-def createConnectionField(_type, **field_kwargs):
-    warnings.warn(
-        'createConnectionField is deprecated and will be removed in the next '
-        'major version. Use SQLAlchemyObjectType.Meta.connection_field_factory instead.',
-        DeprecationWarning,
-    )
-    return __connectionFactory(_type, **field_kwargs)
-
-
-def registerConnectionFieldFactory(factoryMethod):
-    warnings.warn(
-        'registerConnectionFieldFactory is deprecated and will be removed in the next '
-        'major version. Use SQLAlchemyObjectType.Meta.connection_field_factory instead.',
-        DeprecationWarning,
-    )
-    global __connectionFactory
-    __connectionFactory = factoryMethod
-
-
-def unregisterConnectionFieldFactory():
-    warnings.warn(
-        'registerConnectionFieldFactory is deprecated and will be removed in the next '
-        'major version. Use SQLAlchemyObjectType.Meta.connection_field_factory instead.',
-        DeprecationWarning,
-    )
-    global __connectionFactory
-    __connectionFactory = UnsortedSQLAlchemyConnectionField
 
 
 def get_nullable_type(_type):

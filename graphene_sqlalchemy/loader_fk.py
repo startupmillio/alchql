@@ -30,9 +30,13 @@ def generate_loader_by_foreign_key(relation):
             results_by_ids = defaultdict(list)
 
             for result in self.session.execute(q):
-                _result = dict(**result)
-                _batch_key = _result.pop("_batch_key")
-                results_by_ids[_batch_key].append(target(**_result))
+                if sa.__version__.startswith("1.4."):
+                    _result, _batch_key = result
+                else:
+                    _data = dict(**result)
+                    _batch_key = _data.pop("_batch_key")
+                    _result = target(**_data)
+                results_by_ids[_batch_key].append(_result)
 
             return Promise.resolve([results_by_ids.get(id, []) for id in keys])
 

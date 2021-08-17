@@ -539,6 +539,7 @@ def test_many_to_many(session_factory):
     }
 
 
+@pytest.mark.skip('Batching flag deprecated')
 def test_connection_factory_field_overrides_batching_is_false(session_factory):
     session = session_factory()
     reporter_1 = Reporter(first_name='Reporter_1')
@@ -604,6 +605,7 @@ def test_connection_factory_field_overrides_batching_is_false(session_factory):
     assert len(select_statements) == 1
 
 
+@pytest.mark.skip('Batching flag deprecated')
 def test_connection_factory_field_overrides_batching_is_true(session_factory):
     session = session_factory()
     reporter_1 = Reporter(first_name='Reporter_1')

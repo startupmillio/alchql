@@ -8,9 +8,7 @@ from graphene.relay import Connection
 
 from ..converter import convert_sqlalchemy_composite
 from ..fields import (SQLAlchemyConnectionField,
-                      UnsortedSQLAlchemyConnectionField, createConnectionField,
-                      registerConnectionFieldFactory,
-                      unregisterConnectionFieldFactory)
+                      UnsortedSQLAlchemyConnectionField)
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
 from .models import Article, CompositeFullName, Pet, Reporter
 
@@ -452,43 +450,3 @@ def test_custom_connection_field_factory():
             interfaces = (Node,)
 
     assert isinstance(ReporterType._meta.fields['articles'].type(), _TestSQLAlchemyConnectionField)
-
-
-def test_deprecated_registerConnectionFieldFactory():
-    with pytest.warns(DeprecationWarning):
-        registerConnectionFieldFactory(_TestSQLAlchemyConnectionField)
-
-        class ReporterType(SQLAlchemyObjectType):
-            class Meta:
-                model = Reporter
-                interfaces = (Node,)
-
-        class ArticleType(SQLAlchemyObjectType):
-            class Meta:
-                model = Article
-                interfaces = (Node,)
-
-        assert isinstance(ReporterType._meta.fields['articles'].type(), _TestSQLAlchemyConnectionField)
-
-
-def test_deprecated_unregisterConnectionFieldFactory():
-    with pytest.warns(DeprecationWarning):
-        registerConnectionFieldFactory(_TestSQLAlchemyConnectionField)
-        unregisterConnectionFieldFactory()
-
-        class ReporterType(SQLAlchemyObjectType):
-            class Meta:
-                model = Reporter
-                interfaces = (Node,)
-
-        class ArticleType(SQLAlchemyObjectType):
-            class Meta:
-                model = Article
-                interfaces = (Node,)
-
-        assert not isinstance(ReporterType._meta.fields['articles'].type(), _TestSQLAlchemyConnectionField)
-
-
-def test_deprecated_createConnectionField():
-    with pytest.warns(DeprecationWarning):
-        createConnectionField(None)
