@@ -1,3 +1,4 @@
+import logging
 import re
 import warnings
 
@@ -20,8 +21,12 @@ def get_session(context):
 
 def get_query(model, info):
     try:
-        fields = get_fields(model, info)
+        if info:
+            fields = get_fields(model, info)
+        else:
+            fields = model.__table__.columns
     except Exception as e:
+        logging.error(e)
         fields = model.__table__.columns
 
     return sa.select(fields)

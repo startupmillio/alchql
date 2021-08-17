@@ -21,7 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+import re
+
 from graphql.utils.ast_to_dict import ast_to_dict
+
+
+def camel_to_snake(name: str) -> str:
+    name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
+    return re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
 
 
 def collect_fields(node, fragments):
@@ -77,14 +84,18 @@ def get_tree(info):
 def get_fields(model, info):
     tree = get_tree(info)
 
-    if 'edges' in tree:
-        tree = tree['edges']
-        if 'node' in tree:
-            tree = tree['node']
+    if "edges" in tree:
+        tree = tree["edges"]
+        if "node" in tree:
+            tree = tree["node"]
 
     fields = []
     for k in tree.keys():
-        ex = getattr(model, k).expression
+        if hasattr(model, k):
+            ex = getattr(model, k).expression
+        else:
+            ex = getattr(model, camel_to_snake(k)).expression
+
         if hasattr(ex, "left") and hasattr(ex, "right"):
             if model.__table__ == ex.left.table:
                 fields.append(ex.left)

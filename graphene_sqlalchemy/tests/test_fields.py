@@ -43,7 +43,7 @@ def test_promise_connection_resolver():
         return Promise.resolve([])
 
     result = UnsortedSQLAlchemyConnectionField.connection_resolver(
-        resolver, Pet.connection, Pet, None, None
+        resolver, Pet.connection, Pet._meta.model, None, None
     )
     assert isinstance(result, Promise)
 

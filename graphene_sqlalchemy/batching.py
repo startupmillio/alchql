@@ -1,3 +1,5 @@
+import logging
+
 from graphene_sqlalchemy.gql_fields import get_fields
 
 
@@ -13,6 +15,7 @@ def get_batch_resolver(relationship_prop, single=False):
         try:
             fields = get_fields(relationship_prop.mapper.entity, info)
         except Exception as e:
+            logging.error(e)
             fields = relationship_prop.mapper.entity.__table__.columns
 
         _loader.fields.update(fields)
