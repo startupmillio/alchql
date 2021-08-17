@@ -1,12 +1,11 @@
 import pytest
+from graphene import Enum as GrapheneEnum
 from sqlalchemy.types import Enum as SQLAlchemyEnum
 
-from graphene import Enum as GrapheneEnum
-
+from .models import Pet
 from ..registry import Registry
 from ..types import SQLAlchemyObjectType
 from ..utils import EnumValue
-from .models import Pet
 
 
 def test_register_object_type():

@@ -4,6 +4,8 @@ import sqlalchemy as sa
 from promise import Promise
 from promise.dataloader import DataLoader
 
+from .sa_version import __sa_version__
+
 
 def generate_loader_by_foreign_key(relation):
     class Loader(DataLoader):
@@ -30,7 +32,7 @@ def generate_loader_by_foreign_key(relation):
             results_by_ids = defaultdict(list)
 
             for result in self.session.execute(q):
-                if sa.__version__.startswith("1.4."):
+                if __sa_version__ > (1, 4):
                     _result, _batch_key = result
                 else:
                     _data = dict(**result)

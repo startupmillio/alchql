@@ -1,7 +1,6 @@
 import enum
 
 import pytest
-import sqlalchemy
 from sqlalchemy import Column, func, select, types
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declarative_base
@@ -26,7 +25,7 @@ from ..fields import (UnsortedSQLAlchemyConnectionField,
 from ..registry import Registry, get_global_registry
 from ..types import SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Pet, Reporter
-
+from ..sa_version import __sa_version__
 
 def mock_resolver():
     pass
@@ -58,7 +57,7 @@ def test_should_unknown_sqlalchemy_field_raise_exception():
 
     # support legacy Binary type and subsequent LargeBinary
 
-    if sqlalchemy.__version__.startswith('1.4.'):
+    if __sa_version__ > (1, 4):
         LargeBinary = getattr(types, 'LargeBinary')
     else:
         LargeBinary = getattr(types, 'LargeBinary', types.Binary)

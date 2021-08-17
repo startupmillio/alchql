@@ -1,5 +1,6 @@
-import sqlalchemy
 from graphql_relay.connection.arrayconnection import get_offset_with_default, offset_to_cursor
+
+from .sa_version import __sa_version__
 
 
 def connection_from_query(query, model, session, args=None, connection_type=None,
@@ -47,7 +48,7 @@ def connection_from_query(query, model, session, args=None, connection_type=None
 
     # If supplied slice is too large, trim it down before mapping over it.
     _slice = query.limit(end_offset).offset(start_offset)
-    if sqlalchemy.__version__.startswith('1.4.'):
+    if __sa_version__ > (1, 4):
         edges = [
             edge_type(
                 node=node[0],

@@ -1,13 +1,12 @@
 from enum import Enum as PyEnum
 
 import pytest
+from graphene import Enum
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
-from graphene import Enum
-
+from .models import HairKind, Pet
 from ..enums import _convert_sa_to_graphene_enum, enum_for_field
 from ..types import SQLAlchemyObjectType
-from .models import HairKind, Pet
 
 
 def test_convert_sa_to_graphene_enum_bad_type():

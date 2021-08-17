@@ -1,11 +1,15 @@
 import pytest
 import sqlalchemy as sa
-
 from graphene import Context, Enum, List, ObjectType, Schema, String
 
-from ..utils import (get_session, sort_argument_for_model, sort_enum_for_model,
-                     to_enum_value_name, to_type_name)
 from .models import Base, Editor, Pet
+from ..utils import (
+    get_session,
+    sort_argument_for_model,
+    sort_enum_for_model,
+    to_enum_value_name,
+    to_type_name,
+)
 
 
 def test_get_session():

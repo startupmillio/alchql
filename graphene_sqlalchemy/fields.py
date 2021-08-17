@@ -1,26 +1,17 @@
-import warnings
-from collections import defaultdict
 from functools import partial
 
 import six
-from graphene_sqlalchemy.registry import get_global_registry
-from promise.dataloader import DataLoader
-
-from promise import Promise, is_thenable
-from sqlalchemy.orm.query import Query
-
-from graphene import Context, NonNull
+import sqlalchemy as sa
+from graphene import NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import PageInfo
-from graphql_relay.connection.arrayconnection import connection_from_list, connection_from_list_slice
+from graphql_relay.connection.arrayconnection import connection_from_list
+from promise import Promise, is_thenable
 
 from .batching import get_batch_resolver
-from .loader_fk import generate_loader_by_foreign_key
+from .sa_version import __sa_version__
 from .slice import connection_from_query
 from .utils import get_query, get_session
-
-import sqlalchemy as sa
-
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -60,7 +51,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         session = get_session(info.context)
 
         if resolved is None:
-            if sa.__version__.startswith('1.4.'):
+            if __sa_version__ > (1, 4):
                 q = sa.select(sa.func.count()).select_from(
                     query.with_only_columns(*sa.inspect(model).primary_key)
                 )

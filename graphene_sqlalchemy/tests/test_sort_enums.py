@@ -1,16 +1,15 @@
 import pytest
 import sqlalchemy as sa
-
 from graphene import Argument, Context, Enum, List, ObjectType, Schema
 from graphene.relay import Node
 
+from .models import Base, HairKind, Pet
+from .test_query import to_std_dicts
 from .utils import SessionMiddleware
 from ..fields import SQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
 from ..utils import to_type_name
-from .models import Base, HairKind, Pet
-from .test_query import to_std_dicts
 
 
 def add_pets(session):

@@ -1,16 +1,15 @@
 from collections import OrderedDict
 
 import sqlalchemy
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import (ColumnProperty, CompositeProperty,
-                            RelationshipProperty)
-from sqlalchemy.orm.exc import NoResultFound
-
 from graphene import Field
 from graphene.relay import Connection, Node
 from graphene.types.objecttype import ObjectType, ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.orderedtype import OrderedType
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import (ColumnProperty, CompositeProperty,
+                            RelationshipProperty)
+from sqlalchemy.orm.exc import NoResultFound
 
 from .converter import (convert_sqlalchemy_column,
                         convert_sqlalchemy_composite,
@@ -21,6 +20,7 @@ from .enums import (enum_for_field, sort_argument_for_object_type,
 from .loader_fk import generate_loader_by_foreign_key
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
+from .sa_version import __sa_version__
 from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
 
 
@@ -311,7 +311,7 @@ class SQLAlchemyObjectType(ObjectType):
         try:
             result = session.execute(q).fetchone()
             if result:
-                if sqlalchemy.__version__.startswith('1.4.'):
+                if __sa_version__ > (1, 4):
                     return result[0]
                 else:
                     return model(**result)

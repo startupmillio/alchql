@@ -1,15 +1,13 @@
 import graphene
 from graphene import Context
 from graphene.relay import Node
-from graphql import GraphQLBackend, graphql
-from graphql.execution.executors.sync import SyncExecutor
 
+from .models import Article, CompositeFullName, Editor, HairKind, Pet, Reporter
+from .utils import SessionMiddleware, to_std_dicts
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..types import ORMField, SQLAlchemyObjectType
-from .models import Article, CompositeFullName, Editor, HairKind, Pet, Reporter
-from .utils import SessionMiddleware, to_std_dicts
 
 
 def add_test_data(session):

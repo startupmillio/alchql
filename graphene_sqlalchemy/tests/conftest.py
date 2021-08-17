@@ -1,12 +1,11 @@
+import graphene
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-import graphene
-
+from .models import Base, CompositeFullName
 from ..converter import convert_sqlalchemy_composite
 from ..registry import reset_global_registry
-from .models import Base, CompositeFullName
 
 test_db_url = 'sqlite://'  # use in-memory database for tests
 

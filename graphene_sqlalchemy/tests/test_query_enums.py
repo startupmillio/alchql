@@ -1,8 +1,8 @@
 import graphene
 
-from ..types import SQLAlchemyObjectType
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
+from ..types import SQLAlchemyObjectType
 
 
 def test_query_pet_kinds(session):

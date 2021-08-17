@@ -1,10 +1,10 @@
 import re
 import warnings
 
+import sqlalchemy as sa
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
-import sqlalchemy as sa
 
 
 def get_session(context):

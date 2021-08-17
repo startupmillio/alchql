@@ -1,17 +1,16 @@
 import contextlib
 import logging
 
-import pytest
-
 import graphene
+import pytest
 from graphene import Context, relay
 
+from .models import Article, HairKind, Pet, Reporter
+from .utils import SessionMiddleware, is_sqlalchemy_version_less_than, to_std_dicts
 from ..fields import (BatchSQLAlchemyConnectionField,
                       default_connection_field_factory)
 from ..loaders_middleware import LoaderMiddleware
 from ..types import ORMField, SQLAlchemyObjectType
-from .models import Article, HairKind, Pet, Reporter
-from .utils import SessionMiddleware, is_sqlalchemy_version_less_than, to_std_dicts
 
 
 class MockLoggingHandler(logging.Handler):

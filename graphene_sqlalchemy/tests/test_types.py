@@ -1,16 +1,15 @@
 import mock
 import pytest
 import six  # noqa F401
-
 from graphene import (Dynamic, Field, GlobalID, Int, List, Node, NonNull,
                       ObjectType, Schema, String)
 from graphene.relay import Connection
 
+from .models import Article, CompositeFullName, Pet, Reporter
 from ..converter import convert_sqlalchemy_composite
 from ..fields import (SQLAlchemyConnectionField,
                       UnsortedSQLAlchemyConnectionField)
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
-from .models import Article, CompositeFullName, Pet, Reporter
 
 
 def test_should_raise_if_no_model():

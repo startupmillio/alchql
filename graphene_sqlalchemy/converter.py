@@ -1,21 +1,17 @@
 from enum import EnumMeta
 
-from promise import Promise
+from graphene import (Boolean, Dynamic, Enum, Field, Float, ID, Int, List, String)
+from graphene.types.json import JSONString
 from singledispatch import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import interfaces
 
-from graphene import (ID, Boolean, Dynamic, Enum, Field, Float, Int, List,
-                      String)
-from graphene.types.json import JSONString
-
 from .batching import get_batch_resolver
 from .enums import enum_for_sa_enum
-from .fields import (BatchSQLAlchemyConnectionField,
-                     default_connection_field_factory)
+from .fields import BatchSQLAlchemyConnectionField
 from .registry import get_global_registry
-from .resolvers import get_attr_resolver, get_custom_resolver
+from .resolvers import get_custom_resolver
 
 try:
     from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType, TSVectorType

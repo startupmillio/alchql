@@ -1,14 +1,12 @@
 import pytest
-from promise import Promise
-
 from graphene import NonNull, ObjectType
 from graphene.relay import Connection, Node
+from promise import Promise
 
+from .models import Editor as EditorModel, Pet as PetModel
 from ..fields import (SQLAlchemyConnectionField,
                       UnsortedSQLAlchemyConnectionField)
 from ..types import SQLAlchemyObjectType
-from .models import Editor as EditorModel
-from .models import Pet as PetModel
 
 
 class Pet(SQLAlchemyObjectType):
