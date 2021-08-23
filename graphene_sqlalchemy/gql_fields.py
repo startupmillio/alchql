@@ -23,7 +23,8 @@ SOFTWARE.
 """
 import re
 
-from graphql.utils.ast_to_dict import ast_to_dict
+# from graphql.utils.ast_to_dict import ast_to_dict
+from graphql import GraphQLResolveInfo
 
 
 def camel_to_snake(name: str) -> str:
@@ -62,7 +63,7 @@ def collect_fields(node, fragments):
     return field
 
 
-def get_tree(info):
+def get_tree(info: GraphQLResolveInfo):
     """A convenience function to call collect_fields with info
 
     Args:

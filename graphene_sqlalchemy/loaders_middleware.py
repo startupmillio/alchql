@@ -1,7 +1,6 @@
 from typing import List
 
 import sqlalchemy as sa
-from graphene import Context
 
 from graphene_sqlalchemy import get_session
 from graphene_sqlalchemy.loader_fk import generate_loader_by_foreign_key
@@ -18,7 +17,6 @@ class LoaderMiddleware:
 
     def resolve(self, next_, root, info, **args):
         if root is None:
-            info.context = info.context or Context()
             session = get_session(info.context)
 
             info.context.loaders = {k: v(session) for k, v in self.loaders.items()}

@@ -145,9 +145,9 @@ def sort_enum_for_object_type(
             if only_indexed and not (column.primary_key or column.index):
                 continue
             asc_name = get_name(column.name, True)
-            asc_value = EnumValue(asc_name, column.asc())
+            asc_value = column.asc()
             desc_name = get_name(column.name, False)
-            desc_value = EnumValue(desc_name, column.desc())
+            desc_value = column.desc()
             if column.primary_key:
                 default.append(asc_value)
             members.extend(((asc_name, asc_value), (desc_name, desc_value)))

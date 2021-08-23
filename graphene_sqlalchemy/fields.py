@@ -94,7 +94,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
         return on_resolve(resolved)
 
-    def get_resolver(self, parent_resolver):
+    def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
             parent_resolver,
