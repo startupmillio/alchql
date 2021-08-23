@@ -1,0 +1,4 @@
+-e ../../
+fastapi
+starlette-graphene3
+websockets
