@@ -103,9 +103,9 @@ def _convert_o2m_or_m2m_relationship(relationship_prop, obj_type, connection_fie
 
 
 def convert_sqlalchemy_hybrid_method(hybrid_prop, resolver, **field_kwargs):
-    if 'type' not in field_kwargs:
+    if 'type_' not in field_kwargs:
         # TODO The default type should be dependent on the type of the property propety.
-        field_kwargs['type'] = String
+        field_kwargs['type_'] = String
 
     return Field(
         resolver=resolver,

@@ -1,17 +1,17 @@
+import enum
 from functools import partial
 
-import six
 import sqlalchemy as sa
 from graphene import NonNull
 from graphene.relay import Connection, ConnectionField
-from graphene.relay.connection import PageInfo
-from graphql_relay.connection.arrayconnection import connection_from_list
+from graphene.relay.connection import connection_adapter, page_info_adapter
+from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from promise import Promise, is_thenable
 
 from .batching import get_batch_resolver
-from .sa_version import __sa_version__
 from .slice import connection_from_query
-from .utils import get_query, get_session
+from .utils import EnumValue, get_query, get_session
+from .sa_version import __sa_version__
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -19,19 +19,17 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     def type(self):
         from .types import SQLAlchemyObjectType
 
-        _type = super(ConnectionField, self).type
-        nullable_type = get_nullable_type(_type)
+        type_ = super(ConnectionField, self).type
+        nullable_type = get_nullable_type(type_)
         if issubclass(nullable_type, Connection):
-            return _type
+            return type_
         assert issubclass(nullable_type, SQLAlchemyObjectType), (
             "SQLALchemyConnectionField only accepts SQLAlchemyObjectType types, not {}"
         ).format(nullable_type.__name__)
-        assert (
-            nullable_type.connection
-        ), "The type {} doesn't have a connection".format(
+        assert nullable_type.connection, "The type {} doesn't have a connection".format(
             nullable_type.__name__
         )
-        assert _type == nullable_type, (
+        assert type_ == nullable_type, (
             "Passing a SQLAlchemyObjectType instance is deprecated. "
             "Pass the connection type instead accessible via SQLAlchemyObjectType.connection"
         )
@@ -52,7 +50,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
         if resolved is None:
             if __sa_version__ > (1, 4):
-                q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
+                q_aliased = query.with_only_columns(
+                    *sa.inspect(model).primary_key
+                ).alias()
                 q = sa.select([sa.func.count()]).select_from(q_aliased)
             else:
                 raise Exception("Use SQLAlchemy version > 1.4")
@@ -72,18 +72,17 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
                 list_length=_len,
                 list_slice_length=_len,
                 connection_type=connection_type,
-                pageinfo_type=PageInfo,
+                page_info_type=page_info_adapter,
                 edge_type=connection_type.Edge,
             )
         else:
-            connection = connection_from_list(
-                resolved,
-                args,
+            connection = connection_from_array_slice(
+                array_slice=resolved,
+                args=args,
                 connection_type=connection_type,
-                pageinfo_type=PageInfo,
                 edge_type=connection_type.Edge,
+                page_info_type=page_info_adapter,
             )
-
         return connection
 
     @classmethod
@@ -107,8 +106,8 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
 # TODO Rename this to SortableSQLAlchemyConnectionField
 class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
-    def __init__(self, type, *args, **kwargs):
-        nullable_type = get_nullable_type(type)
+    def __init__(self, type_, *args, **kwargs):
+        nullable_type = get_nullable_type(type_)
         if "sort" not in kwargs and issubclass(nullable_type, Connection):
             # Let super class raise if type is not a Connection
             try:
@@ -122,16 +121,25 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
                 )
         elif "sort" in kwargs and kwargs["sort"] is None:
             del kwargs["sort"]
-        super(SQLAlchemyConnectionField, self).__init__(type, *args, **kwargs)
+        super(SQLAlchemyConnectionField, self).__init__(type_, *args, **kwargs)
 
     @classmethod
     def get_query(cls, model, info, sort=None, **args):
         query = get_query(model, info)
         if sort is not None:
-            if isinstance(sort, six.string_types):
-                query = query.order_by(sort.value)
-            else:
-                query = query.order_by(*sort)
+            if not isinstance(sort, list):
+                sort = [sort]
+            sort_args = []
+            # ensure consistent handling of graphene Enums, enum values and
+            # plain strings
+            for item in sort:
+                if isinstance(item, enum.Enum):
+                    sort_args.append(item.value)
+                elif isinstance(item, EnumValue):
+                    sort_args.append(item.value)
+                else:
+                    sort_args.append(item)
+            query = query.order_by(*sort_args)
         return query
 
 
@@ -142,7 +150,7 @@ class BatchSQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
     Use at your own risk.
     """
 
-    def get_resolver(self, parent_resolver):
+    def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
             self.resolver,

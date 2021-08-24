@@ -47,15 +47,12 @@ def get_schema():
 
 def benchmark_query(session_factory, benchmark, query):
     schema = get_schema()
-    cached_backend = GraphQLCachedBackend(GraphQLCoreBackend())
-    cached_backend.document_from_string(schema, query)  # Prime cache
 
     @benchmark
     def execute_query():
         result = schema.execute(
           query,
           context_value=Context(),
-          backend=cached_backend,
           middleware=[
             LoaderMiddleware([Article, Reporter, Pet]),
             SessionMiddleware(session_factory()),

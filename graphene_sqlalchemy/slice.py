@@ -2,7 +2,7 @@ from graphql_relay.connection.arrayconnection import get_offset_with_default, of
 
 
 def connection_from_query(query, model, session, args=None, connection_type=None,
-                               edge_type=None, pageinfo_type=None,
+                               edge_type=None, page_info_type=None,
                                slice_start=0, list_length=0, list_slice_length=None):
     """
     Given a slice (subset) of an array, returns a connection object for use in
@@ -61,10 +61,10 @@ def connection_from_query(query, model, session, args=None, connection_type=None
 
     return connection_type(
         edges=edges,
-        page_info=pageinfo_type(
-            start_cursor=first_edge_cursor,
-            end_cursor=last_edge_cursor,
-            has_previous_page=isinstance(last, int) and start_offset > lower_bound,
-            has_next_page=isinstance(first, int) and end_offset < upper_bound
+        page_info=page_info_type(
+            startCursor=first_edge_cursor,
+            endCursor=last_edge_cursor,
+            hasPreviousPage=isinstance(last, int) and start_offset > lower_bound,
+            hasNextPage=isinstance(first, int) and end_offset < upper_bound
         )
     )
