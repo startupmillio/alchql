@@ -1,11 +1,13 @@
 import graphene
+import pytest
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
 from ..types import SQLAlchemyObjectType
 
 
-def test_query_pet_kinds(session):
+@pytest.mark.asyncio
+async def test_query_pet_kinds(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -51,7 +53,7 @@ def test_query_pet_kinds(session):
             firstName
             favoritePetKind
           }
-          pets(kind: DOG) {
+          pets(kind: dog) {
             name
             petKind
           }
@@ -81,12 +83,13 @@ def test_query_pet_kinds(session):
         }]
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query)
+    result = await schema.execute_async(query)
     assert not result.errors
     assert result.data == expected
 
 
-def test_query_more_enums(session):
+@pytest.mark.asyncio
+async def test_query_more_enums(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -110,13 +113,14 @@ def test_query_more_enums(session):
     """
     expected = {"pet": {"name": "Garfield", "petKind": "CAT", "hairKind": "SHORT"}}
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query)
+    result = await schema.execute_async(query)
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
 
 
-def test_enum_as_argument(session):
+@pytest.mark.asyncio
+async def test_enum_as_argument(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -145,11 +149,11 @@ def test_enum_as_argument(session):
     """
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, variables={"kind": "CAT"})
+    result = await schema.execute_async(query, variables={"kind": "CAT"})
     assert not result.errors
     expected = {"pet": {"name": "Garfield", "petKind": "CAT", "hairKind": "SHORT"}}
     assert result.data == expected
-    result = schema.execute(query, variables={"kind": "DOG"})
+    result = await schema.execute_async(query, variables={"kind": "DOG"})
     assert not result.errors
     expected = {"pet": {"name": "Lassie", "petKind": "DOG", "hairKind": "LONG"}}
     result = to_std_dicts(result.data)

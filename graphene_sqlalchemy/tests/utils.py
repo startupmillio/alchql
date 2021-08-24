@@ -28,5 +28,4 @@ class SessionMiddleware:
         else:
             context.session = self.session
 
-        info.context = context
         return next_(root, info, **args)

@@ -1,27 +1,9 @@
 from functools import partial
-from inspect import isclass
 
-from graphene.types import Field, ID, Interface, ObjectType
+from graphene.types import Field, ID, Interface
 from graphene.types.interface import InterfaceOptions
 from graphene.types.utils import get_type
 from graphql_relay import from_global_id, to_global_id
-
-
-def is_node(objecttype):
-    """
-    Check if the given objecttype has Node as an interface
-    """
-    if not isclass(objecttype):
-        return False
-
-    if not issubclass(objecttype, ObjectType):
-        return False
-
-    for i in objecttype._meta.interfaces:
-        if issubclass(i, AsyncNode):
-            return True
-
-    return False
 
 
 class AsyncGlobalID(Field):
@@ -31,7 +13,9 @@ class AsyncGlobalID(Field):
         self.parent_type_name = parent_type._meta.name if parent_type else None
 
     @staticmethod
-    async def id_resolver(parent_resolver, node, root, info, parent_type_name=None, **args):
+    async def id_resolver(
+        parent_resolver, node, root, info, parent_type_name=None, **args
+    ):
         type_id = await parent_resolver(root, info, **args)
         parent_type_name = parent_type_name or info.parent_type.name
         return node.to_global_id(parent_type_name, type_id)  # root._meta.name
@@ -71,7 +55,9 @@ class AbstractAsyncNode(Interface):
     def __init_subclass_with_meta__(cls, **options):
         _meta = InterfaceOptions(cls)
         _meta.fields = {"id": AsyncGlobalID(cls, description="The ID of the object")}
-        super(AbstractAsyncNode, cls).__init_subclass_with_meta__(_meta=_meta, **options)
+        super(AbstractAsyncNode, cls).__init_subclass_with_meta__(
+            _meta=_meta, **options
+        )
 
 
 class AsyncNode(AbstractAsyncNode):

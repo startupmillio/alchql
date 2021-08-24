@@ -1,12 +1,13 @@
 import graphene
+import pytest
 from graphene import Context
-from graphene.relay import Node
 
 from .models import Article, CompositeFullName, Editor, HairKind, Pet, Reporter
 from .utils import SessionMiddleware, to_std_dicts
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
+from ..node import AsyncNode
 from ..types import ORMField, SQLAlchemyObjectType
 
 
@@ -81,13 +82,14 @@ def test_query_fields(session):
     assert result == expected
 
 
-def test_query_node(session):
+@pytest.mark.asyncio
+async def test_query_node(session):
     add_test_data(session)
 
     class ReporterNode(SQLAlchemyObjectType):
         class Meta:
             model = Reporter
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
         @classmethod
         def get_node(cls, info, id):
@@ -96,10 +98,10 @@ def test_query_node(session):
     class ArticleNode(SQLAlchemyObjectType):
         class Meta:
             model = Article
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
     class Query(graphene.ObjectType):
-        node = Node.Field()
+        node = AsyncNode.Field()
         reporter = graphene.Field(ReporterNode)
         all_articles = SQLAlchemyConnectionField(ArticleNode.connection)
 
@@ -147,7 +149,7 @@ def test_query_node(session):
         "myArticle": {"id": "QXJ0aWNsZU5vZGU6MQ==", "headline": "Hi!"},
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(
+    result = await schema.execute_async(
         query,
         context_value=Context(),
         middleware=[
@@ -160,7 +162,8 @@ def test_query_node(session):
     assert result == expected
 
 
-def test_orm_field(session):
+@pytest.mark.asyncio
+async def test_orm_field(session):
     add_test_data(session)
 
     @convert_sqlalchemy_composite.register(CompositeFullName)
@@ -170,7 +173,7 @@ def test_orm_field(session):
     class ReporterType(SQLAlchemyObjectType):
         class Meta:
             model = Reporter
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
         first_name_v2 = ORMField(model_attr='first_name')
         hybrid_prop_v2 = ORMField(model_attr='hybrid_prop')
@@ -182,7 +185,7 @@ def test_orm_field(session):
     class ArticleType(SQLAlchemyObjectType):
         class Meta:
             model = Article
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
@@ -221,7 +224,7 @@ def test_orm_field(session):
         },
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(
+    result = await schema.execute_async(
         query,
         context_value=Context(),
         middleware=[
@@ -234,16 +237,17 @@ def test_orm_field(session):
     assert result == expected
 
 
-def test_custom_identifier(session):
+@pytest.mark.asyncio
+async def test_custom_identifier(session):
     add_test_data(session)
 
     class EditorNode(SQLAlchemyObjectType):
         class Meta:
             model = Editor
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
     class Query(graphene.ObjectType):
-        node = Node.Field()
+        node = AsyncNode.Field()
         all_editors = SQLAlchemyConnectionField(EditorNode.connection)
 
     query = """
@@ -269,7 +273,7 @@ def test_custom_identifier(session):
     }
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(
+    result = await schema.execute_async(
         query,
         context_value=Context(),
         middleware=[
@@ -282,18 +286,19 @@ def test_custom_identifier(session):
     assert result == expected
 
 
-def test_mutation(session):
+@pytest.mark.asyncio
+async def test_mutation(session):
     add_test_data(session)
 
     class EditorNode(SQLAlchemyObjectType):
         class Meta:
             model = Editor
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
     class ReporterNode(SQLAlchemyObjectType):
         class Meta:
             model = Reporter
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
         @classmethod
         def get_node(cls, id, info):
@@ -302,7 +307,7 @@ def test_mutation(session):
     class ArticleNode(SQLAlchemyObjectType):
         class Meta:
             model = Article
-            interfaces = (Node,)
+            interfaces = (AsyncNode,)
 
     class CreateArticle(graphene.Mutation):
         class Arguments:
@@ -322,7 +327,7 @@ def test_mutation(session):
             return CreateArticle(article=new_article, ok=ok)
 
     class Query(graphene.ObjectType):
-        node = Node.Field()
+        node = AsyncNode.Field()
 
     class Mutation(graphene.ObjectType):
         create_article = CreateArticle.Field()
@@ -355,7 +360,7 @@ def test_mutation(session):
     }
 
     schema = graphene.Schema(query=Query, mutation=Mutation)
-    result = schema.execute(
+    result = await schema.execute_async(
         query,
         context_value=Context(),
         middleware=[

@@ -42,10 +42,10 @@ def test_sort_enum():
         "REPORTER_ID_ASC",
         "REPORTER_ID_DESC",
     ]
-    assert str(sort_enum.ID_ASC.value.value) == "pets.id ASC"
-    assert str(sort_enum.ID_DESC.value.value) == "pets.id DESC"
-    assert str(sort_enum.HAIR_KIND_ASC.value.value) == "pets.hair_kind ASC"
-    assert str(sort_enum.HAIR_KIND_DESC.value.value) == "pets.hair_kind DESC"
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC"
+    assert str(sort_enum.ID_DESC.value) == "pets.id DESC"
+    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC"
+    assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC"
 
 
 def test_sort_enum_with_custom_name():
@@ -136,13 +136,13 @@ def test_sort_argument():
         "REPORTER_ID_ASC",
         "REPORTER_ID_DESC",
     ]
-    assert str(sort_enum.ID_ASC.value.value) == "pets.id ASC"
-    assert str(sort_enum.ID_DESC.value.value) == "pets.id DESC"
-    assert str(sort_enum.HAIR_KIND_ASC.value.value) == "pets.hair_kind ASC"
-    assert str(sort_enum.HAIR_KIND_DESC.value.value) == "pets.hair_kind DESC"
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC"
+    assert str(sort_enum.ID_DESC.value) == "pets.id DESC"
+    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC"
+    assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC"
 
-    assert sort_arg.default_value == ["ID_ASC"]
-    assert str(sort_enum.ID_ASC.value.value) == "pets.id ASC"
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC"
 
 
 def test_sort_argument_with_excluded_fields_in_object_type():
@@ -161,7 +161,7 @@ def test_sort_argument_with_excluded_fields_in_object_type():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert sort_arg.default_value == ["ID_ASC"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
 
 
 def test_sort_argument_only_fields():
@@ -178,7 +178,7 @@ def test_sort_argument_only_fields():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert sort_arg.default_value == ["ID_ASC"]
+    assert list(map(str, sort_arg.default_value)) == ['pets.id ASC']
 
 
 def test_sort_argument_for_multi_column_pk():
@@ -192,7 +192,7 @@ def test_sort_argument_for_multi_column_pk():
             model = MultiPkTestModel
 
     sort_arg = MultiPkTestType.sort_argument()
-    assert sort_arg.default_value == ["FOO_ASC", "BAR_ASC"]
+    assert list(map(str, sort_arg.default_value)) == ['multi_pk_test_table.foo ASC', 'multi_pk_test_table.bar ASC']
 
 
 def test_sort_argument_only_indexed():
@@ -214,7 +214,7 @@ def test_sort_argument_only_indexed():
         "BAR_ASC",
         "BAR_DESC",
     ]
-    assert sort_arg.default_value == ["ID_ASC"]
+    assert list(map(str, sort_arg.default_value)) == ['indexed_test_table.id ASC']
 
 
 def test_sort_argument_with_custom_symbol_names():
@@ -239,7 +239,7 @@ def test_sort_argument_with_custom_symbol_names():
         "ReporterIdUp",
         "ReporterIdDown",
     ]
-    assert sort_arg.default_value == ["IdUp"]
+    assert list(map(str, sort_arg.default_value)) == ['pets.id ASC']
 
 
 def test_sort_query(session):
@@ -337,11 +337,14 @@ def test_sort_query(session):
     }  # yapf: disable
 
     schema = Schema(query=Query)
-    result = schema.execute(query, context_value=Context(),
-                            middleware=[
-                                LoaderMiddleware([Pet]),
-                                SessionMiddleware(session),
-                            ])
+    result = schema.execute(
+        query,
+        context_value=Context(),
+        middleware=[
+            LoaderMiddleware([Pet]),
+            SessionMiddleware(session),
+        ],
+    )
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -357,11 +360,14 @@ def test_sort_query(session):
             }
         }
     """
-    result = schema.execute(queryError, context_value=Context(),
-                            middleware=[
-                                LoaderMiddleware([Pet]),
-                                SessionMiddleware(session),
-                            ])
+    result = schema.execute(
+        queryError,
+        context_value=Context(),
+        middleware=[
+            LoaderMiddleware([Pet]),
+            SessionMiddleware(session),
+        ],
+    )
     assert result.errors is not None
     assert '"sort" has invalid value' in result.errors[0].message
 
@@ -390,7 +396,7 @@ def test_sort_query(session):
         middleware=[
             LoaderMiddleware([Pet]),
             SessionMiddleware(session),
-        ]
+        ],
     )
     assert not result.errors
     # TODO: SQLite usually returns the results ordered by primary key,

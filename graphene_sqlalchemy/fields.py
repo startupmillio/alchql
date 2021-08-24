@@ -4,7 +4,7 @@ from functools import partial
 import sqlalchemy as sa
 from graphene import NonNull
 from graphene.relay import Connection, ConnectionField
-from graphene.relay.connection import page_info_adapter
+from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from promise import Promise, is_thenable
 
@@ -79,7 +79,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             connection = connection_from_array_slice(
                 array_slice=resolved,
                 args=args,
-                connection_type=connection_type,
+                connection_type=partial(connection_adapter, cls=connection_type),
                 edge_type=connection_type.Edge,
                 page_info_type=page_info_adapter,
             )

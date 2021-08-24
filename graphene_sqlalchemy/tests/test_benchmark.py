@@ -1,12 +1,12 @@
 import graphene
 import pytest
 from graphene import Context, relay
-from graphql.backend import GraphQLCachedBackend, GraphQLCoreBackend
 
 from .models import Article, HairKind, Pet, Reporter
 from .utils import SessionMiddleware, is_sqlalchemy_version_less_than
 from ..fields import BatchSQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
+from ..node import AsyncNode
 from ..types import SQLAlchemyObjectType
 
 if is_sqlalchemy_version_less_than('1.2'):
@@ -17,40 +17,40 @@ def get_schema():
     class ReporterType(SQLAlchemyObjectType):
         class Meta:
             model = Reporter
-            interfaces = (relay.Node,)
+            interfaces = (AsyncNode,)
             connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
 
     class ArticleType(SQLAlchemyObjectType):
         class Meta:
             model = Article
-            interfaces = (relay.Node,)
+            interfaces = (AsyncNode,)
             connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
             model = Pet
-            interfaces = (relay.Node,)
+            interfaces = (AsyncNode,)
             connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
 
     class Query(graphene.ObjectType):
         articles = graphene.Field(graphene.List(ArticleType))
         reporters = graphene.Field(graphene.List(ReporterType))
 
-        def resolve_articles(self, info):
+        async def resolve_articles(self, info):
             return info.context.session.query(Article).all()
 
-        def resolve_reporters(self, info):
+        async def resolve_reporters(self, info):
             return info.context.session.query(Reporter).all()
 
     return graphene.Schema(query=Query)
 
 
-def benchmark_query(session_factory, benchmark, query):
+async def benchmark_query(session_factory, benchmark, query):
     schema = get_schema()
 
     @benchmark
-    def execute_query():
-        result = schema.execute(
+    async def execute_query():
+        result = await schema.execute_async(
           query,
           context_value=Context(),
           middleware=[
@@ -61,7 +61,8 @@ def benchmark_query(session_factory, benchmark, query):
         assert not result.errors
 
 
-def test_one_to_one(session_factory, benchmark):
+@pytest.mark.asyncio
+async def test_one_to_one(session_factory, benchmark):
     session = session_factory()
 
     reporter_1 = Reporter(
@@ -84,7 +85,7 @@ def test_one_to_one(session_factory, benchmark):
     session.commit()
     session.close()
 
-    benchmark_query(session_factory, benchmark, """
+    await benchmark_query(session_factory, benchmark, """
       query {
         reporters {
           firstName
@@ -96,7 +97,8 @@ def test_one_to_one(session_factory, benchmark):
     """)
 
 
-def test_many_to_one(session_factory, benchmark):
+@pytest.mark.asyncio
+async def test_many_to_one(session_factory, benchmark):
     session = session_factory()
 
     reporter_1 = Reporter(
@@ -119,7 +121,7 @@ def test_many_to_one(session_factory, benchmark):
     session.commit()
     session.close()
 
-    benchmark_query(session_factory, benchmark, """
+    await benchmark_query(session_factory, benchmark, """
       query {
         articles {
           headline
@@ -131,7 +133,8 @@ def test_many_to_one(session_factory, benchmark):
     """)
 
 
-def test_one_to_many(session_factory, benchmark):
+@pytest.mark.asyncio
+async def test_one_to_many(session_factory, benchmark):
     session = session_factory()
 
     reporter_1 = Reporter(
@@ -162,7 +165,7 @@ def test_one_to_many(session_factory, benchmark):
     session.commit()
     session.close()
 
-    benchmark_query(session_factory, benchmark, """
+    await benchmark_query(session_factory, benchmark, """
       query {
         reporters {
           firstName
@@ -178,7 +181,8 @@ def test_one_to_many(session_factory, benchmark):
     """)
 
 
-def test_many_to_many(session_factory, benchmark):
+@pytest.mark.asyncio
+async def test_many_to_many(session_factory, benchmark):
     session = session_factory()
 
     reporter_1 = Reporter(
@@ -211,7 +215,7 @@ def test_many_to_many(session_factory, benchmark):
     session.commit()
     session.close()
 
-    benchmark_query(session_factory, benchmark, """
+    await benchmark_query(session_factory, benchmark, """
       query {
         reporters {
           firstName
