@@ -4,11 +4,11 @@ from graphene_sqlalchemy.gql_fields import get_fields
 
 
 def get_batch_resolver(relationship_prop, single=False):
-    def resolve(root, info, **args):
+    async def resolve(root, info, **args):
         key = (relationship_prop.parent.entity, relationship_prop.mapper.entity)
         _loader = info.context.loaders[key]
 
-        p = _loader.load(
+        p = await _loader.load(
             getattr(root, next(iter(relationship_prop.local_columns)).key)
         )
 
@@ -21,7 +21,7 @@ def get_batch_resolver(relationship_prop, single=False):
         _loader.fields.update(fields)
 
         if single:
-            p = p.then(lambda x: x[0] if x else None)
+            return p[0] if p else None
 
         return p
 

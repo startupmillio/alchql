@@ -17,10 +17,9 @@ from .converter import (convert_sqlalchemy_column,
                         convert_sqlalchemy_relationship)
 from .enums import (enum_for_field, sort_argument_for_object_type,
                     sort_enum_for_object_type)
-from .loader_fk import generate_loader_by_foreign_key
+from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
-from .sa_version import __sa_version__
 from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
 
 
@@ -235,7 +234,7 @@ class SQLAlchemyObjectType(ObjectType):
         )
 
         if use_connection is None and interfaces:
-            use_connection = any(issubclass(interface, Node) for interface in interfaces)
+            use_connection = any(issubclass(interface, (Node, AsyncNode)) for interface in interfaces)
 
         if use_connection and not connection:
             # We create the connection automatically
@@ -266,15 +265,6 @@ class SQLAlchemyObjectType(ObjectType):
         _meta.id = id or "id"
 
         cls.connection = connection  # Public way to get the connection
-
-        loaders = {}
-        inspected_model = sqlalchemy.inspect(model)
-        for relationship in inspected_model.relationships.values():
-            key = (relationship.parent.entity, relationship.mapper.entity)
-            loaders[key] = generate_loader_by_foreign_key(relationship)
-
-        # _meta.loaders = loaders
-        cls.loaders = loaders
 
         super(SQLAlchemyObjectType, cls).__init_subclass_with_meta__(
             _meta=_meta, interfaces=interfaces, **options
@@ -313,8 +303,7 @@ class SQLAlchemyObjectType(ObjectType):
         except NoResultFound:
             return None
 
-    def resolve_id(self, info):
-        # graphene_type = info.parent_type.graphene_type
+    async def resolve_id(self, info):
         keys = self.__mapper__.primary_key_from_instance(self)
         return tuple(keys) if len(keys) > 1 else keys[0]
 

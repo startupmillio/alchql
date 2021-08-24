@@ -23,4 +23,6 @@ def get_attr_resolver(obj_type, model_attr):
     :param str model_attr: the name of the SQLAlchemy attribute
     :rtype: Callable
     """
-    return lambda root, _info: getattr(root, model_attr, None)
+    def resolver(root, _info):
+        return getattr(root, model_attr, None)
+    return resolver
