@@ -52,13 +52,15 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
         if resolved is None:
             if __sa_version__ > (1, 4):
-                q = sa.select(sa.func.count()).select_from(
-                    query.with_only_columns(*sa.inspect(model).primary_key)
-                )
+                q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
+                q = sa.select([sa.func.count()]).select_from(q_aliased)
             else:
-                q = sa.select([sa.func.count()]).select_from(
-                    query.with_only_columns(sa.inspect(model).primary_key)
-                )
+                raise Exception("Use SQLAlchemy version > 1.4")
+
+                # q = sa.select([sa.func.count()]).select_from(
+                #     query.with_only_columns(sa.inspect(model).primary_key)
+                # )
+
             _len = session.execute(q).scalar()
 
             connection = connection_from_query(
