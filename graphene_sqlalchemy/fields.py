@@ -4,14 +4,14 @@ from functools import partial
 import sqlalchemy as sa
 from graphene import NonNull
 from graphene.relay import Connection, ConnectionField
-from graphene.relay.connection import connection_adapter, page_info_adapter
+from graphene.relay.connection import page_info_adapter
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from promise import Promise, is_thenable
 
 from .batching import get_batch_resolver
+from .sa_version import __sa_version__
 from .slice import connection_from_query
 from .utils import EnumValue, get_query, get_session
-from .sa_version import __sa_version__
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
