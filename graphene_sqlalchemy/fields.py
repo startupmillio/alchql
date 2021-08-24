@@ -131,7 +131,7 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
             if isinstance(sort, six.string_types):
                 query = query.order_by(sort.value)
             else:
-                query = query.order_by(*(col.value for col in sort))
+                query = query.order_by(*sort)
         return query
 
 
