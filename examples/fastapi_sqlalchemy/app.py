@@ -6,8 +6,7 @@ from fastapi import FastAPI
 from graphene import Context
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 
-import models
-from database import db_session, init_db
+from database import Base, db_session, init_db
 from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
 from schema import schema
 
@@ -48,15 +47,7 @@ app.add_route(
     GraphQLApp(
         schema=schema,
         on_get=make_graphiql_handler(),
-        middleware=[
-            LoaderMiddleware(
-                [
-                    models.Department,
-                    models.Role,
-                    models.Employee,
-                ]
-            )
-        ],
+        middleware=[LoaderMiddleware(Base.registry.mappers)],
         context_value=partial(GContext, session=db_session),
     ),
 )
