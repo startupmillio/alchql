@@ -22,9 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import re
+from typing import Union
 
-# from graphql.utils.ast_to_dict import ast_to_dict
-from graphql import GraphQLResolveInfo
+from graphql import FieldNode, FragmentDefinitionNode, GraphQLResolveInfo
 
 
 def camel_to_snake(name: str) -> str:
@@ -53,14 +53,33 @@ def collect_fields(node, fragments):
 
     if node.get("selection_set"):
         for leaf in node["selection_set"]["selections"]:
-            if leaf["kind"] == "Field":
+            if leaf["kind"] == "field":
                 field.update({leaf["name"]["value"]: collect_fields(leaf, fragments)})
-            elif leaf["kind"] == "FragmentSpread":
+            elif leaf["kind"] == "fragment_spread":
                 field.update(
                     collect_fields(fragments[leaf["name"]["value"]], fragments)
                 )
 
     return field
+
+
+def ast_to_dict(ast: Union[FieldNode, FragmentDefinitionNode]):
+    result = {}
+    for k in ast.keys:
+        if k == "loc":
+            continue
+        value = getattr(ast, k)
+        if k in {"name", "selection_set"}:
+            value = ast_to_dict(value) if value else value
+        if k == "selections":
+            value = [ast_to_dict(i) for i in value]
+
+        result[k] = value
+
+    if hasattr(ast, 'kind'):
+        result['kind'] = ast.kind
+
+    return result
 
 
 def get_tree(info: GraphQLResolveInfo):
@@ -74,7 +93,7 @@ def get_tree(info: GraphQLResolveInfo):
     """
 
     fragments = {}
-    node = ast_to_dict(info.field_asts[0])
+    node = ast_to_dict(info.field_nodes[0])
 
     for name, value in info.fragments.items():
         fragments[name] = ast_to_dict(value)
