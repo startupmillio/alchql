@@ -2,3 +2,4 @@
 fastapi
 starlette-graphene3
 websockets
+aiodataloader
