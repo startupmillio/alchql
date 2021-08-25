@@ -245,7 +245,8 @@ def test_sort_argument_with_custom_symbol_names():
     assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
 
 
-def test_sort_query(session):
+@pytest.mark.asyncio
+async def test_sort_query(session):
     add_pets(session)
 
     class PetNode(SQLAlchemyObjectType):
@@ -340,7 +341,7 @@ def test_sort_query(session):
     }  # yapf: disable
 
     schema = Schema(query=Query)
-    result = schema.execute(
+    result = await schema.execute_async(
         query,
         context_value=Context(),
         middleware=[
@@ -363,7 +364,7 @@ def test_sort_query(session):
             }
         }
     """
-    result = schema.execute(
+    result = await schema.execute_async(
         queryError,
         context_value=Context(),
         middleware=[
@@ -393,7 +394,7 @@ def test_sort_query(session):
         }
     """
 
-    result = schema.execute(
+    result = await schema.execute_async(
         queryNoSort,
         context_value=Context(),
         middleware=[

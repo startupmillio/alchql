@@ -319,7 +319,8 @@ def test_sqlalchemy_redefine_field():
     assert first_name_field.type == Int
 
 
-def test_resolvers(session):
+@pytest.mark.asyncio
+async def test_resolvers(session):
     """Test that the correct resolver functions are called"""
 
     class ReporterMixin(object):
@@ -360,7 +361,7 @@ def test_resolvers(session):
     session.commit()
 
     schema = Schema(query=Query)
-    result = schema.execute(
+    result = await schema.execute_async(
         """
         query {
             reporter {

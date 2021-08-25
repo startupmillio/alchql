@@ -157,7 +157,8 @@ async def test_enum_as_argument(session):
     assert result == expected
 
 
-def test_py_enum_as_argument(session):
+@pytest.mark.asyncio
+async def test_py_enum_as_argument(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -188,11 +189,11 @@ def test_py_enum_as_argument(session):
     """
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, variables={"kind": "SHORT"})
+    result = await schema.execute_async(query, variables={"kind": "SHORT"})
     assert not result.errors
     expected = {"pet": {"name": "Garfield", "petKind": "CAT", "hairKind": "SHORT"}}
     assert result.data == expected
-    result = schema.execute(query, variables={"kind": "LONG"})
+    result = await schema.execute_async(query, variables={"kind": "LONG"})
     assert not result.errors
     expected = {"pet": {"name": "Lassie", "petKind": "DOG", "hairKind": "LONG"}}
     result = to_std_dicts(result.data)
