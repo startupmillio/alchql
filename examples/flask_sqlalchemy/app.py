@@ -44,7 +44,7 @@ app.add_url_rule(
         schema=schema,
         graphiql=True,
         middleware=[
-            LoaderMiddleware([Base.registry.mappers])
+            LoaderMiddleware(Base.registry.mappers)
         ],
     ),
 )
