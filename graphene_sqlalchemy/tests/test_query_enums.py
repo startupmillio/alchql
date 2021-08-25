@@ -34,7 +34,7 @@ async def test_query_pet_kinds(session):
         def resolve_pets(self, _info, kind):
             query = session.query(Pet)
             if kind:
-                query = query.filter_by(pet_kind=kind)
+                query = query.filter_by(pet_kind=kind.value)
             return query
 
     query = """
@@ -53,7 +53,7 @@ async def test_query_pet_kinds(session):
             firstName
             favoritePetKind
           }
-          pets(kind: dog) {
+          pets(kind: DOG) {
             name
             petKind
           }
@@ -135,7 +135,7 @@ async def test_enum_as_argument(session):
         def resolve_pet(self, info, kind=None):
             query = session.query(Pet)
             if kind:
-                query = query.filter(Pet.pet_kind == kind)
+                query = query.filter(Pet.pet_kind == kind.value)
             return query.first()
 
     query = """
