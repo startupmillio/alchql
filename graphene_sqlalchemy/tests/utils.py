@@ -1,3 +1,5 @@
+from inspect import isawaitable
+
 import pkg_resources
 
 
@@ -22,7 +24,7 @@ class SessionMiddleware:
     def __init__(self, session):
         self.session = session
 
-    def resolve(self, next_, root, info, **args):
+    async def resolve(self, next_, root, info, **args):
         context = info.context
 
         if callable(self.session):
@@ -30,4 +32,7 @@ class SessionMiddleware:
         else:
             context.session = self.session
 
-        return next_(root, info, **args)
+        result = next_(root, info, **args)
+        if isawaitable(result):
+            return await result
+        return result

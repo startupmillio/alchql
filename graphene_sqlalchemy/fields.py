@@ -44,7 +44,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         return get_query(model, info)
 
     @classmethod
-    def resolve_connection(cls, connection_type, model, info, args, resolved):
+    async def resolve_connection(cls, connection_type, model, info, args, resolved):
         query = cls.get_query(model, info, **args)
         session = get_session(info.context)
 

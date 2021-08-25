@@ -24,7 +24,7 @@ def get_attr_resolver(obj_type, model_attr):
     :rtype: Callable
     """
 
-    def resolver(root, _info):
+    async def resolver(root, _info):
         return getattr(root, model_attr, None)
 
     return resolver

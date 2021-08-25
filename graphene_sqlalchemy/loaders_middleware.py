@@ -1,3 +1,4 @@
+from inspect import isawaitable
 from typing import List
 
 import sqlalchemy as sa
@@ -15,10 +16,13 @@ class LoaderMiddleware:
                 key = (relationship.parent.entity, relationship.mapper.entity)
                 self.loaders[key] = generate_loader_by_foreign_key(relationship)
 
-    def resolve(self, next_, root, info, **args):
+    async def resolve(self, next_, root, info, **args):
         if root is None:
             session = get_session(info.context)
 
             info.context.loaders = {k: v(session) for k, v in self.loaders.items()}
 
-        return next_(root, info, **args)
+        result = next_(root, info, **args)
+        if isawaitable(result):
+            return await result
+        return result

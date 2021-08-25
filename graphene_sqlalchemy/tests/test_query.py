@@ -30,7 +30,8 @@ def add_test_data(session):
     session.commit()
 
 
-def test_query_fields(session):
+@pytest.mark.asyncio
+async def test_query_fields(session):
     add_test_data(session)
 
     @convert_sqlalchemy_composite.register(CompositeFullName)
@@ -74,7 +75,7 @@ def test_query_fields(session):
         "reporters": [{"firstName": "John"}, {"firstName": "Jane"}],
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query)
+    result = await schema.execute_async(query)
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
@@ -103,7 +104,7 @@ async def test_query_node(session):
         reporter = graphene.Field(ReporterNode)
         all_articles = SQLAlchemyConnectionField(ArticleNode.connection)
 
-        def resolve_reporter(self, _info):
+        async def resolve_reporter(self, _info):
             return session.query(Reporter).first()
 
     query = """
