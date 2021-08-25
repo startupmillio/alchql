@@ -1,9 +1,21 @@
-from graphql_relay.connection.arrayconnection import get_offset_with_default, offset_to_cursor
+from graphql_relay.connection.arrayconnection import (
+    get_offset_with_default,
+    offset_to_cursor,
+)
 
 
-def connection_from_query(query, model, session, args=None, connection_type=None,
-                               edge_type=None, page_info_type=None,
-                               slice_start=0, list_length=0, list_slice_length=None):
+def connection_from_query(
+    query,
+    model,
+    session,
+    args=None,
+    connection_type=None,
+    edge_type=None,
+    page_info_type=None,
+    slice_start=0,
+    list_length=0,
+    list_slice_length=None,
+):
     """
     Given a slice (subset) of an array, returns a connection object for use in
     GraphQL.
@@ -14,43 +26,26 @@ def connection_from_query(query, model, session, args=None, connection_type=None
     """
     args = args or {}
 
-    before = args.get('before')
-    after = args.get('after')
-    first = args.get('first')
-    last = args.get('last')
+    before = args.get("before")
+    after = args.get("after")
+    first = args.get("first")
+    last = args.get("last")
 
     slice_end = slice_start + list_slice_length
     before_offset = get_offset_with_default(before, list_length)
     after_offset = get_offset_with_default(after, -1)
 
-    start_offset = max(
-        slice_start - 1,
-        after_offset,
-        -1
-    ) + 1
-    end_offset = min(
-        slice_end,
-        before_offset,
-        list_length
-    )
+    start_offset = max(slice_start - 1, after_offset, -1) + 1
+    end_offset = min(slice_end, before_offset, list_length)
     if isinstance(first, int):
-        end_offset = min(
-            end_offset,
-            start_offset + first
-        )
+        end_offset = min(end_offset, start_offset + first)
     if isinstance(last, int):
-        start_offset = max(
-            start_offset,
-            end_offset - last
-        )
+        start_offset = max(start_offset, end_offset - last)
 
     # If supplied slice is too large, trim it down before mapping over it.
     _slice = query.limit(end_offset).offset(start_offset)
     edges = [
-        edge_type(
-            node=model(**node),
-            cursor=offset_to_cursor(start_offset + i)
-        )
+        edge_type(node=model(**node), cursor=offset_to_cursor(start_offset + i))
         for i, node in enumerate(session.execute(_slice))
     ]
 
@@ -65,6 +60,6 @@ def connection_from_query(query, model, session, args=None, connection_type=None
             startCursor=first_edge_cursor,
             endCursor=last_edge_cursor,
             hasPreviousPage=isinstance(last, int) and start_offset > lower_bound,
-            hasNextPage=isinstance(first, int) and end_offset < upper_bound
-        )
+            hasNextPage=isinstance(first, int) and end_offset < upper_bound,
+        ),
     )

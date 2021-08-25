@@ -1,4 +1,3 @@
-
 from graphene import ObjectType
 
 from .models import ReflectedEditor

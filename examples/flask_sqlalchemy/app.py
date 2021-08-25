@@ -45,13 +45,7 @@ app.add_url_rule(
         schema=schema,
         graphiql=True,
         middleware=[
-            LoaderMiddleware(
-                [
-                    models.Department,
-                    models.Role,
-                    models.Employee
-                ]
-            )
+            LoaderMiddleware([models.Department, models.Role, models.Employee])
         ],
     ),
 )

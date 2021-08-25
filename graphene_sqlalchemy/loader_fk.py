@@ -22,7 +22,7 @@ def generate_loader_by_foreign_key(relation):
                     *(self.fields or target.__table__.columns), f.label("_batch_key")
                 )
             else:
-                raise Exception(f'Invalid sqlalchemy version: {__sa_version__}')
+                raise Exception(f"Invalid sqlalchemy version: {__sa_version__}")
                 # q = sa.select(
                 #     list(self.fields or target.__table__.columns)
                 #     + [f.label("_batch_key")]

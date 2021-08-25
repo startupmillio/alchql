@@ -11,7 +11,6 @@ async def test_query_pet_kinds(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
-
         class Meta:
             model = Pet
 
@@ -22,8 +21,9 @@ async def test_query_pet_kinds(session):
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
         reporters = graphene.List(ReporterType)
-        pets = graphene.List(PetType, kind=graphene.Argument(
-            PetType.enum_for_field('pet_kind')))
+        pets = graphene.List(
+            PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
+        )
 
         def resolve_reporter(self, _info):
             return session.query(Reporter).first()
@@ -60,27 +60,24 @@ async def test_query_pet_kinds(session):
         }
     """
     expected = {
-        'reporter': {
-            'firstName': 'John',
-            'lastName': 'Doe',
-            'email': None,
-            'favoritePetKind': 'CAT',
-            'pets': [{
-                'name': 'Garfield',
-                'petKind': 'CAT'
-            }]
+        "reporter": {
+            "firstName": "John",
+            "lastName": "Doe",
+            "email": None,
+            "favoritePetKind": "CAT",
+            "pets": [{"name": "Garfield", "petKind": "CAT"}],
         },
-        'reporters': [{
-            'firstName': 'John',
-            'favoritePetKind': 'CAT',
-        }, {
-            'firstName': 'Jane',
-            'favoritePetKind': 'DOG',
-        }],
-        'pets': [{
-            'name': 'Lassie',
-            'petKind': 'DOG'
-        }]
+        "reporters": [
+            {
+                "firstName": "John",
+                "favoritePetKind": "CAT",
+            },
+            {
+                "firstName": "Jane",
+                "favoritePetKind": "DOG",
+            },
+        ],
+        "pets": [{"name": "Lassie", "petKind": "DOG"}],
     }
     schema = graphene.Schema(query=Query)
     result = await schema.execute_async(query)
@@ -129,8 +126,8 @@ async def test_enum_as_argument(session):
 
     class Query(graphene.ObjectType):
         pet = graphene.Field(
-            PetType,
-            kind=graphene.Argument(PetType.enum_for_field('pet_kind')))
+            PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
+        )
 
         def resolve_pet(self, info, kind=None):
             query = session.query(Pet)

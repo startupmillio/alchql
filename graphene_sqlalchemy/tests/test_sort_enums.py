@@ -178,7 +178,7 @@ def test_sort_argument_only_fields():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ['pets.id ASC']
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
 
 
 def test_sort_argument_for_multi_column_pk():
@@ -192,7 +192,10 @@ def test_sort_argument_for_multi_column_pk():
             model = MultiPkTestModel
 
     sort_arg = MultiPkTestType.sort_argument()
-    assert list(map(str, sort_arg.default_value)) == ['multi_pk_test_table.foo ASC', 'multi_pk_test_table.bar ASC']
+    assert list(map(str, sort_arg.default_value)) == [
+        "multi_pk_test_table.foo ASC",
+        "multi_pk_test_table.bar ASC",
+    ]
 
 
 def test_sort_argument_only_indexed():
@@ -214,7 +217,7 @@ def test_sort_argument_only_indexed():
         "BAR_ASC",
         "BAR_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ['indexed_test_table.id ASC']
+    assert list(map(str, sort_arg.default_value)) == ["indexed_test_table.id ASC"]
 
 
 def test_sort_argument_with_custom_symbol_names():
@@ -239,7 +242,7 @@ def test_sort_argument_with_custom_symbol_names():
         "ReporterIdUp",
         "ReporterIdDown",
     ]
-    assert list(map(str, sort_arg.default_value)) == ['pets.id ASC']
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
 
 
 def test_sort_query(session):

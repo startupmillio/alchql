@@ -13,7 +13,9 @@ def to_std_dicts(value):
 
 def is_sqlalchemy_version_less_than(version_string):
     """Check the installed SQLAlchemy version"""
-    return pkg_resources.get_distribution('SQLAlchemy').parsed_version < pkg_resources.parse_version(version_string)
+    return pkg_resources.get_distribution(
+        "SQLAlchemy"
+    ).parsed_version < pkg_resources.parse_version(version_string)
 
 
 class SessionMiddleware:
