@@ -1,12 +1,12 @@
 import enum
 from functools import partial
+from inspect import isawaitable
 
 import sqlalchemy as sa
 from graphene import NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
-from promise import Promise, is_thenable
 
 from .batching import get_batch_resolver
 from .sa_version import __sa_version__
@@ -76,6 +76,8 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
                 edge_type=connection_type.Edge,
             )
         else:
+            if isawaitable(resolved):
+                resolved = await resolved
             connection = connection_from_array_slice(
                 array_slice=resolved,
                 args=args,
@@ -86,14 +88,15 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         return connection
 
     @classmethod
-    def connection_resolver(cls, resolver, connection_type, model, root, info, **args):
+    async def connection_resolver(cls, resolver, connection_type, model, root, info, **args):
         resolved = resolver(root, info, **args)
 
         on_resolve = partial(cls.resolve_connection, connection_type, model, info, args)
-        if is_thenable(resolved):
-            return Promise.resolve(resolved).then(on_resolve)
+        result = on_resolve(resolved)
 
-        return on_resolve(resolved)
+        if isawaitable(result):
+            return await result
+        return result
 
     def wrap_resolve(self, parent_resolver):
         return partial(
