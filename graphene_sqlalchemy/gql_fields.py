@@ -76,8 +76,8 @@ def ast_to_dict(ast: Union[FieldNode, FragmentDefinitionNode]):
 
         result[k] = value
 
-    if hasattr(ast, 'kind'):
-        result['kind'] = ast.kind
+    if hasattr(ast, "kind"):
+        result["kind"] = ast.kind
 
     return result
 

@@ -42,12 +42,16 @@ def connection_from_query(
     if isinstance(last, int):
         start_offset = max(start_offset, end_offset - last)
 
+    limit = first or last or end_offset
+
     # If supplied slice is too large, trim it down before mapping over it.
-    _slice = query.limit(end_offset).offset(start_offset)
-    edges = [
-        edge_type(node=model(**node), cursor=offset_to_cursor(start_offset + i))
-        for i, node in enumerate(session.execute(_slice))
-    ]
+    _slice = query.limit(limit).offset(start_offset)
+    edges = []
+
+    for i, node in enumerate(session.execute(_slice)):
+        node = connection_type.Edge.node.type(**node)
+        edge = edge_type(node, cursor=offset_to_cursor(start_offset + i))
+        edges.append(edge)
 
     first_edge_cursor = edges[0].cursor if edges else None
     last_edge_cursor = edges[-1].cursor if edges else None
