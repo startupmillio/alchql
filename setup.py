@@ -1,6 +1,5 @@
 import ast
 import re
-import sys
 
 from setuptools import find_packages, setup
 
@@ -17,6 +16,8 @@ requirements = [
     "promise>=2.3",
     # Tests fail with 1.0.19
     "SQLAlchemy>=1.2,<2",
+    "singledispatch == 3.7.0",
+    "aiodataloader == 0.2.0",
 ]
 try:
     import enum
@@ -28,6 +29,7 @@ tests_require = [
     "pytest-cov>=2.11.0,<3.0",
     "sqlalchemy_utils>=0.37.0,<1.0",
     "pytest-benchmark>=3.4.0,<4.0",
+    "mock == 4.0.3"
 ]
 
 setup(

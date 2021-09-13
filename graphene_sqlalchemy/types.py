@@ -3,11 +3,16 @@ from collections import OrderedDict
 import sqlalchemy
 from graphene import Field
 from graphene.relay import Connection, Node
+from graphene.types.argument import to_arguments
 from graphene.types.objecttype import ObjectType, ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.orderedtype import OrderedType
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import ColumnProperty, CompositeProperty, RelationshipProperty
+from sqlalchemy.orm import (
+    ColumnProperty,
+    CompositeProperty,
+    RelationshipProperty,
+)
 from sqlalchemy.orm.exc import NoResultFound
 
 from .converter import (
@@ -95,7 +100,12 @@ class ORMField(OrderedType):
 
 
 def construct_fields(
-    obj_type, model, registry, only_fields, exclude_fields, connection_field_factory
+    obj_type,
+    model,
+    registry,
+    only_fields,
+    exclude_fields,
+    connection_field_factory,
 ):
     """
     Construct all the fields for a SQLAlchemyObjectType.
@@ -291,6 +301,9 @@ class SQLAlchemyObjectType(ObjectType):
         _meta.connection = connection
         _meta.id = id or "id"
 
+        if options.get("filter_fields"):
+            _meta.filter_fields = options["filter_fields"]
+
         cls.connection = connection  # Public way to get the connection
 
         super(SQLAlchemyObjectType, cls).__init_subclass_with_meta__(
@@ -329,8 +342,11 @@ class SQLAlchemyObjectType(ObjectType):
             return None
 
     async def resolve_id(self, info):
-        keys = self.__mapper__.primary_key_from_instance(self)
-        return tuple(keys) if len(keys) > 1 else keys[0]
+        model = self
+        # if isinstance(self, SQLAlchemyObjectType):
+        #     model = self._meta.model()
+        # keys = model.__mapper__.primary_key_from_instance(model)
+        return self.id
 
     @classmethod
     def enum_for_field(cls, field_name):

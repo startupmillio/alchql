@@ -149,3 +149,35 @@ def sort_argument_for_model(cls, has_default=True):
         enum.default = None
 
     return Argument(List(enum), default_value=enum.default)
+
+
+def filter_value_to_python(value):
+    """
+    Turn the string `value` into a python object.
+    >>> filter_value_to_python([1, 2, 3])
+    [1, 2, 3]
+    >>> filter_value_to_python(123)
+    123
+    >>> filter_value_to_python('true')
+    True
+    >>> filter_value_to_python('False')
+    False
+    >>> filter_value_to_python('null')
+    >>> filter_value_to_python('None')
+    >>> filter_value_to_python('Ø')
+    u'O'
+    """
+    if isinstance(value, list):
+        return value
+    if isinstance(value, int):
+        return value
+
+    # Simple values
+    if value in ["true", "True", True]:
+        value = True
+    elif value in ["false", "False", False]:
+        value = False
+    elif value in ("null", "none", "None", None):
+        value = None
+
+    return value

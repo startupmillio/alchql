@@ -59,10 +59,7 @@ def test_should_unknown_sqlalchemy_field_raise_exception():
 
     # support legacy Binary type and subsequent LargeBinary
 
-    if __sa_version__ > (1, 4):
-        LargeBinary = getattr(types, "LargeBinary")
-    else:
-        LargeBinary = getattr(types, "LargeBinary", types.Binary)
+    LargeBinary = getattr(types, "LargeBinary")
 
     with pytest.raises(Exception, match=re_err):
         get_field(LargeBinary())
