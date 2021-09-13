@@ -3,7 +3,7 @@ from graphene import NonNull, ObjectType
 from graphene.relay import Connection, Node
 
 from .models import Editor as EditorModel, Pet as PetModel
-from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
+from ..fields import SQLAlchemyConnectionField
 from ..types import SQLAlchemyObjectType
 
 

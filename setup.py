@@ -30,7 +30,7 @@ tests_require = [
     "sqlalchemy_utils>=0.37.0,<1.0",
     "pytest-benchmark>=3.4.0,<4.0",
     "mock == 4.0.3",
-    "pytest-asyncio == 0.15.1"
+    "pytest-asyncio == 0.15.1",
 ]
 
 setup(

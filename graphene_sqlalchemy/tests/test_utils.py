@@ -1,12 +1,8 @@
 import pytest
-import sqlalchemy as sa
-from graphene import Context, Enum, List, ObjectType, Schema, String
+from graphene import Context, ObjectType, Schema, String
 
-from .models import Base, Editor, Pet
 from ..utils import (
     get_session,
-    sort_argument_for_model,
-    sort_enum_for_model,
     to_enum_value_name,
     to_type_name,
 )

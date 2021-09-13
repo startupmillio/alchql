@@ -6,10 +6,9 @@ import pytest
 from graphene import Context, relay
 
 from .models import Article, HairKind, Pet, Reporter
-from .utils import SessionMiddleware, is_sqlalchemy_version_less_than, to_std_dicts
-from ..fields import BatchSQLAlchemyConnectionField, default_connection_field_factory
+from .utils import SessionMiddleware, to_std_dicts
 from ..loaders_middleware import LoaderMiddleware
-from ..types import ORMField, SQLAlchemyObjectType
+from ..types import SQLAlchemyObjectType
 
 
 class MockLoggingHandler(logging.Handler):
@@ -121,18 +120,6 @@ async def test_many_to_one(session_factory):
 
     assert len(messages) == 5
 
-    if is_sqlalchemy_version_less_than("1.3"):
-        # The batched SQL statement generated is different in 1.2.x
-        # SQLAlchemy 1.3+ optimizes out a JOIN statement in `selectin`
-        # See https://git.io/JewQu
-        sql_statements = [
-            message
-            for message in messages
-            if "SELECT" in message and "JOIN reporters" in message
-        ]
-        assert len(sql_statements) == 1
-        return
-
     # assert messages == [
     #     'BEGIN (implicit)',
     #
@@ -222,18 +209,6 @@ async def test_one_to_one(session_factory):
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
-
-    if is_sqlalchemy_version_less_than("1.3"):
-        # The batched SQL statement generated is different in 1.2.x
-        # SQLAlchemy 1.3+ optimizes out a JOIN statement in `selectin`
-        # See https://git.io/JewQu
-        sql_statements = [
-            message
-            for message in messages
-            if "SELECT" in message and "JOIN articles" in message
-        ]
-        assert len(sql_statements) == 1
-        return
 
     # assert messages == [
     #     'BEGIN (implicit)',
@@ -335,19 +310,8 @@ async def test_one_to_many(session_factory):
         )
         messages = sqlalchemy_logging_handler.messages
 
+    assert not len(result.errors), result.errors
     assert len(messages) == 5
-
-    if is_sqlalchemy_version_less_than("1.3"):
-        # The batched SQL statement generated is different in 1.2.x
-        # SQLAlchemy 1.3+ optimizes out a JOIN statement in `selectin`
-        # See https://git.io/JewQu
-        sql_statements = [
-            message
-            for message in messages
-            if "SELECT" in message and "JOIN articles" in message
-        ]
-        assert len(sql_statements) == 1
-        return
 
     # assert messages == [
     #     'BEGIN (implicit)',
@@ -474,18 +438,6 @@ async def test_many_to_many(session_factory):
         messages = sqlalchemy_logging_handler.messages
 
     assert len(messages) == 5
-
-    if is_sqlalchemy_version_less_than("1.3"):
-        # The batched SQL statement generated is different in 1.2.x
-        # SQLAlchemy 1.3+ optimizes out a JOIN statement in `selectin`
-        # See https://git.io/JewQu
-        sql_statements = [
-            message
-            for message in messages
-            if "SELECT" in message and "JOIN pets" in message
-        ]
-        assert len(sql_statements) == 1
-        return
 
     # assert messages == [
     #     'BEGIN (implicit)',
