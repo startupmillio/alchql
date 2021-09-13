@@ -21,9 +21,6 @@ def generate_loader_by_foreign_key(relation):
             f = next(iter(relation.local_columns))
             target = relation.mapper.entity
 
-            if __sa_version__ <= (1, 4):
-                raise Exception(f"Invalid sqlalchemy version: {__sa_version__}")
-
             object_type = getattr(self.info.context, "object_type", None)
 
             selected_fields = QueryHelper.get_selected_fields(self.info, model=target)
