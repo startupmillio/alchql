@@ -1,16 +1,13 @@
 import graphene
 import pytest
-from graphene import Context, relay
+from graphene import Context
 
 from .models import Article, HairKind, Pet, Reporter
-from .utils import SessionMiddleware, is_sqlalchemy_version_less_than
+from .utils import SessionMiddleware
 from ..fields import BatchSQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..node import AsyncNode
 from ..types import SQLAlchemyObjectType
-
-if is_sqlalchemy_version_less_than("1.2"):
-    pytest.skip("SQL batching only works for SQLAlchemy 1.2+", allow_module_level=True)
 
 
 def get_schema():

@@ -26,7 +26,6 @@ from ..fields import UnsortedSQLAlchemyConnectionField, default_connection_field
 from ..registry import Registry, get_global_registry
 from ..types import SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Pet, Reporter
-from ..sa_version import __sa_version__
 
 
 def mock_resolver():

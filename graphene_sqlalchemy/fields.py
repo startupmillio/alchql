@@ -4,18 +4,17 @@ from inspect import isawaitable
 
 import graphene
 import sqlalchemy as sa
-from graphene import NonNull, Argument, Field
+from graphene import Argument, NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from sqlalchemy.orm import InstrumentedAttribute
 
 from graphene_sqlalchemy.consts import OPERATORS_MAPPING, OP_IN
-from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
 from graphene_sqlalchemy.query_helper import QueryHelper
 from graphene_sqlalchemy.registry import get_global_registry
+from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
 from .batching import get_batch_resolver
-from .sa_version import __sa_version__
 from .slice import connection_from_query
 from .utils import EnumValue, get_query, get_session
 
@@ -56,9 +55,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         session = get_session(info.context)
 
         if resolved is None:
-            q_aliased = query.with_only_columns(
-                *sa.inspect(model).primary_key
-            ).alias()
+            q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
             q = sa.select([sa.func.count()]).select_from(q_aliased)
             if QueryHelper.get_filters(info):
                 _len = session.execute(q).scalar()
