@@ -3,8 +3,7 @@ from flask import Flask, request
 from flask_graphql import GraphQLView
 from graphene import Context
 
-import models
-from database import db_session, init_db
+from database import Base, db_session, init_db
 from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
 from schema import schema
 
@@ -45,13 +44,7 @@ app.add_url_rule(
         schema=schema,
         graphiql=True,
         middleware=[
-            LoaderMiddleware(
-                [
-                    models.Department,
-                    models.Role,
-                    models.Employee
-                ]
-            )
+            LoaderMiddleware(Base.registry.mappers)
         ],
     ),
 )

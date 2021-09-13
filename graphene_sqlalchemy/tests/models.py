@@ -2,8 +2,17 @@ from __future__ import absolute_import
 
 import enum
 
-from sqlalchemy import (Column, Date, Enum, ForeignKey, Integer, String, Table,
-                        func, select)
+from sqlalchemy import (
+    Column,
+    Date,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    func,
+    select,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import column_property, composite, mapper, relationship
@@ -12,8 +21,8 @@ PetKind = Enum("cat", "dog", name="pet_kind")
 
 
 class HairKind(enum.Enum):
-    LONG = 'long'
-    SHORT = 'short'
+    LONG = "long"
+    SHORT = "short"
 
 
 Base = declarative_base()
@@ -32,7 +41,7 @@ class Editor(Base):
     name = Column(String(100))
 
     def __repr__(self):
-        return f'{self.__tablename__}(editor_id={self.editor_id}, name={self.name})'
+        return f"{self.__tablename__}(editor_id={self.editor_id}, name={self.name})"
 
 
 class Pet(Base):
@@ -44,7 +53,7 @@ class Pet(Base):
     reporter_id = Column(Integer(), ForeignKey("reporters.id"))
 
     def __repr__(self):
-        return f'{self.__tablename__}(id={self.id})'
+        return f"{self.__tablename__}(id={self.id})"
 
 
 class CompositeFullName(object):
@@ -67,7 +76,9 @@ class Reporter(Base):
     last_name = Column(String(30), doc="Last name")
     email = Column(String(), doc="Email")
     favorite_pet_kind = Column(PetKind)
-    pets = relationship("Pet", secondary=association_table, backref="reporters", order_by="Pet.id")
+    pets = relationship(
+        "Pet", secondary=association_table, backref="reporters", order_by="Pet.id"
+    )
     articles = relationship("Article", backref="reporter")
     favorite_article = relationship("Article", uselist=False)
 
@@ -79,10 +90,12 @@ class Reporter(Base):
         select([func.cast(func.count(id), Integer)]), doc="Column property"
     )
 
-    composite_prop = composite(CompositeFullName, first_name, last_name, doc="Composite")
+    composite_prop = composite(
+        CompositeFullName, first_name, last_name, doc="Composite"
+    )
 
     def __repr__(self):
-        return f'{self.__tablename__}(id={self.id})'
+        return f"{self.__tablename__}(id={self.id})"
 
 
 class Article(Base):
@@ -93,7 +106,7 @@ class Article(Base):
     reporter_id = Column(Integer(), ForeignKey("reporters.id"))
 
     def __repr__(self):
-        return f'{self.__tablename__}(id={self.id})'
+        return f"{self.__tablename__}(id={self.id})"
 
 
 class ReflectedEditor(type):

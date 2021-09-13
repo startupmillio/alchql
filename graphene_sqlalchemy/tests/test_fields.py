@@ -1,11 +1,9 @@
 import pytest
 from graphene import NonNull, ObjectType
 from graphene.relay import Connection, Node
-from promise import Promise
 
 from .models import Editor as EditorModel, Pet as PetModel
-from ..fields import (SQLAlchemyConnectionField,
-                      UnsortedSQLAlchemyConnectionField)
+from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
 from ..types import SQLAlchemyObjectType
 
 
@@ -18,6 +16,7 @@ class Pet(SQLAlchemyObjectType):
 class Editor(SQLAlchemyObjectType):
     class Meta:
         model = EditorModel
+
 
 ##
 # SQLAlchemyConnectionField
@@ -38,16 +37,6 @@ def test_required_sqlalachemy_connection():
     assert field.type.of_type._meta.node is Pet
 
 
-def test_promise_connection_resolver():
-    def resolver(_obj, _info):
-        return Promise.resolve([])
-
-    result = UnsortedSQLAlchemyConnectionField.connection_resolver(
-        resolver, Pet.connection, Pet._meta.model, None, None
-    )
-    assert isinstance(result, Promise)
-
-
 def test_type_assert_sqlalchemy_object_type():
     with pytest.raises(AssertionError, match="only accepts SQLAlchemyObjectType"):
         SQLAlchemyConnectionField(ObjectType).type
@@ -56,6 +45,7 @@ def test_type_assert_sqlalchemy_object_type():
 def test_type_assert_object_has_connection():
     with pytest.raises(AssertionError, match="doesn't have a connection"):
         SQLAlchemyConnectionField(Editor).type
+
 
 ##
 # UnsortedSQLAlchemyConnectionField

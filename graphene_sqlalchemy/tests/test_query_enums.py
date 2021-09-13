@@ -1,15 +1,16 @@
 import graphene
+import pytest
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
 from ..types import SQLAlchemyObjectType
 
 
-def test_query_pet_kinds(session):
+@pytest.mark.asyncio
+async def test_query_pet_kinds(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
-
         class Meta:
             model = Pet
 
@@ -20,8 +21,9 @@ def test_query_pet_kinds(session):
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
         reporters = graphene.List(ReporterType)
-        pets = graphene.List(PetType, kind=graphene.Argument(
-            PetType.enum_for_field('pet_kind')))
+        pets = graphene.List(
+            PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
+        )
 
         def resolve_reporter(self, _info):
             return session.query(Reporter).first()
@@ -32,7 +34,7 @@ def test_query_pet_kinds(session):
         def resolve_pets(self, _info, kind):
             query = session.query(Pet)
             if kind:
-                query = query.filter_by(pet_kind=kind)
+                query = query.filter_by(pet_kind=kind.value)
             return query
 
     query = """
@@ -58,35 +60,33 @@ def test_query_pet_kinds(session):
         }
     """
     expected = {
-        'reporter': {
-            'firstName': 'John',
-            'lastName': 'Doe',
-            'email': None,
-            'favoritePetKind': 'CAT',
-            'pets': [{
-                'name': 'Garfield',
-                'petKind': 'CAT'
-            }]
+        "reporter": {
+            "firstName": "John",
+            "lastName": "Doe",
+            "email": None,
+            "favoritePetKind": "CAT",
+            "pets": [{"name": "Garfield", "petKind": "CAT"}],
         },
-        'reporters': [{
-            'firstName': 'John',
-            'favoritePetKind': 'CAT',
-        }, {
-            'firstName': 'Jane',
-            'favoritePetKind': 'DOG',
-        }],
-        'pets': [{
-            'name': 'Lassie',
-            'petKind': 'DOG'
-        }]
+        "reporters": [
+            {
+                "firstName": "John",
+                "favoritePetKind": "CAT",
+            },
+            {
+                "firstName": "Jane",
+                "favoritePetKind": "DOG",
+            },
+        ],
+        "pets": [{"name": "Lassie", "petKind": "DOG"}],
     }
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query)
+    result = await schema.execute_async(query)
     assert not result.errors
     assert result.data == expected
 
 
-def test_query_more_enums(session):
+@pytest.mark.asyncio
+async def test_query_more_enums(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -110,13 +110,14 @@ def test_query_more_enums(session):
     """
     expected = {"pet": {"name": "Garfield", "petKind": "CAT", "hairKind": "SHORT"}}
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query)
+    result = await schema.execute_async(query)
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
 
 
-def test_enum_as_argument(session):
+@pytest.mark.asyncio
+async def test_enum_as_argument(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -125,13 +126,13 @@ def test_enum_as_argument(session):
 
     class Query(graphene.ObjectType):
         pet = graphene.Field(
-            PetType,
-            kind=graphene.Argument(PetType.enum_for_field('pet_kind')))
+            PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
+        )
 
         def resolve_pet(self, info, kind=None):
             query = session.query(Pet)
             if kind:
-                query = query.filter(Pet.pet_kind == kind)
+                query = query.filter(Pet.pet_kind == kind.value)
             return query.first()
 
     query = """
@@ -145,18 +146,19 @@ def test_enum_as_argument(session):
     """
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, variables={"kind": "CAT"})
+    result = await schema.execute_async(query, variables={"kind": "CAT"})
     assert not result.errors
     expected = {"pet": {"name": "Garfield", "petKind": "CAT", "hairKind": "SHORT"}}
     assert result.data == expected
-    result = schema.execute(query, variables={"kind": "DOG"})
+    result = await schema.execute_async(query, variables={"kind": "DOG"})
     assert not result.errors
     expected = {"pet": {"name": "Lassie", "petKind": "DOG", "hairKind": "LONG"}}
     result = to_std_dicts(result.data)
     assert result == expected
 
 
-def test_py_enum_as_argument(session):
+@pytest.mark.asyncio
+async def test_py_enum_as_argument(session):
     add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
@@ -187,11 +189,11 @@ def test_py_enum_as_argument(session):
     """
 
     schema = graphene.Schema(query=Query)
-    result = schema.execute(query, variables={"kind": "SHORT"})
+    result = await schema.execute_async(query, variables={"kind": "SHORT"})
     assert not result.errors
     expected = {"pet": {"name": "Garfield", "petKind": "CAT", "hairKind": "SHORT"}}
     assert result.data == expected
-    result = schema.execute(query, variables={"kind": "LONG"})
+    result = await schema.execute_async(query, variables={"kind": "LONG"})
     assert not result.errors
     expected = {"pet": {"name": "Lassie", "petKind": "DOG", "hairKind": "LONG"}}
     result = to_std_dicts(result.data)

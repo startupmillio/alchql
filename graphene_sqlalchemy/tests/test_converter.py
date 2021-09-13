@@ -17,11 +17,12 @@ from graphene.relay import Node
 from graphene.types.datetime import DateTime
 from graphene.types.json import JSONString
 
-from ..converter import (convert_sqlalchemy_column,
-                         convert_sqlalchemy_composite,
-                         convert_sqlalchemy_relationship)
-from ..fields import (UnsortedSQLAlchemyConnectionField,
-                      default_connection_field_factory)
+from ..converter import (
+    convert_sqlalchemy_column,
+    convert_sqlalchemy_composite,
+    convert_sqlalchemy_relationship,
+)
+from ..fields import UnsortedSQLAlchemyConnectionField, default_connection_field_factory
 from ..registry import Registry, get_global_registry
 from ..types import SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Pet, Reporter
@@ -34,34 +35,31 @@ def mock_resolver():
 
 def get_field(sqlalchemy_type, **column_kwargs):
     class Model(declarative_base()):
-        __tablename__ = 'model'
+        __tablename__ = "model"
         id_ = Column(types.Integer, primary_key=True)
         column = Column(sqlalchemy_type, doc="Custom Help Text", **column_kwargs)
 
-    column_prop = inspect(Model).column_attrs['column']
+    column_prop = inspect(Model).column_attrs["column"]
     return convert_sqlalchemy_column(column_prop, get_global_registry(), mock_resolver)
 
 
 def get_field_from_column(column_):
     class Model(declarative_base()):
-        __tablename__ = 'model'
+        __tablename__ = "model"
         id_ = Column(types.Integer, primary_key=True)
         column = column_
 
-    column_prop = inspect(Model).column_attrs['column']
+    column_prop = inspect(Model).column_attrs["column"]
     return convert_sqlalchemy_column(column_prop, get_global_registry(), mock_resolver)
 
 
-@pytest.mark.skip('sqlalchemy_utils with sa 1.4')
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_unknown_sqlalchemy_field_raise_exception():
     re_err = "Don't know how to convert the SQLAlchemy field"
 
     # support legacy Binary type and subsequent LargeBinary
 
-    if __sa_version__ > (1, 4):
-        LargeBinary = getattr(types, 'LargeBinary')
-    else:
-        LargeBinary = getattr(types, 'LargeBinary', types.Binary)
+    LargeBinary = getattr(types, "LargeBinary")
 
     with pytest.raises(Exception, match=re_err):
         get_field(LargeBinary())
@@ -135,7 +133,9 @@ def test_should_integer_convert_int():
 
 
 def test_should_primary_integer_convert_id():
-    assert get_field(types.Integer(), primary_key=True).type == graphene.NonNull(graphene.ID)
+    assert get_field(types.Integer(), primary_key=True).type == graphene.NonNull(
+        graphene.ID
+    )
 
 
 def test_should_boolean_convert_boolean():
@@ -150,9 +150,9 @@ def test_should_numeric_convert_float():
     assert get_field(types.Numeric()).type == graphene.Float
 
 
-@pytest.mark.skip('sqlalchemy_utils with sa 1.4')
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_choice_convert_enum():
-    field = get_field(ChoiceType([(u"es", u"Spanish"), (u"en", u"English")]))
+    field = get_field(ChoiceType([("es", "Spanish"), ("en", "English")]))
     graphene_type = field.type
     assert issubclass(graphene_type, graphene.Enum)
     assert graphene_type._meta.name == "MODEL_COLUMN"
@@ -160,11 +160,11 @@ def test_should_choice_convert_enum():
     assert graphene_type._meta.enum.__members__["en"].value == "English"
 
 
-@pytest.mark.skip('sqlalchemy_utils with sa 1.4')
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_enum_choice_convert_enum():
     class TestEnum(enum.Enum):
-        es = u"Spanish"
-        en = u"English"
+        es = "Spanish"
+        en = "English"
 
     field = get_field(ChoiceType(TestEnum, impl=types.String()))
     graphene_type = field.type
@@ -174,7 +174,7 @@ def test_should_enum_choice_convert_enum():
     assert graphene_type._meta.enum.__members__["en"].value == "English"
 
 
-@pytest.mark.skip('sqlalchemy_utils with sa 1.4')
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_intenum_choice_convert_enum():
     class TestEnum(enum.IntEnum):
         one = 1
@@ -189,21 +189,21 @@ def test_should_intenum_choice_convert_enum():
 
 
 def test_should_columproperty_convert():
-    field = get_field_from_column(column_property(
-        select([func.sum(func.cast(id, types.Integer))]).where(id == 1)
-    ))
+    field = get_field_from_column(
+        column_property(select([func.sum(func.cast(id, types.Integer))]).where(id == 1))
+    )
 
     assert field.type == graphene.Int
 
 
-@pytest.mark.skip('sqlalchemy_utils with sa 1.4')
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_scalar_list_convert_list():
     field = get_field(ScalarListType())
     assert isinstance(field.type, graphene.List)
     assert field.type.of_type == graphene.String
 
 
-@pytest.mark.skip('sqlalchemy_utils with sa 1.4')
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_jsontype_convert_jsonstring():
     assert get_field(JSONType()).type == JSONString
 
@@ -214,7 +214,10 @@ def test_should_manytomany_convert_connectionorlist():
             model = Article
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
+        Reporter.pets.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     assert not dynamic_field.get_type()
@@ -226,7 +229,10 @@ def test_should_manytomany_convert_connectionorlist_list():
             model = Pet
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
+        Reporter.pets.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -242,7 +248,10 @@ def test_should_manytomany_convert_connectionorlist_connection():
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
+        Reporter.pets.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     assert isinstance(dynamic_field.get_type(), UnsortedSQLAlchemyConnectionField)
@@ -254,7 +263,10 @@ def test_should_manytoone_convert_connectionorlist():
             model = Article
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.pets.property, A, default_connection_field_factory, 'orm_field_name',
+        Reporter.pets.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     assert not dynamic_field.get_type()
@@ -266,7 +278,10 @@ def test_should_manytoone_convert_connectionorlist_list():
             model = Reporter
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Article.reporter.property, A, default_connection_field_factory, 'orm_field_name',
+        Article.reporter.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -281,7 +296,10 @@ def test_should_manytoone_convert_connectionorlist_connection():
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Article.reporter.property, A, default_connection_field_factory, 'orm_field_name',
+        Article.reporter.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -296,7 +314,10 @@ def test_should_onetoone_convert_field():
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Reporter.favorite_article.property, A, default_connection_field_factory, 'orm_field_name',
+        Reporter.favorite_article.property,
+        A,
+        default_connection_field_factory,
+        "orm_field_name",
     )
     assert isinstance(dynamic_field, graphene.Dynamic)
     graphene_type = dynamic_field.get_type()
@@ -320,7 +341,9 @@ def test_should_postgresql_enum_convert():
 
 
 def test_should_postgresql_py_enum_convert():
-    field = get_field(postgresql.ENUM(enum.Enum("TwoNumbers", "one two"), name="two_numbers"))
+    field = get_field(
+        postgresql.ENUM(enum.Enum("TwoNumbers", "one two"), name="two_numbers")
+    )
     field_type = field.type()
     assert field_type._meta.name == "TwoNumbers"
     assert isinstance(field_type, graphene.Enum)
@@ -367,7 +390,11 @@ def test_should_composite_convert():
         return graphene.String(description=composite.doc)
 
     field = convert_sqlalchemy_composite(
-        composite(CompositeClass, (Column(types.Unicode(50)), Column(types.Unicode(50))), doc="Custom Help Text"),
+        composite(
+            CompositeClass,
+            (Column(types.Unicode(50)), Column(types.Unicode(50))),
+            doc="Custom Help Text",
+        ),
         registry,
         mock_resolver,
     )
@@ -383,7 +410,10 @@ def test_should_unknown_sqlalchemy_composite_raise_exception():
     re_err = "Don't know how to convert the composite field"
     with pytest.raises(Exception, match=re_err):
         convert_sqlalchemy_composite(
-            composite(CompositeFullName, (Column(types.Unicode(50)), Column(types.Unicode(50)))),
+            composite(
+                CompositeFullName,
+                (Column(types.Unicode(50)), Column(types.Unicode(50))),
+            ),
             Registry(),
             mock_resolver,
         )
