@@ -56,17 +56,10 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         session = get_session(info.context)
 
         if resolved is None:
-            if __sa_version__ > (1, 4):
-                q_aliased = query.with_only_columns(
-                    *sa.inspect(model).primary_key
-                ).alias()
-                q = sa.select([sa.func.count()]).select_from(q_aliased)
-            else:
-                raise Exception("Use SQLAlchemy version > 1.4")
-
-                # q = sa.select([sa.func.count()]).select_from(
-                #     query.with_only_columns(sa.inspect(model).primary_key)
-                # )
+            q_aliased = query.with_only_columns(
+                *sa.inspect(model).primary_key
+            ).alias()
+            q = sa.select([sa.func.count()]).select_from(q_aliased)
             if QueryHelper.get_filters(info):
                 _len = session.execute(q).scalar()
             elif QueryHelper.has_last_arg(info):
@@ -120,9 +113,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
-            parent_resolver,
-            get_nullable_type(self.type),
-            self.model,
+            resolver=parent_resolver,
+            connection_type=get_nullable_type(self.type),
+            model=self.model,
         )
 
 
