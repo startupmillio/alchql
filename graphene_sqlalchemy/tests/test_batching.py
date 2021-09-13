@@ -71,10 +71,6 @@ def get_schema():
     return graphene.Schema(query=Query)
 
 
-if is_sqlalchemy_version_less_than("1.2"):
-    pytest.skip("SQL batching only works for SQLAlchemy 1.2+", allow_module_level=True)
-
-
 @pytest.mark.asyncio
 async def test_many_to_one(session_factory):
     session = session_factory()
@@ -557,4 +553,3 @@ async def test_many_to_many(session_factory):
             },
         ],
     }
-

@@ -2,12 +2,18 @@ import enum
 from functools import partial
 from inspect import isawaitable
 
+import graphene
 import sqlalchemy as sa
-from graphene import NonNull
+from graphene import NonNull, Argument, Field
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
+from sqlalchemy.orm import InstrumentedAttribute
 
+from graphene_sqlalchemy.consts import OPERATORS_MAPPING, OP_IN
+from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
+from graphene_sqlalchemy.query_helper import QueryHelper
+from graphene_sqlalchemy.registry import get_global_registry
 from .batching import get_batch_resolver
 from .sa_version import __sa_version__
 from .slice import connection_from_query
@@ -45,23 +51,21 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
     @classmethod
     async def resolve_connection(cls, connection_type, model, info, args, resolved):
+
         query = cls.get_query(model, info, **args)
         session = get_session(info.context)
 
         if resolved is None:
-            if __sa_version__ > (1, 4):
-                q_aliased = query.with_only_columns(
-                    *sa.inspect(model).primary_key
-                ).alias()
-                q = sa.select([sa.func.count()]).select_from(q_aliased)
+            q_aliased = query.with_only_columns(
+                *sa.inspect(model).primary_key
+            ).alias()
+            q = sa.select([sa.func.count()]).select_from(q_aliased)
+            if QueryHelper.get_filters(info):
+                _len = session.execute(q).scalar()
+            elif QueryHelper.has_last_arg(info):
+                raise TypeError('Cannot set "last" without filters applied')
             else:
-                raise Exception("Use SQLAlchemy version > 1.4")
-
-                # q = sa.select([sa.func.count()]).select_from(
-                #     query.with_only_columns(sa.inspect(model).primary_key)
-                # )
-
-            _len = session.execute(q).scalar()
+                _len = 100
 
             connection = connection_from_query(
                 query,
@@ -75,6 +79,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
                 page_info_type=page_info_adapter,
                 edge_type=connection_type.Edge,
             )
+
+            if hasattr(connection, "total_count"):
+                connection.total_count = _len
         else:
             if isawaitable(resolved):
                 resolved = await resolved
@@ -85,10 +92,15 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
                 edge_type=connection_type.Edge,
                 page_info_type=page_info_adapter,
             )
+            if hasattr(connection, "total_count"):
+                connection.total_count = len(resolved)
         return connection
 
     @classmethod
-    async def connection_resolver(cls, resolver, connection_type, model, root, info, **args):
+    async def connection_resolver(
+        cls, resolver, connection_type, model, root, info, **args
+    ):
+        setattr(info.context, "object_type", connection_type.Edge.node.type)
         resolved = resolver(root, info, **args)
 
         on_resolve = partial(cls.resolve_connection, connection_type, model, info, args)
@@ -101,9 +113,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
-            parent_resolver,
-            get_nullable_type(self.type),
-            self.model,
+            resolver=parent_resolver,
+            connection_type=get_nullable_type(self.type),
+            model=self.model,
         )
 
 
@@ -146,7 +158,87 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
         return query
 
 
-class BatchSQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
+class FilterConnectionField(SQLAlchemyConnectionField):
+    def __init__(self, type_, *args, **kwargs):
+        if hasattr(type_._meta, "filter_fields"):
+            FilterConnectionField.set_filter_fields(type_, kwargs)
+
+        if hasattr(type, "sort_argument"):
+            kwargs["sort"] = type_.sort_argument()
+
+        super(SQLAlchemyConnectionField, self).__init__(
+            type_.connection, *args, **kwargs
+        )
+
+    @staticmethod
+    def set_filter_fields(type_, kwargs):
+        filters = {}
+        tablename = type_._meta.model.__tablename__
+
+        registry = get_global_registry()
+
+        for field, operators in type_._meta.filter_fields.items():
+            if not isinstance(field, InstrumentedAttribute):
+                continue
+
+            if field.parent.tables[0].name == tablename:
+                gql_field = type_._meta.fields.get(field.key)
+                if gql_field and gql_field.name is not None:
+                    field_key = gql_field.name
+                else:
+                    field_key = field.key
+            else:
+                field_key = f"{field.parent.tables[0].name}_{field.key}"
+
+            field_type = convert_sqlalchemy_type(
+                getattr(field, "type", None), field, registry
+            )
+
+            for operator in operators:
+                if operator == OP_IN:
+                    field_type = graphene.List(of_type=field_type)
+                filter_name = f"{field_key}__{operator}"
+                kwargs[filter_name] = Argument(type_=field_type)
+                filters[filter_name] = getattr(field, OPERATORS_MAPPING[operator][0])
+
+        setattr(type_, "parsed_filters", filters)
+
+    @classmethod
+    def get_query(cls, model, info, sort=None, **args):
+        object_type = getattr(info.context, "object_type", None)
+
+        filters = QueryHelper.get_filters(info)
+        select_fields = QueryHelper.get_selected_fields(info, model)
+        gql_field = QueryHelper.get_current_field(info)
+        query = sa.select(*select_fields)
+
+        if object_type and hasattr(object_type, "set_select_from"):
+            query = object_type.set_select_from(info, query, gql_field.values)
+        if filters:
+            query = query.where(sa.and_(*filters))
+        if sort is not None:
+            if not isinstance(sort, list):
+                sort = [sort]
+            sort_args = []
+            # ensure consistent handling of graphene Enums, enum values and
+            # plain strings
+            for item in sort:
+                if isinstance(item, (EnumValue, enum.Enum)):
+                    sort_args.append(item.value)
+                else:
+                    sort_args.append(item)
+            query = query.order_by(*sort_args)
+        return query
+
+
+class ModelField(graphene.Field):
+    def __init__(self, *args, model_field=None, use_label=True, **kwargs):
+        super(ModelField, self).__init__(*args, **kwargs)
+        self.model_field = model_field
+        self.use_label = use_label
+
+
+class BatchSQLAlchemyConnectionField(FilterConnectionField):
     """
     This is currently experimental.
     The API and behavior may change in future versions.
@@ -166,7 +258,14 @@ class BatchSQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
         model = relationship.mapper.entity
         model_type = registry.get_type_for_model(model)
         resolver = get_batch_resolver(relationship)
-        return cls(model_type.connection, resolver=resolver, **field_kwargs)
+
+        if hasattr(model_type._meta, "filter_fields"):
+            BatchSQLAlchemyConnectionField.set_filter_fields(model_type, field_kwargs)
+
+        if hasattr(model_type, "sort_argument"):
+            field_kwargs["sort"] = model_type.sort_argument()
+
+        return cls(model_type, resolver=resolver, **field_kwargs)
 
 
 def default_connection_field_factory(relationship, registry, **field_kwargs):

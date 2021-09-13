@@ -85,7 +85,11 @@ def _default_sort_enum_symbol_name(column_name, sort_asc=True):
 
 
 def sort_enum_for_object_type(
-    obj_type, name=None, only_fields=None, only_indexed=None, get_symbol_name=None
+    obj_type,
+    name=None,
+    only_fields=None,
+    only_indexed=None,
+    get_symbol_name=None,
 ):
     """Return Graphene Enum for sorting the given SQLAlchemyObjectType.
 

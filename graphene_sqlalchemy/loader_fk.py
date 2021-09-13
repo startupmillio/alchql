@@ -1,15 +1,19 @@
+import enum
 from collections import defaultdict
 
 import sqlalchemy as sa
 from aiodataloader import DataLoader
 
+from graphene_sqlalchemy.query_helper import QueryHelper
+from graphene_sqlalchemy.utils import EnumValue
 from .sa_version import __sa_version__
 
 
 def generate_loader_by_foreign_key(relation):
     class Loader(DataLoader):
-        def __init__(self, session, *args, **kwargs):
+        def __init__(self, session, info=None, *args, **kwargs):
             self.session = session
+            self.info = info
             self.fields = set()
             super().__init__(*args, **kwargs)
 
@@ -17,16 +21,24 @@ def generate_loader_by_foreign_key(relation):
             f = next(iter(relation.local_columns))
             target = relation.mapper.entity
 
-            if __sa_version__ > (1, 4):
-                q = sa.select(
-                    *(self.fields or target.__table__.columns), f.label("_batch_key")
-                )
-            else:
-                raise Exception(f"Invalid sqlalchemy version: {__sa_version__}")
-                # q = sa.select(
-                #     list(self.fields or target.__table__.columns)
-                #     + [f.label("_batch_key")]
-                # )
+            object_type = getattr(self.info.context, "object_type", None)
+
+            selected_fields = QueryHelper.get_selected_fields(self.info, model=target)
+            q = sa.select(
+                *selected_fields,
+                f.label("_batch_key"),
+            )
+
+            filters = QueryHelper.get_filters(self.info)
+            gql_field = QueryHelper.get_current_field(self.info)
+
+            if object_type and hasattr(object_type, "set_select_from"):
+                q = object_type.set_select_from(self.info, q, gql_field.values)
+                if list(q._group_by_clause):
+                    q = q.group_by(f)
+
+            if filters:
+                q = q.where(sa.and_(*filters))
 
             if relation.primaryjoin is not None:
                 q = q.where(relation.primaryjoin)
@@ -39,12 +51,38 @@ def generate_loader_by_foreign_key(relation):
                 for ob in relation.order_by:
                     q = q.order_by(ob)
 
+            if (
+                "sort" in gql_field.arguments
+                and gql_field.arguments["sort"] is not None
+            ):
+                sort = gql_field.arguments["sort"]
+                if not isinstance(sort, list):
+                    sort = [sort]
+
+                if hasattr(object_type, "sort_argument"):
+                    sort_type = object_type.sort_argument().type.of_type
+                    new_sort = []
+                    for s in sort:
+                        new_sort.append(getattr(sort_type, s).value)
+
+                    sort = new_sort
+
+                sort_args = []
+                # ensure consistent handling of graphene Enums, enum values and
+                # plain strings
+                for item in sort:
+                    if isinstance(item, (EnumValue, enum.Enum)):
+                        sort_args.append(item.value)
+                    else:
+                        sort_args.append(item)
+                q = q.order_by(*sort_args)
+
             results_by_ids = defaultdict(list)
 
             for result in self.session.execute(q.distinct()):
                 _data = dict(**result)
                 _batch_key = _data.pop("_batch_key")
-                results_by_ids[_batch_key].append(target(**_data))
+                results_by_ids[_batch_key].append(object_type(**_data))
 
             return [results_by_ids.get(id, []) for id in keys]
 

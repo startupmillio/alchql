@@ -1,5 +1,5 @@
 from inspect import isawaitable
-from typing import List, Sequence, Union
+from typing import List, Sequence, Type, Union
 
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeMeta, Mapper
@@ -9,7 +9,7 @@ from graphene_sqlalchemy.loader_fk import generate_loader_by_foreign_key
 
 
 class LoaderMiddleware:
-    def __init__(self, models: Sequence[Union[Mapper, DeclarativeMeta]]):
+    def __init__(self, models: Sequence[Union[Mapper, Type[DeclarativeMeta]]]):
         self.loaders = {}
         for model in models:
             if isinstance(model, Mapper):
