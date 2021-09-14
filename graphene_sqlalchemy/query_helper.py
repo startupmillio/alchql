@@ -180,7 +180,7 @@ class QueryHelper:
     def __parse_fragments(fragments: dict, variables: dict) -> dict:
         result = {}
         for name, fragment in fragments.items():
-            result[name] = QueryHelper.__parse_nodes(
+            result[camel_to_snake(name)] = QueryHelper.__parse_nodes(
                 fragment.selection_set.selections, variables
             )
 
