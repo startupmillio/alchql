@@ -342,11 +342,11 @@ class SQLAlchemyObjectType(ObjectType):
             return None
 
     async def resolve_id(self, info):
-        model = self
-        # if isinstance(self, SQLAlchemyObjectType):
-        #     model = self._meta.model()
-        # keys = model.__mapper__.primary_key_from_instance(model)
-        return self.id
+        key = "id"
+        if isinstance(self, SQLAlchemyObjectType):
+            model = self._meta.model()
+            key = model.__mapper__.primary_key[0].key
+        return getattr(self, key, None)
 
     @classmethod
     def enum_for_field(cls, field_name):

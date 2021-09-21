@@ -53,7 +53,9 @@ class QueryHelper:
     @staticmethod
     def parse_query(info) -> List[QueryField]:
 
-        if not hasattr(info.context, "parsed_query"):
+        if not hasattr(
+            info.context, "parsed_query"
+        ) or not info.context.parsed_query.get(info.field_name):
 
             nodes = info.field_nodes
 
@@ -62,13 +64,17 @@ class QueryHelper:
             fragments = QueryHelper.__parse_fragments(info.fragments, variables)
 
             result = QueryHelper.__set_fragment_fields(result, fragments)
-            setattr(info.context, "parsed_query", result)
+            setattr(info.context, "parsed_query", {info.field_name: result})
 
-        return info.context.parsed_query.copy()
+        return info.context.parsed_query[info.field_name].copy()
 
     @staticmethod
     def get_selected_fields(info, model):
         object_type = getattr(info.context, "object_type", None)
+
+        if not object_type:
+            return
+
         gql_field = QueryHelper.get_current_field(info)
 
         object_type_fields = {}

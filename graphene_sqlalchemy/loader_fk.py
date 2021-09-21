@@ -23,6 +23,9 @@ def generate_loader_by_foreign_key(relation):
             object_type = getattr(self.info.context, "object_type", None)
 
             selected_fields = QueryHelper.get_selected_fields(self.info, model=target)
+            if not selected_fields:
+                selected_fields = self.fields or target.__table__.columns
+
             q = sa.select(
                 *selected_fields,
                 f.label("_batch_key"),
@@ -78,10 +81,11 @@ def generate_loader_by_foreign_key(relation):
 
             results_by_ids = defaultdict(list)
 
+            conversion_type = object_type or target
             for result in self.session.execute(q.distinct()):
                 _data = dict(**result)
                 _batch_key = _data.pop("_batch_key")
-                results_by_ids[_batch_key].append(object_type(**_data))
+                results_by_ids[_batch_key].append(conversion_type(**_data))
 
             return [results_by_ids.get(id, []) for id in keys]
 
