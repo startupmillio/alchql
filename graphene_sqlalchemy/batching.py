@@ -18,10 +18,9 @@ def get_object_type(root, info):
     if isinstance(connection_field_type, Field):
         return connection_field_type.type
     elif isinstance(connection_field_type, Dynamic):
-        if isinstance(connection_field_type.type(), ObjectTypeMeta):
-            setattr(info.context, "object_type", connection_field_type.type().type)
-        elif type(connection_field_type.type()) == Field:
-            setattr(info.context, "object_type", connection_field_type.type().type)
+        t = connection_field_type.type()
+        if isinstance(t, ObjectTypeMeta) or type(t) == Field:
+            setattr(info.context, "object_type", t.type)
 
 
 def get_batch_resolver(relationship_prop, single=False):
