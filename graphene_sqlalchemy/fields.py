@@ -110,9 +110,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
-            resolver=parent_resolver,
-            connection_type=get_nullable_type(self.type),
-            model=self.model,
+            parent_resolver,
+            get_nullable_type(self.type),
+            self.model,
         )
 
 
@@ -224,6 +224,10 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                     sort_args.append(item.value)
                 else:
                     sort_args.append(item)
+
+            if hasattr(model, "id"):
+                sort_args.append(model.id)
+
             query = query.order_by(*sort_args)
         return query
 
