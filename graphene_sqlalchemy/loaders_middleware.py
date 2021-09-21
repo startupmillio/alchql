@@ -17,7 +17,7 @@ class LoaderMiddleware:
 
             inspected_model = sa.inspect(model)
             for relationship in inspected_model.relationships.values():
-                key = (relationship.parent.entity, relationship.mapper.entity)
+                key = (relationship.parent.entity, relationship.mapper.entity, relationship.key)
                 self.loaders[key] = generate_loader_by_foreign_key(relationship)
 
     async def resolve(self, next_, root, info, **args):
