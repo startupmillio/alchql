@@ -72,27 +72,25 @@ def get_schema():
 
 @pytest.mark.asyncio
 async def test_many_to_one(session_factory):
-    session = session_factory()
+    with session_factory() as session:
+        reporter_1 = Reporter(
+            first_name="Reporter_1",
+        )
+        session.add(reporter_1)
+        reporter_2 = Reporter(
+            first_name="Reporter_2",
+        )
+        session.add(reporter_2)
 
-    reporter_1 = Reporter(
-        first_name="Reporter_1",
-    )
-    session.add(reporter_1)
-    reporter_2 = Reporter(
-        first_name="Reporter_2",
-    )
-    session.add(reporter_2)
+        article_1 = Article(headline="Article_1")
+        article_1.reporter = reporter_1
+        session.add(article_1)
 
-    article_1 = Article(headline="Article_1")
-    article_1.reporter = reporter_1
-    session.add(article_1)
+        article_2 = Article(headline="Article_2")
+        article_2.reporter = reporter_2
+        session.add(article_2)
 
-    article_2 = Article(headline="Article_2")
-    article_2.reporter = reporter_2
-    session.add(article_2)
-
-    session.commit()
-    session.close()
+        session.commit()
 
     schema = get_schema()
 
@@ -113,11 +111,12 @@ async def test_many_to_one(session_factory):
             context_value=Context(),
             middleware=[
                 LoaderMiddleware([Article, Reporter]),
-                SessionMiddleware(session_factory()),
+                SessionMiddleware(session_factory),
             ],
         )
         messages = sqlalchemy_logging_handler.messages
 
+    assert not result.errors
     assert len(messages) == 5
 
     # assert messages == [
@@ -163,27 +162,25 @@ async def test_many_to_one(session_factory):
 
 @pytest.mark.asyncio
 async def test_one_to_one(session_factory):
-    session = session_factory()
+    with session_factory() as session:
+        reporter_1 = Reporter(
+            first_name="Reporter_1",
+        )
+        session.add(reporter_1)
+        reporter_2 = Reporter(
+            first_name="Reporter_2",
+        )
+        session.add(reporter_2)
 
-    reporter_1 = Reporter(
-        first_name="Reporter_1",
-    )
-    session.add(reporter_1)
-    reporter_2 = Reporter(
-        first_name="Reporter_2",
-    )
-    session.add(reporter_2)
+        article_1 = Article(headline="Article_1")
+        article_1.reporter = reporter_1
+        session.add(article_1)
 
-    article_1 = Article(headline="Article_1")
-    article_1.reporter = reporter_1
-    session.add(article_1)
+        article_2 = Article(headline="Article_2")
+        article_2.reporter = reporter_2
+        session.add(article_2)
 
-    article_2 = Article(headline="Article_2")
-    article_2.reporter = reporter_2
-    session.add(article_2)
-
-    session.commit()
-    session.close()
+        session.commit()
 
     schema = get_schema()
 
@@ -208,6 +205,7 @@ async def test_one_to_one(session_factory):
         )
         messages = sqlalchemy_logging_handler.messages
 
+    assert not result.errors, result.errors
     assert len(messages) == 5
 
     # assert messages == [
@@ -437,7 +435,7 @@ async def test_many_to_many(session_factory):
         )
         messages = sqlalchemy_logging_handler.messages
 
-    # assert len(messages) == 5
+    assert len(messages) == 5
 
     # assert messages == [
     #     'BEGIN (implicit)',

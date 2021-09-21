@@ -96,16 +96,17 @@ class QueryHelper:
             current_field = object_type_fields.get(field.name, None) or meta_fields.get(
                 field.name
             )
-            if isinstance(current_field, Dynamic):
-                if isinstance(current_field.type(), Field):
-                    try:
-                        columns = getattr(
-                            object_type._meta.model, field.name
-                        ).prop.local_columns
-                        relation_key = next(iter(columns))
-                        select_fields.add(relation_key)
-                    except:
-                        pass
+            if isinstance(current_field, Dynamic) and isinstance(
+                current_field.type(), Field
+            ):
+                try:
+                    columns = getattr(
+                        object_type._meta.model, field.name
+                    ).prop.local_columns
+                    relation_key = next(iter(columns))
+                    select_fields.add(relation_key)
+                except Exception as _:
+                    pass
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
                 if getattr(current_field, "use_label", True):
