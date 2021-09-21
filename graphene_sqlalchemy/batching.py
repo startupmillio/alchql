@@ -1,10 +1,7 @@
-import logging
-
-from graphene import Field, Dynamic
-
+from graphene import Dynamic, Field
 from graphene.types.objecttype import ObjectTypeMeta
 
-from graphene_sqlalchemy.gql_fields import get_fields, camel_to_snake
+from graphene_sqlalchemy.gql_fields import camel_to_snake
 
 
 def get_object_type(root, info):
@@ -19,7 +16,7 @@ def get_object_type(root, info):
         return connection_field_type.type
     elif isinstance(connection_field_type, Dynamic):
         t = connection_field_type.type()
-        if isinstance(t, ObjectTypeMeta) or type(t) == Field:
+        if isinstance(t, (ObjectTypeMeta, Field)):
             setattr(info.context, "object_type", t.type)
 
 
