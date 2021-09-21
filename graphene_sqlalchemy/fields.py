@@ -110,9 +110,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
-            parent_resolver,
-            get_nullable_type(self.type),
-            self.model,
+            resolver=parent_resolver,
+            connection_type=get_nullable_type(self.type),
+            model=self.model,
         )
 
 
@@ -249,9 +249,9 @@ class BatchSQLAlchemyConnectionField(FilterConnectionField):
     def wrap_resolve(self, parent_resolver):
         return partial(
             self.connection_resolver,
-            self.resolver,
-            get_nullable_type(self.type),
-            self.model,
+            resolver=self.resolver,
+            connection_type=get_nullable_type(self.type),
+            model=self.model,
         )
 
     @classmethod
