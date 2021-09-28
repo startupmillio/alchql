@@ -64,7 +64,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             else:
                 _len = 100
 
-            connection = connection_from_query(
+            connection = await connection_from_query(
                 query,
                 model,
                 session,

@@ -4,9 +4,10 @@ from functools import partial
 import uvicorn as uvicorn
 from fastapi import FastAPI
 from graphene import Context
-from starlette_graphene3 import GraphQLApp, make_graphiql_handler
+from starlette_graphene3 import make_graphiql_handler
 
 from database import Base, db_session, init_db
+from examples.fastapi_sqlalchemy.session_ql import SessionQLApp
 from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
 from schema import schema
 
@@ -44,11 +45,12 @@ class GContext(Context):
 
 app.add_route(
     "/graphql",
-    GraphQLApp(
+    SessionQLApp(
         schema=schema,
         on_get=make_graphiql_handler(),
         middleware=[LoaderMiddleware(Base.registry.mappers)],
         context_value=partial(GContext, session=db_session),
+        db_url="postgresql+asyncpg://godunov:godunov@127.0.0.1:5432/test_godunov",
     ),
 )
 
@@ -58,14 +60,16 @@ async def shutdown_session():
     db_session.remove()
 
 
-if __name__ == "__main__":
-    init_db()
+@app.on_event("startup")
+async def startup_session():
+    await init_db()
 
+
+if __name__ == "__main__":
     uvicorn.run(
         app,
         host="0.0.0.0",
         port=5000,
         log_level="info",
         reload=False,
-        log_config=None,
     )
