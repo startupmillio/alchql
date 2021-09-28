@@ -20,7 +20,8 @@ def generate_loader_by_foreign_key(relation):
             f = next(iter(relation.local_columns))
             target = relation.mapper.entity
 
-            object_type = getattr(self.info.context, "object_type", None)
+            object_types = getattr(self.info.context, "object_types", {})
+            object_type = object_types.get(self.info.field_name)
 
             selected_fields = QueryHelper.get_selected_fields(self.info, model=target)
             if not selected_fields:

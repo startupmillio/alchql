@@ -4,20 +4,30 @@ from graphene.types.objecttype import ObjectTypeMeta
 from graphene_sqlalchemy.gql_fields import camel_to_snake
 
 
-def get_object_type(root, info):
+def set_object_type(root, info):
     field_name = info.field_name
     root_type = type(root)
     if not hasattr(root_type, "_meta"):
-        return None
+        return
+    types = getattr(info.context, "object_types", {})
+    if types.get(info.field_name) is not None:
+        return
 
     connection_field_type = root_type._meta.fields[camel_to_snake(field_name)]
-
+    type_ = None
     if isinstance(connection_field_type, Field):
-        return connection_field_type.type
+        type_ = connection_field_type.type
     elif isinstance(connection_field_type, Dynamic):
-        t = connection_field_type.type()
-        if isinstance(t, ObjectTypeMeta) or type(t) == Field:
-            setattr(info.context, "object_type", t.type)
+        if isinstance(connection_field_type.type(), ObjectTypeMeta):
+            type_ = connection_field_type.type().type
+        elif type(connection_field_type.type()) == Field:
+            type_ = connection_field_type.type().type
+
+    if not type_:
+        return
+
+    types[info.field_name] = type_
+    setattr(info.context, "object_types", types)
 
 
 def get_batch_resolver(relationship_prop, single=False):
@@ -30,9 +40,7 @@ def get_batch_resolver(relationship_prop, single=False):
         _loader = info.context.loaders[key]
 
         _loader.info = info
-        object_type = get_object_type(root, info)
-        if object_type is not None:
-            setattr(info.context, "object_type", object_type)
+        set_object_type(root, info)
 
         key = getattr(root, next(iter(relationship_prop.local_columns)).key)
         if not key:
