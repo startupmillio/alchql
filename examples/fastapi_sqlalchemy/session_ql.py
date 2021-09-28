@@ -13,10 +13,11 @@ from starlette_graphene3 import GraphQLApp, _get_operation_from_request
 
 class SessionQLApp(GraphQLApp):
     def __init__(self, db_url, *args, **kwargs):
-        engine = create_async_engine(db_url,
-                                     convert_unicode=True, echo=True)
+        engine = create_async_engine(db_url, convert_unicode=True, echo=True)
         self.db_session = scoped_session(
-            sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
+            sessionmaker(
+                autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+            )
         )
 
         super().__init__(*args, **kwargs)
@@ -78,10 +79,13 @@ class SessionQLApp(GraphQLApp):
         async with self.db_session() as session:
             async with session.begin():
                 if callable(self.context_value):
-                    context = self.context_value(request)
+                    context = self.context_value(
+                        request=request,
+                        background=BackgroundTasks(),
+                        session=session,
+                    )
                     if isawaitable(context):
                         context = await context
-                    setattr(context, "session", session)
                     yield context
                 else:
                     yield self.context_value or {
