@@ -83,7 +83,7 @@ def generate_loader_by_foreign_key(relation):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
-            for result in self.session.execute(q.distinct()):
+            for result in await self.session.execute(q.distinct()):
                 _data = dict(**result)
                 _batch_key = _data.pop("_batch_key")
                 results_by_ids[_batch_key].append(conversion_type(**_data))

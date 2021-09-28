@@ -7,6 +7,7 @@ from graphene import Context
 from starlette_graphene3 import GraphQLApp, make_graphiql_handler
 
 from database import Base, db_session, init_db
+from examples.fastapi_sqlalchemy.session_ql import SessionQLApp
 from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
 from schema import schema
 
@@ -44,11 +45,14 @@ class GContext(Context):
 
 app.add_route(
     "/graphql",
-    GraphQLApp(
+    SessionQLApp(
         schema=schema,
         on_get=make_graphiql_handler(),
         middleware=[LoaderMiddleware(Base.registry.mappers)],
-        context_value=partial(GContext, session=db_session),
+        # context_value=partial(GContext, session=db_session),
+        context_value=GContext,
+        # db_url="sqlite:///database.sqlite3",
+        db_url="postgresql+asyncpg://godunov:godunov@127.0.0.1:5432/test_godunov",
     ),
 )
 
