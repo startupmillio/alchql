@@ -28,7 +28,9 @@ class FragmentField:
 class QueryHelper:
     @staticmethod
     def get_filters(info) -> list:
-        object_type = getattr(info.context, "object_type", None)
+        object_types = getattr(info.context, "object_types", {})
+        object_type = object_types.get(info.field_name)
+
         if not object_type:
             return []
 
@@ -70,7 +72,8 @@ class QueryHelper:
 
     @staticmethod
     def get_selected_fields(info, model):
-        object_type = getattr(info.context, "object_type", None)
+        object_types = getattr(info.context, "object_types", {})
+        object_type = object_types.get(info.field_name)
 
         if not object_type:
             return
@@ -90,7 +93,8 @@ class QueryHelper:
                 else:
                     object_type_fields[_name] = attr
 
-        meta_fields = info.context.object_type._meta.fields
+        type_ = info.context.object_types[info.field_name]
+        meta_fields = type_._meta.fields
         select_fields = {sa.inspect(model).primary_key[0]}
         for field in gql_field.values:
             current_field = object_type_fields.get(field.name, None) or meta_fields.get(

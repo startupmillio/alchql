@@ -97,7 +97,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     async def connection_resolver(
         cls, resolver, connection_type, model, root, info, **args
     ):
-        setattr(info.context, "object_type", connection_type.Edge.node.type)
+        types = getattr(info.context, "object_types", {})
+        types[info.field_name] = connection_type.Edge.node.type
+        setattr(info.context, "object_types", types)
         resolved = resolver(root, info, **args)
 
         on_resolve = partial(cls.resolve_connection, connection_type, model, info, args)
@@ -202,7 +204,8 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
     @classmethod
     def get_query(cls, model, info, sort=None, **args):
-        object_type = getattr(info.context, "object_type", None)
+        object_types = getattr(info.context, "object_types", {})
+        object_type = object_types.get(info.field_name)
 
         filters = QueryHelper.get_filters(info)
         select_fields = QueryHelper.get_selected_fields(info, model)
