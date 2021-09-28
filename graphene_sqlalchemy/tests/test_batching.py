@@ -9,6 +9,7 @@ from .models import Article, HairKind, Pet, Reporter
 from .utils import SessionMiddleware, to_std_dicts
 from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
+import sqlalchemy as sa
 
 
 class MockLoggingHandler(logging.Handler):
@@ -61,36 +62,41 @@ def get_schema():
         articles = graphene.Field(graphene.List(ArticleType))
         reporters = graphene.Field(graphene.List(ReporterType))
 
-        def resolve_articles(self, info):
-            return info.context.session.query(Article).all()
+        async def resolve_articles(self, info):
+            session = info.context.session
+            result = await session.execute(sa.select(Article))
+            return result.scalars()
 
-        def resolve_reporters(self, info):
-            return info.context.session.query(Reporter).all()
+        async def resolve_reporters(self, info):
+            session = info.context.session
+            result = await session.execute(sa.select(Reporter))
+            return result.scalars()
 
     return graphene.Schema(query=Query)
 
 
 @pytest.mark.asyncio
-async def test_many_to_one(session_factory):
-    with session_factory() as session:
-        reporter_1 = Reporter(
-            first_name="Reporter_1",
-        )
-        session.add(reporter_1)
-        reporter_2 = Reporter(
-            first_name="Reporter_2",
-        )
-        session.add(reporter_2)
+async def test_many_to_one(session):
+    reporter_1 = Reporter(
+        first_name="Reporter_1",
+    )
+    session.add(reporter_1)
+    reporter_2 = Reporter(
+        first_name="Reporter_2",
+    )
+    session.add(reporter_2)
 
-        article_1 = Article(headline="Article_1")
-        article_1.reporter = reporter_1
-        session.add(article_1)
+    article_1 = Article(headline="Article_1")
+    article_1.reporter = reporter_1
+    session.add(article_1)
 
-        article_2 = Article(headline="Article_2")
-        article_2.reporter = reporter_2
-        session.add(article_2)
+    await session.commit()
 
-        session.commit()
+    article_2 = Article(headline="Article_2")
+    article_2.reporter = reporter_2
+    session.add(article_2)
+
+    await session.commit()
 
     schema = get_schema()
 
@@ -108,10 +114,10 @@ async def test_many_to_one(session_factory):
                 }
               }
             """,
-            context_value=Context(),
+            context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter]),
-                SessionMiddleware(session_factory),
+                # SessionMiddleware(session_factory),
             ],
         )
         messages = sqlalchemy_logging_handler.messages
@@ -161,26 +167,25 @@ async def test_many_to_one(session_factory):
 
 
 @pytest.mark.asyncio
-async def test_one_to_one(session_factory):
-    with session_factory() as session:
-        reporter_1 = Reporter(
-            first_name="Reporter_1",
-        )
-        session.add(reporter_1)
-        reporter_2 = Reporter(
-            first_name="Reporter_2",
-        )
-        session.add(reporter_2)
+async def test_one_to_one(session):
+    reporter_1 = Reporter(
+        first_name="Reporter_1",
+    )
+    session.add(reporter_1)
+    reporter_2 = Reporter(
+        first_name="Reporter_2",
+    )
+    session.add(reporter_2)
 
-        article_1 = Article(headline="Article_1")
-        article_1.reporter = reporter_1
-        session.add(article_1)
+    article_1 = Article(headline="Article_1")
+    article_1.reporter = reporter_1
+    session.add(article_1)
 
-        article_2 = Article(headline="Article_2")
-        article_2.reporter = reporter_2
-        session.add(article_2)
+    article_2 = Article(headline="Article_2")
+    article_2.reporter = reporter_2
+    session.add(article_2)
 
-        session.commit()
+    await session.commit()
 
     schema = get_schema()
 
@@ -197,10 +202,9 @@ async def test_one_to_one(session_factory):
             }
           }
         """,
-            context_value=Context(),
+            context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter]),
-                SessionMiddleware(session_factory()),
             ],
         )
         messages = sqlalchemy_logging_handler.messages
@@ -250,9 +254,7 @@ async def test_one_to_one(session_factory):
 
 
 @pytest.mark.asyncio
-async def test_one_to_many(session_factory):
-    session = session_factory()
-
+async def test_one_to_many(session):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -278,8 +280,7 @@ async def test_one_to_many(session_factory):
     article_4.reporter = reporter_2
     session.add(article_4)
 
-    session.commit()
-    session.close()
+    await session.commit()
 
     schema = get_schema()
 
@@ -300,10 +301,9 @@ async def test_one_to_many(session_factory):
             }
           }
         """,
-            context_value=Context(),
+            context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter]),
-                SessionMiddleware(session_factory()),
             ],
         )
         messages = sqlalchemy_logging_handler.messages
@@ -375,9 +375,7 @@ async def test_one_to_many(session_factory):
 
 
 @pytest.mark.asyncio
-async def test_many_to_many(session_factory):
-    session = session_factory()
-
+async def test_many_to_many(session):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -405,8 +403,7 @@ async def test_many_to_many(session_factory):
     reporter_2.pets.append(pet_3)
     reporter_2.pets.append(pet_4)
 
-    session.commit()
-    session.close()
+    await session.commit()
 
     schema = get_schema()
 
@@ -427,10 +424,9 @@ async def test_many_to_many(session_factory):
                 }
               }
             """,
-            context_value=Context(),
+            context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter, Pet]),
-                SessionMiddleware(session_factory()),
             ],
         )
         messages = sqlalchemy_logging_handler.messages

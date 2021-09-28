@@ -8,6 +8,7 @@ from ..fields import BatchSQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..node import AsyncNode
 from ..types import SQLAlchemyObjectType
+import sqlalchemy as sa
 
 
 def get_schema():
@@ -34,10 +35,14 @@ def get_schema():
         reporters = graphene.Field(graphene.List(ReporterType))
 
         async def resolve_articles(self, info):
-            return info.context.session.query(Article).all()
+            session = info.context.session
+            result = await session.execute(sa.select(Article))
+            return result.scalars()
 
         async def resolve_reporters(self, info):
-            return info.context.session.query(Reporter).all()
+            session = info.context.session
+            result = await session.execute(sa.select(Reporter))
+            return result.scalars()
 
     return graphene.Schema(query=Query)
 
