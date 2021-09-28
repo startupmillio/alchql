@@ -6,7 +6,7 @@ from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
 from graphene_sqlalchemy.gql_fields import camel_to_snake
-from graphene_sqlalchemy.utils import filter_value_to_python
+from graphene_sqlalchemy.utils import filter_value_to_python, FilterItem
 
 
 RESERVED_NAMES = ["edges", "node"]
@@ -48,7 +48,12 @@ class QueryHelper:
                 if name not in parsed_filters:
                     continue
 
-                field_expr = parsed_filters[name](value)
+                filter_item: FilterItem
+                filter_item = parsed_filters[name]
+                if hasattr(filter_item.field_type, "parse_value"):
+                    value = filter_item.field_type.parse_value(value)
+
+                field_expr = parsed_filters[name].filter_func(value)
                 filters_to_apply.append(field_expr)
         return filters_to_apply
 

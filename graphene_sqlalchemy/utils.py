@@ -1,13 +1,21 @@
 import logging
 import re
 import warnings
+from dataclasses import dataclass
 
+import graphene
 import sqlalchemy as sa
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
 
 from graphene_sqlalchemy.gql_fields import get_fields
+
+
+@dataclass
+class FilterItem:
+    field_type: graphene.Field
+    filter_func: callable
 
 
 def get_session(context):
