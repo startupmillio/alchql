@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from graphene import Context
 from starlette_graphene3 import make_graphiql_handler
 
-from database import Base, db_session, init_db
+from database import Base, db_session, engine, init_db
 from examples.fastapi_sqlalchemy.session_ql import SessionQLApp
 from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
 from schema import schema
@@ -50,7 +50,7 @@ app.add_route(
         on_get=make_graphiql_handler(),
         middleware=[LoaderMiddleware(Base.registry.mappers)],
         context_value=partial(GContext, session=db_session),
-        db_url="postgresql+asyncpg://godunov:godunov@127.0.0.1:5432/test_godunov",
+        engine=engine,
     ),
 )
 

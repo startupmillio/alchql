@@ -1,9 +1,12 @@
-from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 
-engine = create_async_engine("postgresql+asyncpg://godunov:godunov@127.0.0.1:5432/test_godunov", convert_unicode=True, echo=True)
+engine = create_async_engine(
+    "postgresql+asyncpg://godunov:godunov@127.0.0.1:5432/test_graphene",
+    convert_unicode=True,
+    echo=True,
+)
 db_session = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=engine, class_=AsyncSession)
 )
@@ -45,4 +48,3 @@ async def init_db():
             tracy = Employee(name="Tracy", department=hr, role=manager)
             db_session.add(tracy)
             await db_session.commit()
-            print('!!!')

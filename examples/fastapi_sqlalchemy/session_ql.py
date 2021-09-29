@@ -1,10 +1,9 @@
-from contextlib import asynccontextmanager, contextmanager
+from contextlib import asynccontextmanager
 from inspect import isawaitable
 from typing import Any, Dict
 
 from graphql import graphql
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from starlette.background import BackgroundTasks
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import JSONResponse
@@ -12,13 +11,8 @@ from starlette_graphene3 import GraphQLApp, _get_operation_from_request
 
 
 class SessionQLApp(GraphQLApp):
-    def __init__(self, db_url, *args, **kwargs):
-        engine = create_async_engine(db_url, convert_unicode=True, echo=True)
-        self.db_session = scoped_session(
-            sessionmaker(
-                autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
-            )
-        )
+    def __init__(self, engine: AsyncEngine, *args, **kwargs):
+        self.engine = engine
 
         super().__init__(*args, **kwargs)
 
@@ -72,25 +66,21 @@ class SessionQLApp(GraphQLApp):
 
     @asynccontextmanager
     async def _get_context_value(self, request: HTTPConnection) -> Any:
-        # engine = create_async_engine(self.db_url, echo=True)
-
-        print("SESSION OPENED")
-        # with Transaction(self.db_url, echo=True) as t:
-        async with self.db_session() as session:
-            async with session.begin():
-                if callable(self.context_value):
-                    context = self.context_value(
-                        request=request,
-                        background=BackgroundTasks(),
-                        session=session,
-                    )
-                    if isawaitable(context):
-                        context = await context
-                    yield context
-                else:
-                    yield self.context_value or {
-                        "request": request,
-                        "background": BackgroundTasks(),
-                        "session": session,
-                    }
-        print("SESSION CLOSED")
+        # print("SESSION OPENED")
+        async with AsyncSession(self.engine) as session:
+            if callable(self.context_value):
+                context = self.context_value(
+                    request=request,
+                    background=BackgroundTasks(),
+                    session=session,
+                )
+                if isawaitable(context):
+                    context = await context
+                yield context
+            else:
+                yield self.context_value or {
+                    "request": request,
+                    "background": BackgroundTasks(),
+                    "session": session,
+                }
+        # print("SESSION CLOSED")
