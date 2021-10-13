@@ -58,13 +58,13 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
             q = sa.select([sa.func.count()]).select_from(q_aliased)
             if QueryHelper.get_filters(info):
-                _len = session.execute(q).scalar()
+                _len = await session.execute(q).scalar()
             elif QueryHelper.has_last_arg(info):
                 raise TypeError('Cannot set "last" without filters applied')
             else:
                 _len = 100
 
-            connection = connection_from_query(
+            connection = await connection_from_query(
                 query,
                 model,
                 session,

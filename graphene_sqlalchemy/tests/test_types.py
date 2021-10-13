@@ -18,7 +18,7 @@ from .models import Article, CompositeFullName, Pet, Reporter
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
-
+import sqlalchemy as sa
 
 def test_should_raise_if_no_model():
     re_err = r"valid SQLAlchemy Model"
@@ -37,7 +37,7 @@ def test_should_raise_if_model_is_invalid():
                 model = 1
 
 
-def test_sqlalchemy_node(session):
+async def test_sqlalchemy_node(session):
     class ReporterType(SQLAlchemyObjectType):
         class Meta:
             model = Reporter
@@ -48,7 +48,7 @@ def test_sqlalchemy_node(session):
 
     reporter = Reporter()
     session.add(reporter)
-    session.commit()
+    await session.commit()
     info = mock.Mock(context={"session": session})
     reporter_node = ReporterType.get_node(info, reporter.id)
     assert reporter.id == reporter_node.id
@@ -348,8 +348,8 @@ async def test_resolvers(session):
     class Query(ObjectType):
         reporter = Field(ReporterType)
 
-        def resolve_reporter(self, _info):
-            return session.query(Reporter).first()
+        async def resolve_reporter(self, _info):
+            return (await session.execute(sa.select(Reporter))).scalars().first()
 
     reporter = Reporter(
         first_name="first_name",
@@ -358,7 +358,7 @@ async def test_resolvers(session):
         favorite_pet_kind="cat",
     )
     session.add(reporter)
-    session.commit()
+    await session.commit()
 
     schema = Schema(query=Query)
     result = await schema.execute_async(
