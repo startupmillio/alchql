@@ -16,7 +16,7 @@ from graphene_sqlalchemy.registry import get_global_registry
 from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
 from .batching import get_batch_resolver
 from .slice import connection_from_query
-from .utils import EnumValue, get_query, get_session
+from .utils import EnumValue, get_query, get_session, FilterItem
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -198,7 +198,10 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                     field_type = graphene.List(of_type=field_type)
                 filter_name = f"{field_key}__{operator}"
                 kwargs[filter_name] = Argument(type_=field_type)
-                filters[filter_name] = getattr(field, OPERATORS_MAPPING[operator][0])
+                filters[filter_name] = FilterItem(
+                    field_type=field_type,
+                    filter_func=getattr(field, OPERATORS_MAPPING[operator][0]),
+                )
 
         setattr(type_, "parsed_filters", filters)
 
