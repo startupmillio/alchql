@@ -1,9 +1,11 @@
 import graphene
 import pytest
 import sqlalchemy as sa
+from graphene import Context
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
+from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
 
 
@@ -19,6 +21,13 @@ async def test_query_pet_kinds(session):
         class Meta:
             model = Reporter
 
+        async def resolve_pets(self, _info):
+            s = _info.context.session
+            q = sa.select(Pet).where(Pet.reporter_id == self.id)
+            _result = await s.execute(q)
+
+            return _result.scalars().all()
+
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
         reporters = graphene.List(ReporterType)
@@ -27,19 +36,22 @@ async def test_query_pet_kinds(session):
         )
 
         async def resolve_reporter(self, _info):
-            _result = await session.execute(sa.select(Reporter))
+            s = _info.context.session
+            _result = await s.execute(sa.select(Reporter))
             return _result.scalars().first()
 
         async def resolve_reporters(self, _info):
-            _result = await session.execute(sa.select(Reporter))
+            s = _info.context.session
+            _result = await s.execute(sa.select(Reporter))
             return _result.scalars().all()
 
         async def resolve_pets(self, _info, kind):
+            s = _info.context.session
             q = sa.select(Pet)
             if kind:
                 q = q.where(Pet.pet_kind == kind.value)
 
-            _result = await session.execute(q)
+            _result = await s.execute(q)
 
             return _result.scalars().all()
 
@@ -86,7 +98,13 @@ async def test_query_pet_kinds(session):
         "pets": [{"name": "Lassie", "petKind": "DOG"}],
     }
     schema = graphene.Schema(query=Query)
-    result = await schema.execute_async(query)
+    result = await schema.execute_async(
+        query,
+        context=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Reporter, Pet]),
+        ],
+    )
     assert not result.errors
     assert result.data == expected
 
@@ -103,7 +121,8 @@ async def test_query_more_enums(session):
         pet = graphene.Field(PetType)
 
         async def resolve_pet(self, _info):
-            return (await session.execute(sa.select(Pet))).scalars().first()
+            _result = await session.execute(sa.select(Pet))
+            return _result.scalars().first()
 
     query = """
         query PetQuery {

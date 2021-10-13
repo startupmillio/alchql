@@ -13,22 +13,68 @@ from ..types import ORMField, SQLAlchemyObjectType
 
 
 async def add_test_data(session):
-    reporter = Reporter(first_name="John", last_name="Doe", favorite_pet_kind="cat")
-    session.add(reporter)
-    pet = Pet(name="Garfield", pet_kind="cat", hair_kind=HairKind.SHORT)
-    session.add(pet)
-    pet.reporters.append(reporter)
-    article = Article(headline="Hi!")
-    article.reporter = reporter
-    session.add(article)
-    reporter = Reporter(first_name="Jane", last_name="Roe", favorite_pet_kind="dog")
-    session.add(reporter)
-    pet = Pet(name="Lassie", pet_kind="dog", hair_kind=HairKind.LONG)
-    pet.reporters.append(reporter)
-    session.add(pet)
-    editor = Editor(name="Jack")
-    session.add(editor)
-    await session.commit()
+    reporter_id = (
+        await session.execute(
+            sa.insert(Reporter).values(
+                {
+                    Reporter.first_name: "John",
+                    Reporter.last_name: "Doe",
+                    Reporter.favorite_pet_kind: "cat",
+                }
+            )
+        )
+    ).lastrowid
+
+    await session.execute(
+        sa.insert(Pet).values(
+            {
+                Pet.name: "Garfield",
+                Pet.pet_kind: "cat",
+                Pet.hair_kind: HairKind.SHORT,
+                Pet.reporter_id: reporter_id,
+            }
+        )
+    )
+
+    await session.execute(
+        sa.insert(Article).values(
+            {
+                Article.headline: "Hi!",
+                Article.reporter_id: reporter_id,
+            }
+        )
+    )
+
+    reporter_id = (
+        await session.execute(
+            sa.insert(Reporter).values(
+                {
+                    Reporter.first_name: "Jane",
+                    Reporter.last_name: "Roe",
+                    Reporter.favorite_pet_kind: "dog",
+                }
+            )
+        )
+    ).lastrowid
+
+    await session.execute(
+        sa.insert(Pet).values(
+            {
+                Pet.name: "Lassie",
+                Pet.pet_kind: "dog",
+                Pet.hair_kind: HairKind.LONG,
+                Pet.reporter_id: reporter_id,
+            }
+        )
+    )
+
+    await session.execute(
+        sa.insert(Editor).values(
+            {
+                Editor.name: "Jack",
+            }
+        )
+    )
 
 
 @pytest.mark.asyncio

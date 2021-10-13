@@ -12,13 +12,14 @@ from ..utils import to_type_name
 
 
 async def add_pets(session):
-    pets = [
-        Pet(id=1, name="Lassie", pet_kind="dog", hair_kind=HairKind.LONG),
-        Pet(id=2, name="Barf", pet_kind="dog", hair_kind=HairKind.LONG),
-        Pet(id=3, name="Alf", pet_kind="cat", hair_kind=HairKind.LONG),
-    ]
-    session.add_all(pets)
-    await session.commit()
+    q = sa.insert(Pet).values(
+        [
+            {"id": 1, "name": "Lassie", "pet_kind": "dog", "hair_kind": HairKind.LONG},
+            {"id": 2, "name": "Barf", "pet_kind": "dog", "hair_kind": HairKind.LONG},
+            {"id": 3, "name": "Alf", "pet_kind": "cat", "hair_kind": HairKind.LONG},
+        ]
+    )
+    await session.execute(q)
 
 
 def test_sort_enum():
