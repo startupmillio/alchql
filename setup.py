@@ -33,6 +33,7 @@ tests_require = [
     "pytest-benchmark>=3.4.0,<4.0",
     "mock == 4.0.3",
     "pytest-asyncio == 0.15.1",
+    "aiosqlite == 0.17.0",
 ]
 
 setup(

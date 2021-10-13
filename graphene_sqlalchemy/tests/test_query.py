@@ -2,16 +2,17 @@ import graphene
 import pytest
 from graphene import Context
 
-from .models import Article, CompositeFullName, Editor, HairKind, Pet, Reporter
-from .utils import SessionMiddleware, to_std_dicts
+from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Reporter
+from .utils import to_std_dicts
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..node import AsyncNode
 from ..types import ORMField, SQLAlchemyObjectType
+import sqlalchemy as sa
 
 
-def add_test_data(session):
+async def add_test_data(session):
     reporter = Reporter(first_name="John", last_name="Doe", favorite_pet_kind="cat")
     session.add(reporter)
     pet = Pet(name="Garfield", pet_kind="cat", hair_kind=HairKind.SHORT)
@@ -27,12 +28,12 @@ def add_test_data(session):
     session.add(pet)
     editor = Editor(name="Jack")
     session.add(editor)
-    session.commit()
+    await session.commit()
 
 
 @pytest.mark.asyncio
 async def test_query_fields(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     @convert_sqlalchemy_composite.register(CompositeFullName)
     def convert_composite_class(composite, registry):
@@ -46,11 +47,13 @@ async def test_query_fields(session):
         reporter = graphene.Field(ReporterType)
         reporters = graphene.List(ReporterType)
 
-        def resolve_reporter(self, _info):
-            return session.query(Reporter).first()
+        async def resolve_reporter(self, _info):
+            _result = await session.execute(sa.select(Reporter))
+            return _result.scalars().first()
 
-        def resolve_reporters(self, _info):
-            return session.query(Reporter)
+        async def resolve_reporters(self, _info):
+            _result = await session.execute(sa.select(Reporter))
+            return _result.scalars().all()
 
     query = """
         query {
@@ -72,7 +75,10 @@ async def test_query_fields(session):
             "columnProp": 2,
             "compositeProp": "John Doe",
         },
-        "reporters": [{"firstName": "John"}, {"firstName": "Jane"}],
+        "reporters": [
+            {"firstName": "John"},
+            {"firstName": "Jane"},
+        ],
     }
     schema = graphene.Schema(query=Query)
     result = await schema.execute_async(query)
@@ -83,7 +89,7 @@ async def test_query_fields(session):
 
 @pytest.mark.asyncio
 async def test_query_node(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class ReporterNode(SQLAlchemyObjectType):
         class Meta:
@@ -105,7 +111,7 @@ async def test_query_node(session):
         all_articles = SQLAlchemyConnectionField(ArticleNode.connection)
 
         async def resolve_reporter(self, _info):
-            return session.query(Reporter).first()
+            return (await session.execute(sa.select(Reporter))).scalars().first()
 
     query = """
         query {
@@ -150,10 +156,9 @@ async def test_query_node(session):
     schema = graphene.Schema(query=Query)
     result = await schema.execute_async(
         query,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Article, Reporter]),
-            SessionMiddleware(session),
         ],
     )
     assert not result.errors
@@ -163,7 +168,7 @@ async def test_query_node(session):
 
 @pytest.mark.asyncio
 async def test_orm_field(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     @convert_sqlalchemy_composite.register(CompositeFullName)
     def convert_composite_class(composite, registry):
@@ -189,8 +194,8 @@ async def test_orm_field(session):
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
 
-        def resolve_reporter(self, _info):
-            return session.query(Reporter).first()
+        async def resolve_reporter(self, _info):
+            return (await session.execute(sa.select(Reporter))).scalars().first()
 
     query = """
         query {
@@ -225,10 +230,9 @@ async def test_orm_field(session):
     schema = graphene.Schema(query=Query)
     result = await schema.execute_async(
         query,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Article, Reporter]),
-            SessionMiddleware(session),
         ],
     )
     assert not result.errors
@@ -238,7 +242,7 @@ async def test_orm_field(session):
 
 @pytest.mark.asyncio
 async def test_custom_identifier(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class EditorNode(SQLAlchemyObjectType):
         class Meta:
@@ -274,10 +278,9 @@ async def test_custom_identifier(session):
     schema = graphene.Schema(query=Query)
     result = await schema.execute_async(
         query,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Article, Reporter]),
-            SessionMiddleware(session),
         ],
     )
     assert not result.errors
@@ -287,7 +290,7 @@ async def test_custom_identifier(session):
 
 @pytest.mark.asyncio
 async def test_mutation(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class EditorNode(SQLAlchemyObjectType):
         class Meta:
@@ -300,7 +303,7 @@ async def test_mutation(session):
             interfaces = (AsyncNode,)
 
         @classmethod
-        def get_node(cls, id, info):
+        async def get_node(cls, id, info):
             return Reporter(id=2, first_name="Cookie Monster")
 
     class ArticleNode(SQLAlchemyObjectType):
@@ -316,14 +319,13 @@ async def test_mutation(session):
         ok = graphene.Boolean()
         article = graphene.Field(ArticleNode)
 
-        def mutate(self, info, headline, reporter_id):
+        async def mutate(self, info, headline, reporter_id):
             new_article = Article(headline=headline, reporter_id=reporter_id)
 
             session.add(new_article)
-            session.commit()
-            ok = True
+            await session.commit()
 
-            return CreateArticle(article=new_article, ok=ok)
+            return CreateArticle(article=new_article, ok=True)
 
     class Query(graphene.ObjectType):
         node = AsyncNode.Field()
@@ -361,10 +363,9 @@ async def test_mutation(session):
     schema = graphene.Schema(query=Query, mutation=Mutation)
     result = await schema.execute_async(
         query,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
-            LoaderMiddleware([Article, Reporter]),
-            SessionMiddleware(session),
+            LoaderMiddleware(Base.registry.mappers),
         ],
     )
     assert not result.errors

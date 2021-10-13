@@ -6,7 +6,8 @@ from .models import Base, CompositeFullName
 from ..converter import convert_sqlalchemy_composite
 from ..registry import reset_global_registry
 
-test_db_url = "postgresql+asyncpg://godunov:godunov@127.0.0.1:5432/test_graphene"  # use in-memory database for tests
+test_db_url = "sqlite+aiosqlite:///:memory:"  # use in-memory database for tests
+engine = create_async_engine(test_db_url, convert_unicode=True, echo=False)
 
 
 @pytest.fixture(autouse=True)
@@ -22,8 +23,6 @@ def reset_registry():
 
 @pytest.fixture(scope="function")
 async def session_factory():
-    engine = create_async_engine(test_db_url, convert_unicode=True, echo=False)
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)

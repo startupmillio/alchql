@@ -6,7 +6,7 @@ import pytest
 from graphene import Context, relay
 
 from .models import Article, HairKind, Pet, Reporter
-from .utils import SessionMiddleware, to_std_dicts
+from .utils import to_std_dicts
 from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
 import sqlalchemy as sa
@@ -70,7 +70,7 @@ def get_schema():
         async def resolve_reporters(self, info):
             session = info.context.session
             result = await session.execute(sa.select(Reporter))
-            return result.scalars()
+            return result.scalars().all()
 
     return graphene.Schema(query=Query)
 
@@ -117,7 +117,6 @@ async def test_many_to_one(session):
             context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter]),
-                # SessionMiddleware(session_factory),
             ],
         )
         messages = sqlalchemy_logging_handler.messages

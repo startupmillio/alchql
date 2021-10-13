@@ -1,14 +1,16 @@
 import graphene
 import pytest
+import sqlalchemy
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
 from ..types import SQLAlchemyObjectType
+import sqlalchemy as sa
 
 
 @pytest.mark.asyncio
 async def test_query_pet_kinds(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -25,17 +27,19 @@ async def test_query_pet_kinds(session):
             PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
         )
 
-        def resolve_reporter(self, _info):
-            return session.query(Reporter).first()
+        async def resolve_reporter(self, _info):
+            return (
+                (await session.execute(sqlalchemy.select(Reporter))).scalars().first()
+            )
 
-        def resolve_reporters(self, _info):
-            return session.query(Reporter)
+        async def resolve_reporters(self, _info):
+            return (await session.execute(sqlalchemy.select(Reporter))).scalars().all()
 
-        def resolve_pets(self, _info, kind):
-            query = session.query(Pet)
+        async def resolve_pets(self, _info, kind):
+            query = sa.select(Pet)
             if kind:
-                query = query.filter_by(pet_kind=kind.value)
-            return query
+                query = query.where(Pet.pet_kind == kind.value)
+            return (await session.execute(query)).scalars().all()
 
     query = """
         query ReporterQuery {
@@ -87,7 +91,7 @@ async def test_query_pet_kinds(session):
 
 @pytest.mark.asyncio
 async def test_query_more_enums(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -96,8 +100,8 @@ async def test_query_more_enums(session):
     class Query(graphene.ObjectType):
         pet = graphene.Field(PetType)
 
-        def resolve_pet(self, _info):
-            return session.query(Pet).first()
+        async def resolve_pet(self, _info):
+            return (await session.execute(sa.select(Pet))).scalars().first()
 
     query = """
         query PetQuery {
@@ -118,7 +122,7 @@ async def test_query_more_enums(session):
 
 @pytest.mark.asyncio
 async def test_enum_as_argument(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -129,11 +133,11 @@ async def test_enum_as_argument(session):
             PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
         )
 
-        def resolve_pet(self, info, kind=None):
-            query = session.query(Pet)
+        async def resolve_pet(self, info, kind=None):
+            q = sa.select(Pet)
             if kind:
-                query = query.filter(Pet.pet_kind == kind.value)
-            return query.first()
+                q = q.where(Pet.pet_kind == kind.value)
+            return (await session.execute(q)).scalars().first()
 
     query = """
         query PetQuery($kind: PetKind) {
@@ -159,7 +163,7 @@ async def test_enum_as_argument(session):
 
 @pytest.mark.asyncio
 async def test_py_enum_as_argument(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -171,12 +175,12 @@ async def test_py_enum_as_argument(session):
             kind=graphene.Argument(PetType._meta.fields["hair_kind"].type.of_type),
         )
 
-        def resolve_pet(self, _info, kind=None):
-            query = session.query(Pet)
+        async def resolve_pet(self, _info, kind=None):
+            query = sa.select(Pet)
             if kind:
                 # enum arguments are expected to be strings, not PyEnums
-                query = query.filter(Pet.hair_kind == HairKind(kind))
-            return query.first()
+                query = query.where(Pet.hair_kind == HairKind(kind))
+            return (await session.execute(query)).scalars().first()
 
     query = """
         query PetQuery($kind: HairKind) {
