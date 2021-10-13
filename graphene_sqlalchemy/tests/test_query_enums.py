@@ -1,14 +1,17 @@
 import graphene
 import pytest
+import sqlalchemy as sa
+from graphene import Context
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
+from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
 
 
 @pytest.mark.asyncio
 async def test_query_pet_kinds(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -18,6 +21,13 @@ async def test_query_pet_kinds(session):
         class Meta:
             model = Reporter
 
+        async def resolve_pets(self, _info):
+            s = _info.context.session
+            q = sa.select(Pet).where(Pet.reporter_id == self.id)
+            _result = await s.execute(q)
+
+            return _result.scalars().all()
+
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
         reporters = graphene.List(ReporterType)
@@ -25,17 +35,25 @@ async def test_query_pet_kinds(session):
             PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
         )
 
-        def resolve_reporter(self, _info):
-            return session.query(Reporter).first()
+        async def resolve_reporter(self, _info):
+            s = _info.context.session
+            _result = await s.execute(sa.select(Reporter))
+            return _result.scalars().first()
 
-        def resolve_reporters(self, _info):
-            return session.query(Reporter)
+        async def resolve_reporters(self, _info):
+            s = _info.context.session
+            _result = await s.execute(sa.select(Reporter))
+            return _result.scalars().all()
 
-        def resolve_pets(self, _info, kind):
-            query = session.query(Pet)
+        async def resolve_pets(self, _info, kind):
+            s = _info.context.session
+            q = sa.select(Pet)
             if kind:
-                query = query.filter_by(pet_kind=kind.value)
-            return query
+                q = q.where(Pet.pet_kind == kind.value)
+
+            _result = await s.execute(q)
+
+            return _result.scalars().all()
 
     query = """
         query ReporterQuery {
@@ -80,14 +98,20 @@ async def test_query_pet_kinds(session):
         "pets": [{"name": "Lassie", "petKind": "DOG"}],
     }
     schema = graphene.Schema(query=Query)
-    result = await schema.execute_async(query)
+    result = await schema.execute_async(
+        query,
+        context=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Reporter, Pet]),
+        ],
+    )
     assert not result.errors
     assert result.data == expected
 
 
 @pytest.mark.asyncio
 async def test_query_more_enums(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -96,8 +120,9 @@ async def test_query_more_enums(session):
     class Query(graphene.ObjectType):
         pet = graphene.Field(PetType)
 
-        def resolve_pet(self, _info):
-            return session.query(Pet).first()
+        async def resolve_pet(self, _info):
+            _result = await session.execute(sa.select(Pet))
+            return _result.scalars().first()
 
     query = """
         query PetQuery {
@@ -118,7 +143,7 @@ async def test_query_more_enums(session):
 
 @pytest.mark.asyncio
 async def test_enum_as_argument(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -129,11 +154,11 @@ async def test_enum_as_argument(session):
             PetType, kind=graphene.Argument(PetType.enum_for_field("pet_kind"))
         )
 
-        def resolve_pet(self, info, kind=None):
-            query = session.query(Pet)
+        async def resolve_pet(self, info, kind=None):
+            q = sa.select(Pet)
             if kind:
-                query = query.filter(Pet.pet_kind == kind.value)
-            return query.first()
+                q = q.where(Pet.pet_kind == kind.value)
+            return (await session.execute(q)).scalars().first()
 
     query = """
         query PetQuery($kind: PetKind) {
@@ -159,7 +184,7 @@ async def test_enum_as_argument(session):
 
 @pytest.mark.asyncio
 async def test_py_enum_as_argument(session):
-    add_test_data(session)
+    await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
@@ -171,12 +196,12 @@ async def test_py_enum_as_argument(session):
             kind=graphene.Argument(PetType._meta.fields["hair_kind"].type.of_type),
         )
 
-        def resolve_pet(self, _info, kind=None):
-            query = session.query(Pet)
+        async def resolve_pet(self, _info, kind=None):
+            query = sa.select(Pet)
             if kind:
                 # enum arguments are expected to be strings, not PyEnums
-                query = query.filter(Pet.hair_kind == HairKind(kind))
-            return query.first()
+                query = query.where(Pet.hair_kind == HairKind(kind))
+            return (await session.execute(query)).scalars().first()
 
     query = """
         query PetQuery($kind: HairKind) {

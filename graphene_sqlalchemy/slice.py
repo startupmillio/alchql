@@ -4,7 +4,7 @@ from graphql_relay.connection.arrayconnection import (
 )
 
 
-def connection_from_query(
+async def connection_from_query(
     query,
     model,
     session,
@@ -48,7 +48,7 @@ def connection_from_query(
     _slice = query.limit(limit).offset(start_offset)
     edges = []
 
-    for i, node in enumerate(session.execute(_slice)):
+    for i, node in enumerate(await session.execute(_slice)):
         node = connection_type.Edge.node.type(**node)
         edge = edge_type(node, cursor=offset_to_cursor(start_offset + i))
         edges.append(edge)

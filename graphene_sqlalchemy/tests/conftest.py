@@ -1,13 +1,13 @@
 import graphene
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from .models import Base, CompositeFullName
 from ..converter import convert_sqlalchemy_composite
 from ..registry import reset_global_registry
 
-test_db_url = "sqlite://"  # use in-memory database for tests
+test_db_url = "sqlite+aiosqlite:///:memory:"  # use in-memory database for tests
+engine = create_async_engine(test_db_url, convert_unicode=True, echo=False)
 
 
 @pytest.fixture(autouse=True)
@@ -22,11 +22,13 @@ def reset_registry():
 
 
 @pytest.fixture(scope="function")
-def session_factory():
-    engine = create_engine(test_db_url)
-    Base.metadata.create_all(engine)
+async def session_factory():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
-    yield sessionmaker(bind=engine)
+    async with AsyncSession(engine) as s:
+        yield s
 
     # SQLite in-memory db is deleted when its connection is closed.
     # https://www.sqlite.org/inmemorydb.html
@@ -35,4 +37,4 @@ def session_factory():
 
 @pytest.fixture(scope="function")
 def session(session_factory):
-    return session_factory()
+    return session_factory
