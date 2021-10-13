@@ -1,11 +1,10 @@
 import graphene
 import pytest
-import sqlalchemy
+import sqlalchemy as sa
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
 from ..types import SQLAlchemyObjectType
-import sqlalchemy as sa
 
 
 @pytest.mark.asyncio
@@ -28,18 +27,21 @@ async def test_query_pet_kinds(session):
         )
 
         async def resolve_reporter(self, _info):
-            return (
-                (await session.execute(sqlalchemy.select(Reporter))).scalars().first()
-            )
+            _result = await session.execute(sa.select(Reporter))
+            return _result.scalars().first()
 
         async def resolve_reporters(self, _info):
-            return (await session.execute(sqlalchemy.select(Reporter))).scalars().all()
+            _result = await session.execute(sa.select(Reporter))
+            return _result.scalars().all()
 
         async def resolve_pets(self, _info, kind):
-            query = sa.select(Pet)
+            q = sa.select(Pet)
             if kind:
-                query = query.where(Pet.pet_kind == kind.value)
-            return (await session.execute(query)).scalars().all()
+                q = q.where(Pet.pet_kind == kind.value)
+
+            _result = await session.execute(q)
+
+            return _result.scalars().all()
 
     query = """
         query ReporterQuery {

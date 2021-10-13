@@ -1,5 +1,6 @@
 import graphene
 import pytest
+import sqlalchemy as sa
 from graphene import Context
 
 from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Reporter
@@ -9,7 +10,6 @@ from ..fields import SQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..node import AsyncNode
 from ..types import ORMField, SQLAlchemyObjectType
-import sqlalchemy as sa
 
 
 async def add_test_data(session):
@@ -320,10 +320,16 @@ async def test_mutation(session):
         article = graphene.Field(ArticleNode)
 
         async def mutate(self, info, headline, reporter_id):
-            new_article = Article(headline=headline, reporter_id=reporter_id)
-
-            session.add(new_article)
-            await session.commit()
+            s = info.context.session
+            _result = await s.execute(
+                sa.insert(Article).values(
+                    dict(headline=headline, reporter_id=reporter_id)
+                )
+            )
+            _result2 = await s.execute(
+                sa.select(Article).where(Article.id == _result.lastrowid)
+            )
+            new_article = _result2.scalars().first()
 
             return CreateArticle(article=new_article, ok=True)
 
