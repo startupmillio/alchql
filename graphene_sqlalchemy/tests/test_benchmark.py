@@ -3,11 +3,11 @@ import pytest
 from graphene import Context
 
 from .models import Article, HairKind, Pet, Reporter
-from .utils import SessionMiddleware
 from ..fields import BatchSQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..node import AsyncNode
 from ..types import SQLAlchemyObjectType
+import sqlalchemy as sa
 
 
 def get_schema():
@@ -34,34 +34,35 @@ def get_schema():
         reporters = graphene.Field(graphene.List(ReporterType))
 
         async def resolve_articles(self, info):
-            return info.context.session.query(Article).all()
+            session = info.context.session
+            result = await session.execute(sa.select(Article))
+            return result.scalars()
 
         async def resolve_reporters(self, info):
-            return info.context.session.query(Reporter).all()
+            session = info.context.session
+            result = await session.execute(sa.select(Reporter))
+            return result.scalars().all()
 
     return graphene.Schema(query=Query)
 
 
-async def benchmark_query(session_factory, benchmark, query):
+async def benchmark_query(session, benchmark, query):
     schema = get_schema()
 
     @benchmark
     async def execute_query():
         result = await schema.execute_async(
             query,
-            context_value=Context(),
+            context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter, Pet]),
-                SessionMiddleware(session_factory()),
             ],
         )
         assert not result.errors
 
 
 @pytest.mark.asyncio
-async def test_one_to_one(session_factory, benchmark):
-    session = session_factory()
-
+async def test_one_to_one(session, benchmark):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -79,11 +80,10 @@ async def test_one_to_one(session_factory, benchmark):
     article_2.reporter = reporter_2
     session.add(article_2)
 
-    session.commit()
-    session.close()
+    await session.commit()
 
     await benchmark_query(
-        session_factory,
+        session,
         benchmark,
         """
       query {
@@ -99,9 +99,7 @@ async def test_one_to_one(session_factory, benchmark):
 
 
 @pytest.mark.asyncio
-async def test_many_to_one(session_factory, benchmark):
-    session = session_factory()
-
+async def test_many_to_one(session, benchmark):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -119,11 +117,10 @@ async def test_many_to_one(session_factory, benchmark):
     article_2.reporter = reporter_2
     session.add(article_2)
 
-    session.commit()
-    session.close()
+    await session.commit()
 
     await benchmark_query(
-        session_factory,
+        session,
         benchmark,
         """
       query {
@@ -139,9 +136,7 @@ async def test_many_to_one(session_factory, benchmark):
 
 
 @pytest.mark.asyncio
-async def test_one_to_many(session_factory, benchmark):
-    session = session_factory()
-
+async def test_one_to_many(session, benchmark):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -167,11 +162,10 @@ async def test_one_to_many(session_factory, benchmark):
     article_4.reporter = reporter_2
     session.add(article_4)
 
-    session.commit()
-    session.close()
+    await session.commit()
 
     await benchmark_query(
-        session_factory,
+        session,
         benchmark,
         """
       query {
@@ -191,9 +185,7 @@ async def test_one_to_many(session_factory, benchmark):
 
 
 @pytest.mark.asyncio
-async def test_many_to_many(session_factory, benchmark):
-    session = session_factory()
-
+async def test_many_to_many(session, benchmark):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -221,11 +213,10 @@ async def test_many_to_many(session_factory, benchmark):
     reporter_2.pets.append(pet_3)
     reporter_2.pets.append(pet_4)
 
-    session.commit()
-    session.close()
+    await session.commit()
 
     await benchmark_query(
-        session_factory,
+        session,
         benchmark,
         """
       query {

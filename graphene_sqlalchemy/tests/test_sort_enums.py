@@ -5,21 +5,21 @@ from graphene.relay import Node
 
 from .models import Base, HairKind, Pet
 from .test_query import to_std_dicts
-from .utils import SessionMiddleware
 from ..fields import SQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
 from ..utils import to_type_name
 
 
-def add_pets(session):
-    pets = [
-        Pet(id=1, name="Lassie", pet_kind="dog", hair_kind=HairKind.LONG),
-        Pet(id=2, name="Barf", pet_kind="dog", hair_kind=HairKind.LONG),
-        Pet(id=3, name="Alf", pet_kind="cat", hair_kind=HairKind.LONG),
-    ]
-    session.add_all(pets)
-    session.commit()
+async def add_pets(session):
+    q = sa.insert(Pet).values(
+        [
+            {"id": 1, "name": "Lassie", "pet_kind": "dog", "hair_kind": HairKind.LONG},
+            {"id": 2, "name": "Barf", "pet_kind": "dog", "hair_kind": HairKind.LONG},
+            {"id": 3, "name": "Alf", "pet_kind": "cat", "hair_kind": HairKind.LONG},
+        ]
+    )
+    await session.execute(q)
 
 
 def test_sort_enum():
@@ -247,7 +247,7 @@ def test_sort_argument_with_custom_symbol_names():
 
 @pytest.mark.asyncio
 async def test_sort_query(session):
-    add_pets(session)
+    await add_pets(session)
 
     class PetNode(SQLAlchemyObjectType):
         class Meta:
@@ -343,10 +343,9 @@ async def test_sort_query(session):
     schema = Schema(query=Query)
     result = await schema.execute_async(
         query,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Pet]),
-            SessionMiddleware(session),
         ],
     )
     assert not result.errors
@@ -366,10 +365,9 @@ async def test_sort_query(session):
     """
     result = await schema.execute_async(
         queryError,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Pet]),
-            SessionMiddleware(session),
         ],
     )
     assert result.errors is not None
@@ -396,10 +394,9 @@ async def test_sort_query(session):
 
     result = await schema.execute_async(
         queryNoSort,
-        context_value=Context(),
+        context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Pet]),
-            SessionMiddleware(session),
         ],
     )
     assert not result.errors
