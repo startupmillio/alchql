@@ -41,7 +41,7 @@ build package:
   image: python:3.9
   stage: build
   only:
-    - master
+    - main
   before_script:
     - pip install twine setuptools wheel
   variables:
