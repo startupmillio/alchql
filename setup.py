@@ -37,13 +37,13 @@ tests_require = [
 ]
 
 setup(
-    name="graphene-sqlalchemy",
+    name="graphene-sqlalchemy-core",
     version=version,
-    description="Graphene SQLAlchemy integration",
+    description="Graphene SQLAlchemy core integration",
     long_description=open("README.rst").read(),
-    url="https://github.com/graphql-python/graphene-sqlalchemy",
-    author="Syrus Akbary",
-    author_email="me@syrusakbary.com",
+    url="https://gitlab.com/live-art-project/graphene-sqlalchemy-core",
+    author="Syorsh sergey",
+    author_email="myrik260138@gmail.com",
     license="MIT",
     classifiers=[
         "Development Status :: 3 - Alpha",
