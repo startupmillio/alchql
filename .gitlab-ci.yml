@@ -48,5 +48,5 @@ build package:
     TWINE_USERNAME: gitlab-ci-token
     TWINE_PASSWORD: $CI_JOB_TOKEN
   script:
-    - python setup_models.py sdist bdist_wheel
+    - python setup.py sdist bdist_wheel
     - python -m twine upload --verbose --repository-url https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/*
