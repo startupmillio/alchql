@@ -10,7 +10,7 @@ with open("graphene_sqlalchemy/__init__.py", "rb") as f:
     version = str(
         ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
     )
-    version += f".{str(datetime.now().timestamp())}"
+    version += f".{int(datetime.now().timestamp())}"
 
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
