@@ -10,10 +10,10 @@ from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from sqlalchemy.orm import InstrumentedAttribute
 
-from graphene_sqlalchemy.consts import OPERATORS_MAPPING, OP_IN
-from graphene_sqlalchemy.query_helper import QueryHelper
-from graphene_sqlalchemy.registry import get_global_registry
-from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
+from .consts import OPERATORS_MAPPING, OP_IN
+from .query_helper import QueryHelper
+from .registry import get_global_registry
+from .sqlalchemy_converter import convert_sqlalchemy_type
 from .batching import get_batch_resolver
 from .slice import connection_from_query
 from .utils import EnumValue, get_query, get_session, FilterItem

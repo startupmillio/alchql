@@ -25,7 +25,7 @@ We will setup the project, execute the following:
 
     # SQLAlchemy and Graphene with SQLAlchemy support
     pip install SQLAlchemy
-    pip install graphene_sqlalchemy
+    pip install graphene_sqlalchemy_core
 
     # Install Flask and GraphQL Flask for exposing the schema through HTTP
     pip install Flask
@@ -92,7 +92,7 @@ Create ``flask_sqlalchemy/schema.py`` and type the following:
     # flask_sqlalchemy/schema.py
     import graphene
     from graphene import relay
-    from graphene_sqlalchemy import SQLAlchemyObjectType, SQLAlchemyConnectionField
+    from graphene_sqlalchemy_core import SQLAlchemyObjectType, SQLAlchemyConnectionField
     from .models import db_session, Department as DepartmentModel, Employee as EmployeeModel
 
 

@@ -8,7 +8,7 @@ from starlette_graphene3 import make_graphiql_handler
 
 from database import Base, db_session, engine, init_db
 from examples.fastapi_sqlalchemy.session_ql import SessionQLApp
-from graphene_sqlalchemy.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
 from schema import schema
 
 app = FastAPI()

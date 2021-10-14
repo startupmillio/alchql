@@ -4,8 +4,8 @@ from collections import defaultdict
 import sqlalchemy as sa
 from aiodataloader import DataLoader
 
-from graphene_sqlalchemy.query_helper import QueryHelper
-from graphene_sqlalchemy.utils import EnumValue
+from .query_helper import QueryHelper
+from .utils import EnumValue
 
 
 def generate_loader_by_foreign_key(relation):

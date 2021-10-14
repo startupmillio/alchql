@@ -13,7 +13,7 @@ A [SQLAlchemy](http://www.sqlalchemy.org/) integration for [Graphene](http://gra
 For instaling graphene, just run this command in your shell
 
 ```bash
-pip install "graphene-sqlalchemy>=2.0"
+pip install "graphene-sqlalchemy-core>=2.0"
 ```
 
 ## Examples
@@ -38,7 +38,7 @@ To create a GraphQL schema for it you simply have to write the following:
 
 ```python
 import graphene
-from graphene_sqlalchemy import SQLAlchemyObjectType
+from graphene_sqlalchemy_core import SQLAlchemyObjectType
 
 class User(SQLAlchemyObjectType):
     class Meta:
@@ -75,7 +75,7 @@ result = schema.execute(query, context_value={'session': db_session})
 You may also subclass SQLAlchemyObjectType by providing `abstract = True` in
 your subclasses Meta:
 ```python
-from graphene_sqlalchemy import SQLAlchemyObjectType
+from graphene_sqlalchemy_core import SQLAlchemyObjectType
 
 class ActiveSQLAlchemyObjectType(SQLAlchemyObjectType):
     class Meta:

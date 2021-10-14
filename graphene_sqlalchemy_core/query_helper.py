@@ -5,8 +5,8 @@ from typing import Optional, List
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
-from graphene_sqlalchemy.gql_fields import camel_to_snake
-from graphene_sqlalchemy.utils import filter_value_to_python, FilterItem
+from .gql_fields import camel_to_snake
+from .utils import filter_value_to_python, FilterItem
 
 
 RESERVED_NAMES = ["edges", "node"]
