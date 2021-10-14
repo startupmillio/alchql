@@ -1,4 +1,7 @@
+import base64
 from dataclasses import dataclass
+
+import graphene
 import sqlalchemy as sa
 from typing import Optional, List
 
@@ -6,8 +9,7 @@ from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
 from graphene_sqlalchemy.gql_fields import camel_to_snake
-from graphene_sqlalchemy.utils import filter_value_to_python, FilterItem
-
+from graphene_sqlalchemy.utils import filter_value_to_python, FilterItem, GlobalFilters
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
@@ -30,7 +32,6 @@ class QueryHelper:
     def get_filters(info) -> list:
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
-
         if not object_type:
             return []
 
@@ -50,8 +51,22 @@ class QueryHelper:
 
                 filter_item: FilterItem
                 filter_item = parsed_filters[name]
+                if not filter_item.filter_func:
+                    continue
+
                 if hasattr(filter_item.field_type, "parse_value"):
                     value = filter_item.field_type.parse_value(value)
+
+                if filter_item.field_type == graphene.ID:
+                    decoded = base64.b64decode(value).decode()
+                    value = int(decoded.split(":")[1])
+
+                if filter_item.field_type == graphene.List and filter_item.field_type.of_type == graphene.ID:
+                    new_value = []
+                    for item in value:
+                        decoded = base64.b64decode(item).decode()
+                        new_value.append(int(decoded.split(":")[1]))
+                    value = new_value
 
                 field_expr = parsed_filters[name].filter_func(value)
                 filters_to_apply.append(field_expr)

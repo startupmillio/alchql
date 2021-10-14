@@ -7,16 +7,17 @@ import sqlalchemy as sa
 from graphene import Argument, NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
+from graphene.types.utils import get_type
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from sqlalchemy.orm import InstrumentedAttribute
 
-from graphene_sqlalchemy.consts import OPERATORS_MAPPING, OP_IN
+from graphene_sqlalchemy.consts import OPERATORS_MAPPING, OP_IN, OP_EQ
 from graphene_sqlalchemy.query_helper import QueryHelper
 from graphene_sqlalchemy.registry import get_global_registry
 from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
 from .batching import get_batch_resolver
 from .slice import connection_from_query
-from .utils import EnumValue, get_query, get_session, FilterItem
+from .utils import EnumValue, get_query, get_session, FilterItem, GlobalFilters
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -58,7 +59,8 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
             q = sa.select([sa.func.count()]).select_from(q_aliased)
             if QueryHelper.get_filters(info):
-                _len = await session.execute(q).scalar()
+                q_res = await session.execute(q)
+                _len = q_res.scalar()
             elif QueryHelper.has_last_arg(info):
                 raise TypeError('Cannot set "last" without filters applied')
             else:
@@ -159,6 +161,7 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
 
 class FilterConnectionField(SQLAlchemyConnectionField):
     def __init__(self, type_, *args, **kwargs):
+        type_ = get_type(type_)
         if hasattr(type_._meta, "filter_fields"):
             FilterConnectionField.set_filter_fields(type_, kwargs)
 
@@ -176,7 +179,22 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         registry = get_global_registry()
 
+        kwargs[GlobalFilters.ID__EQ] = Argument(type_=graphene.ID)
+        filters[GlobalFilters.ID__EQ] = FilterItem(
+            filter_func=getattr(sa.inspect(type_._meta.model).primary_key[0], OPERATORS_MAPPING[OP_EQ][0]),
+            field_type=graphene.ID
+        )
+        kwargs[GlobalFilters.ID__IN] = Argument(type_=graphene.List(of_type=graphene.ID))
+        filters[GlobalFilters.ID__IN] = FilterItem(
+            filter_func=getattr(sa.inspect(type_._meta.model).primary_key[0], OPERATORS_MAPPING[OP_IN][0]),
+            field_type=graphene.List(of_type=graphene.ID)
+        )
+
         for field, operators in type_._meta.filter_fields.items():
+            if isinstance(field, str) and isinstance(operators, FilterItem):
+                kwargs[field] = Argument(type_=operators.field_type)
+                filters[field] = operators
+
             if not isinstance(field, InstrumentedAttribute):
                 continue
 
@@ -193,6 +211,9 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                 getattr(field, "type", None), field, registry
             )
 
+            if field.prop.columns[0].foreign_keys:
+                field_type = graphene.ID
+
             for operator in operators:
                 if operator == OP_IN:
                     field_type = graphene.List(of_type=field_type)
@@ -200,7 +221,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                 kwargs[filter_name] = Argument(type_=field_type)
                 filters[filter_name] = FilterItem(
                     field_type=field_type,
-                    filter_func=getattr(field, OPERATORS_MAPPING[operator][0]),
+                    filter_func=getattr(field, OPERATORS_MAPPING[operator][0])
                 )
 
         setattr(type_, "parsed_filters", filters)
@@ -245,7 +266,7 @@ class ModelField(graphene.Field):
         self.use_label = use_label
 
 
-class BatchSQLAlchemyConnectionField(FilterConnectionField):
+class BatchSQLAlchemyConnectionField(FilterConnectionField, ModelField):
     """
     This is currently experimental.
     The API and behavior may change in future versions.
