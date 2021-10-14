@@ -1,6 +1,5 @@
 from collections import OrderedDict
 
-import graphene
 import sqlalchemy
 from graphene import Field
 from graphene.relay import Connection, Node
