@@ -37,8 +37,8 @@ test:
     #  - black -S -l 80 --check --diff ./
     - coverage report -m --skip-covered
 
-build models:
-  image: python:3.7
+build package:
+  image: python:3.9
   stage: build
   only:
     - main
@@ -48,5 +48,5 @@ build models:
     TWINE_USERNAME: gitlab-ci-token
     TWINE_PASSWORD: $CI_JOB_TOKEN
   script:
-    - python setup_models.py sdist bdist_wheel
+    - python setup.py sdist bdist_wheel
     - python -m twine upload --verbose --repository-url https://gitlab.com/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/*
