@@ -18,6 +18,12 @@ class FilterItem:
     filter_func: callable
 
 
+@dataclass
+class GlobalFilters:
+    ID__EQ = 'id__eq'
+    ID__IN = 'id__in'
+
+
 def get_session(context):
     if hasattr(context, "session"):
         return context.session
