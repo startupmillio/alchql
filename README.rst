@@ -17,7 +17,7 @@ For instaling graphene, just run this command in your shell
 
 .. code:: bash
 
-    pip install "graphene-sqlalchemy>=2.0"
+    pip install "graphene-sqlalchemy-core>=2.0"
 
 Examples
 --------
@@ -44,7 +44,7 @@ following:
 
 .. code:: python
 
-    from graphene_sqlalchemy import SQLAlchemyObjectType
+    from graphene_sqlalchemy_core import SQLAlchemyObjectType
 
     class User(SQLAlchemyObjectType):
         class Meta:

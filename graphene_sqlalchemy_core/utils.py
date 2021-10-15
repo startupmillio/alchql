@@ -9,7 +9,7 @@ from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
 
-from graphene_sqlalchemy.gql_fields import get_fields
+from .gql_fields import get_fields
 
 
 @dataclass

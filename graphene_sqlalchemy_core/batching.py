@@ -1,7 +1,7 @@
 from graphene import Dynamic, Field
 from graphene.types.objecttype import ObjectTypeMeta
 
-from graphene_sqlalchemy.gql_fields import camel_to_snake
+from .gql_fields import camel_to_snake
 
 
 def set_object_type(root, info):

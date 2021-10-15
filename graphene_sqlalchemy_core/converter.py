@@ -1,8 +1,8 @@
 from graphene import Dynamic, Field, List, String
 from sqlalchemy.orm import interfaces
 
-from graphene_sqlalchemy.sqlalchemy_converter import convert_sqlalchemy_type
-from graphene_sqlalchemy.fields import ModelField
+from .sqlalchemy_converter import convert_sqlalchemy_type
+from .fields import ModelField
 from .batching import get_batch_resolver
 from .fields import BatchSQLAlchemyConnectionField, FilterConnectionField
 from .resolvers import get_custom_resolver

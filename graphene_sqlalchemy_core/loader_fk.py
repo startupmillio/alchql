@@ -7,8 +7,25 @@ from aiodataloader import DataLoader
 from graphene import Field, Scalar
 from graphene.types.objecttype import ObjectTypeMeta
 
-from graphene_sqlalchemy.query_helper import QueryHelper
-from graphene_sqlalchemy.utils import EnumValue
+from .query_helper import QueryHelper
+from .utils import EnumValue
+
+
+def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):
+    if not isinstance(conversion_type, ObjectTypeMeta):
+        return data
+
+    result = {}
+    fields = conversion_type._meta.fields.keys()
+    for key, value in data.items():
+        if key in fields:
+            result[key] = value
+        else:
+            attr = getattr(conversion_type, key, None)
+            if attr and isinstance(attr, (Field, Scalar)):
+                result[key] = value
+
+    return result
 
 
 def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):

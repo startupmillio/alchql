@@ -8,8 +8,9 @@ from typing import Optional, List
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
-from graphene_sqlalchemy.gql_fields import camel_to_snake
-from graphene_sqlalchemy.utils import filter_value_to_python, FilterItem, GlobalFilters
+from .gql_fields import camel_to_snake
+from .utils import filter_value_to_python, FilterItem, GlobalFilters
+
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
@@ -32,6 +33,7 @@ class QueryHelper:
     def get_filters(info) -> list:
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
+
         if not object_type:
             return []
 

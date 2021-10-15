@@ -4,7 +4,7 @@ from models import Role as RoleModel
 
 import graphene
 from graphene import relay
-from graphene_sqlalchemy import SQLAlchemyConnectionField, SQLAlchemyObjectType
+from graphene_sqlalchemy_core import SQLAlchemyConnectionField, SQLAlchemyObjectType
 
 
 class Department(SQLAlchemyObjectType):

@@ -1,11 +1,11 @@
 from inspect import isawaitable
-from typing import List, Sequence, Type, Union
+from typing import Sequence, Type, Union
 
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeMeta, Mapper
 
-from graphene_sqlalchemy import get_session
-from graphene_sqlalchemy.loader_fk import generate_loader_by_foreign_key
+from . import get_session
+from .loader_fk import generate_loader_by_foreign_key
 
 
 class LoaderMiddleware:
