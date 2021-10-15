@@ -3,6 +3,8 @@ from graphql_relay.connection.arrayconnection import (
     offset_to_cursor,
 )
 
+from .utils import filter_requested_fields_for_object
+
 
 async def connection_from_query(
     query,
@@ -49,6 +51,7 @@ async def connection_from_query(
     edges = []
 
     for i, node in enumerate(await session.execute(_slice)):
+        node = filter_requested_fields_for_object(dict(node), connection_type.Edge.node.type)
         node = connection_type.Edge.node.type(**node)
         edge = edge_type(node, cursor=offset_to_cursor(start_offset + i))
         edges.append(edge)
