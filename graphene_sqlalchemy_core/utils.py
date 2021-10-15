@@ -2,9 +2,12 @@ import logging
 import re
 import warnings
 from dataclasses import dataclass
+from typing import Union
 
 import graphene
 import sqlalchemy as sa
+from graphene import Field, Scalar
+from graphene.types.objecttype import ObjectTypeMeta
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
@@ -195,3 +198,20 @@ def filter_value_to_python(value):
         value = None
 
     return value
+
+
+def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):
+    if not isinstance(conversion_type, ObjectTypeMeta):
+        return data
+
+    result = {}
+    fields = conversion_type._meta.fields.keys()
+    for key, value in data.items():
+        if key in fields:
+            result[key] = value
+        else:
+            attr = getattr(conversion_type, key, None)
+            if attr and isinstance(attr, (Field, Scalar)):
+                result[key] = value
+
+    return result

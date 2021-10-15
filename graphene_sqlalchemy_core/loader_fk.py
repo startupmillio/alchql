@@ -1,48 +1,11 @@
 import enum
 from collections import defaultdict
-from typing import Union
 
 import sqlalchemy as sa
 from aiodataloader import DataLoader
-from graphene import Field, Scalar
-from graphene.types.objecttype import ObjectTypeMeta
 
 from .query_helper import QueryHelper
-from .utils import EnumValue
-
-
-def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):
-    if not isinstance(conversion_type, ObjectTypeMeta):
-        return data
-
-    result = {}
-    fields = conversion_type._meta.fields.keys()
-    for key, value in data.items():
-        if key in fields:
-            result[key] = value
-        else:
-            attr = getattr(conversion_type, key, None)
-            if attr and isinstance(attr, (Field, Scalar)):
-                result[key] = value
-
-    return result
-
-
-def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):
-    if not isinstance(conversion_type, ObjectTypeMeta):
-        return data
-
-    result = {}
-    fields = conversion_type._meta.fields.keys()
-    for key, value in data.items():
-        if key in fields:
-            result[key] = value
-        else:
-            attr = getattr(conversion_type, key, None)
-            if attr and isinstance(attr, (Field, Scalar)):
-                result[key] = value
-
-    return result
+from .utils import EnumValue, filter_requested_fields_for_object
 
 
 def generate_loader_by_foreign_key(relation):
@@ -124,7 +87,6 @@ def generate_loader_by_foreign_key(relation):
                 _data = dict(**result)
                 _batch_key = _data.pop("_batch_key")
                 _data = filter_requested_fields_for_object(_data, conversion_type)
-
                 results_by_ids[_batch_key].append(conversion_type(**_data))
 
             return [results_by_ids.get(id, []) for id in keys]
