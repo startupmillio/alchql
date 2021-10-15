@@ -28,6 +28,23 @@ def filter_requested_fields_for_object(data: dict, conversion_type: Union[Object
     return result
 
 
+def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):
+    if not isinstance(conversion_type, ObjectTypeMeta):
+        return data
+
+    result = {}
+    fields = conversion_type._meta.fields.keys()
+    for key, value in data.items():
+        if key in fields:
+            result[key] = value
+        else:
+            attr = getattr(conversion_type, key, None)
+            if attr and isinstance(attr, (Field, Scalar)):
+                result[key] = value
+
+    return result
+
+
 def generate_loader_by_foreign_key(relation):
     class Loader(DataLoader):
         def __init__(self, session, info=None, *args, **kwargs):

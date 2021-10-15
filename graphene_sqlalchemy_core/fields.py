@@ -11,7 +11,7 @@ from graphene.types.utils import get_type
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from sqlalchemy.orm import InstrumentedAttribute
 
-from .consts import OPERATORS_MAPPING, OP_IN, OP_EQ
+from .consts import OPERATORS_MAPPING, OP_IN, OP_EQ, OP_EQ
 from .query_helper import QueryHelper
 from .registry import get_global_registry
 from .sqlalchemy_converter import convert_sqlalchemy_type
