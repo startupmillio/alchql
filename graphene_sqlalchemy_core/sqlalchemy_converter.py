@@ -27,7 +27,6 @@ def convert_sqlalchemy_type(type, column, registry=None):
     )
 
 
-@convert_sqlalchemy_type.register(types.Date)
 @convert_sqlalchemy_type.register(types.Time)
 @convert_sqlalchemy_type.register(types.String)
 @convert_sqlalchemy_type.register(types.Text)
@@ -39,6 +38,13 @@ def convert_sqlalchemy_type(type, column, registry=None):
 @convert_sqlalchemy_type.register(TSVectorType)
 def convert_column_to_string(type, column, registry=None):
     return String
+
+
+@convert_sqlalchemy_type.register(types.Date)
+def convert_column_to_date(type, column, registry=None):
+    from graphene.types.datetime import Date
+
+    return Date
 
 
 @convert_sqlalchemy_type.register(types.DateTime)
