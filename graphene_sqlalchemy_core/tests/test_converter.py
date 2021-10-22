@@ -65,7 +65,7 @@ def test_should_unknown_sqlalchemy_field_raise_exception():
 
 
 def test_should_date_convert_string():
-    assert get_field(types.Date()).type == graphene.String
+    assert get_field(types.Date()).type == graphene.Date
 
 
 def test_should_datetime_convert_datetime():
