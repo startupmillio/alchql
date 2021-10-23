@@ -2,7 +2,7 @@ import logging
 import re
 import warnings
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Optional
 
 import graphene
 import sqlalchemy as sa
@@ -19,6 +19,8 @@ from .gql_fields import get_fields
 class FilterItem:
     field_type: graphene.Field
     filter_func: callable
+    value_func: Optional[callable] = lambda x: x
+
 
 
 @dataclass

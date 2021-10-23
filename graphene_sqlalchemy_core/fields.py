@@ -222,6 +222,8 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                 filters[filter_name] = FilterItem(
                     field_type=field_type,
                     filter_func=getattr(field, OPERATORS_MAPPING[operator][0]),
+                    value_func=OPERATORS_MAPPING[operator][1],
+
                 )
 
         setattr(type_, "parsed_filters", filters)
