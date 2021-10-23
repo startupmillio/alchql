@@ -70,6 +70,7 @@ class QueryHelper:
                         new_value.append(int(decoded.split(":")[1]))
                     value = new_value
 
+                value = parsed_filters[name].value_func(value)
                 field_expr = parsed_filters[name].filter_func(value)
                 filters_to_apply.append(field_expr)
         return filters_to_apply
