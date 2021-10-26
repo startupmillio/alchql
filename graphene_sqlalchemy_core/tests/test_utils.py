@@ -40,7 +40,11 @@ def test_camel_to_snake():
     assert camel_to_snake("howYouLikeThat_Eq") == "how_you_like_that__eq"
     assert camel_to_snake("howyoulikethat") == "howyoulikethat"
     assert camel_to_snake("howYouLike000That") == "how_you_like_000that"
-    assert camel_to_snake("how000YouLikeThat") == "how000_you_like_that"
+    assert camel_to_snake("h000YouLikeThat") == "h000_you_like_that"
+    assert camel_to_snake("artistId_Eq") == "artist_id__eq"
+    assert camel_to_snake("sort") == "sort"
+    assert camel_to_snake("priceMomentum12mo") == "price_momentum_12mo"
+    assert camel_to_snake("s3PresignedUrl") == "s3_presigned_url"
 
 def test_to_enum_value_name():
     assert to_enum_value_name("make_enum_value_name") == "MAKE_ENUM_VALUE_NAME"
