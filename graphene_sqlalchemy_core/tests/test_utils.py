@@ -1,6 +1,7 @@
 import pytest
 from graphene import Context, ObjectType, Schema, String
 
+from gql_fields import camel_to_snake
 from ..utils import (
     get_session,
     to_enum_value_name,
@@ -35,6 +36,11 @@ def test_to_type_name():
     assert to_type_name("AlreadyCamelCase") == "AlreadyCamelCase"
     assert to_type_name("A_Snake_and_a_Camel") == "ASnakeAndACamel"
 
+def test_camel_to_snake():
+    assert camel_to_snake("howYouLikeThat_Eq") == "how_you_like_that__eq"
+    assert camel_to_snake("howyoulikethat") == "howyoulikethat"
+    assert camel_to_snake("howYouLike000That") == "how_you_like_000that"
+    assert camel_to_snake("how000YouLikeThat") == "how000_you_like_that"
 
 def test_to_enum_value_name():
     assert to_enum_value_name("make_enum_value_name") == "MAKE_ENUM_VALUE_NAME"
