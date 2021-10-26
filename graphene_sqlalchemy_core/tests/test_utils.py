@@ -45,6 +45,8 @@ def test_camel_to_snake():
     assert camel_to_snake("sort") == "sort"
     assert camel_to_snake("priceMomentum12mo") == "price_momentum_12mo"
     assert camel_to_snake("s3PresignedUrl") == "s3_presigned_url"
+    assert camel_to_snake("thumbnailS3PresignedUrl") == "thumbnail_s3_presigned_url"
+
 
 def test_to_enum_value_name():
     assert to_enum_value_name("make_enum_value_name") == "MAKE_ENUM_VALUE_NAME"
