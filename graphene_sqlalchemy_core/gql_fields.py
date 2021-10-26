@@ -29,7 +29,7 @@ from graphql import FieldNode, FragmentDefinitionNode, GraphQLResolveInfo
 
 def camel_to_snake(name: str) -> str:
     name = re.sub(
-        r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z0-9]*)([sS]3|[A-Z][a-z]*|\d+)", r"\1_\2",
+        r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z0-9]*)(S3|[A-Z][a-z]*|\d+)", r"\1_\2",
         name
     )
     return name.lower()
