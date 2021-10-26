@@ -1,7 +1,7 @@
 import pytest
 from graphene import Context, ObjectType, Schema, String
 
-from gql_fields import camel_to_snake
+from ..gql_fields import camel_to_snake
 from ..utils import (
     get_session,
     to_enum_value_name,
