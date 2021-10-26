@@ -39,7 +39,7 @@ def test_to_type_name():
 def test_camel_to_snake():
     assert camel_to_snake("howYouLikeThat_Eq") == "how_you_like_that__eq"
     assert camel_to_snake("howyoulikethat") == "howyoulikethat"
-    assert camel_to_snake("howYouLike000That") == "how_you_like_000that"
+    assert camel_to_snake("howYouLike000that") == "how_you_like_000that"
     assert camel_to_snake("h000YouLikeThat") == "h000_you_like_that"
     assert camel_to_snake("artistId_Eq") == "artist_id__eq"
     assert camel_to_snake("sort") == "sort"
