@@ -26,12 +26,13 @@ from typing import Union
 
 from graphql import FieldNode, FragmentDefinitionNode, GraphQLResolveInfo
 
+_camel_to_snake_re = re.compile(
+    r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z0-9]*)([A-Z][0-9]*[a-z]*|\d+)"
+)
+
 
 def camel_to_snake(name: str) -> str:
-    name = re.sub(
-        r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z0-9]*)(S3|[A-Z][a-z]*|\d+)", r"\1_\2",
-        name
-    )
+    name = _camel_to_snake_re.sub(r"\1_\2", name)
     return name.lower()
 
 

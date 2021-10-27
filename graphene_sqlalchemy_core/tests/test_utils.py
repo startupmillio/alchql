@@ -36,6 +36,7 @@ def test_to_type_name():
     assert to_type_name("AlreadyCamelCase") == "AlreadyCamelCase"
     assert to_type_name("A_Snake_and_a_Camel") == "ASnakeAndACamel"
 
+
 def test_camel_to_snake():
     assert camel_to_snake("howYouLikeThat_Eq") == "how_you_like_that__eq"
     assert camel_to_snake("howyoulikethat") == "howyoulikethat"

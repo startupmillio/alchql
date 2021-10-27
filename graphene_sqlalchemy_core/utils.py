@@ -22,11 +22,10 @@ class FilterItem:
     value_func: Optional[callable] = lambda x: x
 
 
-
 @dataclass
 class GlobalFilters:
-    ID__EQ = 'id__eq'
-    ID__IN = 'id__in'
+    ID__EQ = "id__eq"
+    ID__IN = "id__in"
 
 
 def get_session(context):
@@ -202,7 +201,9 @@ def filter_value_to_python(value):
     return value
 
 
-def filter_requested_fields_for_object(data: dict, conversion_type: Union[ObjectTypeMeta, object]):
+def filter_requested_fields_for_object(
+    data: dict, conversion_type: Union[ObjectTypeMeta, object]
+):
     if not isinstance(conversion_type, ObjectTypeMeta):
         return data
 
