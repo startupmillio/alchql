@@ -51,7 +51,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
     @classmethod
     async def resolve_connection(cls, connection_type, model, info, args, resolved):
-
         query = cls.get_query(model, info, **args)
         session = get_session(info.context)
 
@@ -181,13 +180,21 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         kwargs[GlobalFilters.ID__EQ] = Argument(type_=graphene.ID)
         filters[GlobalFilters.ID__EQ] = FilterItem(
-            filter_func=getattr(sa.inspect(type_._meta.model).primary_key[0], OPERATORS_MAPPING[OP_EQ][0]),
-            field_type=graphene.ID
+            filter_func=getattr(
+                sa.inspect(type_._meta.model).primary_key[0],
+                OPERATORS_MAPPING[OP_EQ][0],
+            ),
+            field_type=graphene.ID,
         )
-        kwargs[GlobalFilters.ID__IN] = Argument(type_=graphene.List(of_type=graphene.ID))
+        kwargs[GlobalFilters.ID__IN] = Argument(
+            type_=graphene.List(of_type=graphene.ID)
+        )
         filters[GlobalFilters.ID__IN] = FilterItem(
-            filter_func=getattr(sa.inspect(type_._meta.model).primary_key[0], OPERATORS_MAPPING[OP_IN][0]),
-            field_type=graphene.List(of_type=graphene.ID)
+            filter_func=getattr(
+                sa.inspect(type_._meta.model).primary_key[0],
+                OPERATORS_MAPPING[OP_IN][0],
+            ),
+            field_type=graphene.List(of_type=graphene.ID),
         )
 
         for field, operators in type_._meta.filter_fields.items():
@@ -223,7 +230,6 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                     field_type=field_type,
                     filter_func=getattr(field, OPERATORS_MAPPING[operator][0]),
                     value_func=OPERATORS_MAPPING[operator][1],
-
                 )
 
         setattr(type_, "parsed_filters", filters)

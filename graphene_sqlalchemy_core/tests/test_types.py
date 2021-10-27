@@ -20,6 +20,7 @@ from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionFiel
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
 import sqlalchemy as sa
 
+
 def test_should_raise_if_no_model():
     re_err = r"valid SQLAlchemy Model"
     with pytest.raises(Exception, match=re_err):

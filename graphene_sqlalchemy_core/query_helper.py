@@ -1,16 +1,14 @@
 import base64
 from dataclasses import dataclass
+from typing import List, Optional
 
 import graphene
 import sqlalchemy as sa
-from typing import Optional, List
-
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
 from .gql_fields import camel_to_snake
-from .utils import filter_value_to_python, FilterItem, GlobalFilters
-
+from .utils import FilterItem, filter_value_to_python
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
@@ -63,7 +61,10 @@ class QueryHelper:
                     decoded = base64.b64decode(value).decode()
                     value = int(decoded.split(":")[1])
 
-                if filter_item.field_type == graphene.List and filter_item.field_type.of_type == graphene.ID:
+                if (
+                    filter_item.field_type == graphene.List
+                    and filter_item.field_type.of_type == graphene.ID
+                ):
                     new_value = []
                     for item in value:
                         decoded = base64.b64decode(item).decode()
