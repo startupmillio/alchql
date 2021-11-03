@@ -16,9 +16,9 @@ FRAGMENT = "fragment_spread"
 
 @dataclass
 class QueryField:
+    arguments: Optional[dict]
     name: str
     values: Optional[list]
-    arguments: Optional[dict]
 
 
 @dataclass
@@ -47,6 +47,9 @@ class QueryHelper:
         if gql_field and gql_field.arguments:
             for name, value in gql_field.arguments.items():
                 if name not in parsed_filters:
+                    continue
+
+                if value is None:
                     continue
 
                 filter_item: FilterItem
