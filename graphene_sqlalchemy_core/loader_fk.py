@@ -36,7 +36,7 @@ def generate_loader_by_foreign_key(relation):
             gql_field = QueryHelper.get_current_field(self.info)
 
             if object_type and hasattr(object_type, "set_select_from"):
-                q = object_type.set_select_from(self.info, q, gql_field.values)
+                q = await object_type.set_select_from(self.info, q, gql_field.values)
                 if list(q._group_by_clause):
                     q = q.group_by(f)
 

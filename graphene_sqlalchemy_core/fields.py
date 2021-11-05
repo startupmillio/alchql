@@ -46,12 +46,12 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         return get_nullable_type(self.type)._meta.node._meta.model
 
     @classmethod
-    def get_query(cls, model, info, **args):
+    async def get_query(cls, model, info, **args):
         return get_query(model, info)
 
     @classmethod
     async def resolve_connection(cls, connection_type, model, info, args, resolved):
-        query = cls.get_query(model, info, **args)
+        query = await cls.get_query(model, info, **args)
         session = get_session(info.context)
 
         if resolved is None:
@@ -139,7 +139,7 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
         super(SQLAlchemyConnectionField, self).__init__(type_, *args, **kwargs)
 
     @classmethod
-    def get_query(cls, model, info, sort=None, **args):
+    async def get_query(cls, model, info, sort=None, **args):
         query = get_query(model, info)
         if sort is not None:
             if not isinstance(sort, list):
@@ -172,7 +172,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         )
 
     @staticmethod
-    def set_filter_fields(type_, kwargs):
+    async def set_filter_fields(type_, kwargs):
         filters = {}
         tablename = type_._meta.model.__tablename__
 
@@ -235,7 +235,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         setattr(type_, "parsed_filters", filters)
 
     @classmethod
-    def get_query(cls, model, info, sort=None, **args):
+    async def get_query(cls, model, info, sort=None, **args):
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
 
@@ -245,7 +245,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         query = sa.select(*select_fields)
 
         if object_type and hasattr(object_type, "set_select_from"):
-            query = object_type.set_select_from(info, query, gql_field.values)
+            query = await object_type.set_select_from(info, query, gql_field.values)
         if filters:
             query = query.where(sa.and_(*filters))
         if sort is not None:
