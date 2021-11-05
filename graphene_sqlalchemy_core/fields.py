@@ -172,7 +172,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         )
 
     @staticmethod
-    async def set_filter_fields(type_, kwargs):
+    def set_filter_fields(type_, kwargs):
         filters = {}
         tablename = type_._meta.model.__tablename__
 
