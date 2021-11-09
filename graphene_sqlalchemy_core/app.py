@@ -1,20 +1,38 @@
 from contextlib import asynccontextmanager
 from inspect import isawaitable
-from typing import Any, Dict
+from typing import Any, Awaitable, Callable, Dict, Optional, Union
 
+from graphene import Context
 from graphql import graphql
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from starlette.background import BackgroundTasks
 from starlette.requests import HTTPConnection, Request
-from starlette.responses import JSONResponse
-from starlette_graphene3 import GraphQLApp, _get_operation_from_request
+from starlette.responses import JSONResponse, Response
+from starlette_graphene3 import (
+    GraphQLApp,
+    _get_operation_from_request,
+    make_graphiql_handler,
+)
+
+DEFAULT_GET = object()
 
 
 class SessionQLApp(GraphQLApp):
-    def __init__(self, engine: AsyncEngine, *args, **kwargs):
+    def __init__(
+        self,
+        engine: AsyncEngine,
+        context_value: Callable = Context,
+        on_get: Optional[
+            Callable[[Request], Union[Response, Awaitable[Response]]]
+        ] = DEFAULT_GET,
+        *args,
+        **kwargs,
+    ):
         self.engine = engine
+        if on_get == DEFAULT_GET:
+            on_get = make_graphiql_handler()
 
-        super().__init__(*args, **kwargs)
+        super().__init__(context_value=context_value, on_get=on_get, *args, **kwargs)
 
     async def _handle_http_request(self, request: Request) -> JSONResponse:
         try:
@@ -44,7 +62,7 @@ class SessionQLApp(GraphQLApp):
                 operation_name=operation_name,
                 execution_context_class=self.execution_context_class,
             )
-            background = context_value.get("background")
+            background = getattr(context_value, "background", None)
 
         response: Dict[str, Any] = {"data": result.data}
         if result.errors:
@@ -66,7 +84,6 @@ class SessionQLApp(GraphQLApp):
 
     @asynccontextmanager
     async def _get_context_value(self, request: HTTPConnection) -> Any:
-        # print("SESSION OPENED")
         async with AsyncSession(self.engine) as session:
             if callable(self.context_value):
                 context = self.context_value(
@@ -78,9 +95,8 @@ class SessionQLApp(GraphQLApp):
                     context = await context
                 yield context
             else:
-                yield self.context_value or {
-                    "request": request,
-                    "background": BackgroundTasks(),
-                    "session": session,
-                }
-        # print("SESSION CLOSED")
+                yield self.context_value or Context(
+                    request=request,
+                    background=BackgroundTasks(),
+                    session=session,
+                )
