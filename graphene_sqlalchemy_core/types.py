@@ -336,21 +336,6 @@ class SQLAlchemyObjectType(ObjectType):
         result = (await session.execute(q)).scalars().first()
         return result
 
-    # @classmethod
-    # def get_node(cls, info, id):
-    #     session = get_session(info.context)
-    #     model = cls._meta.model
-    #
-    #     pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
-    #     q = sqlalchemy.select(model.__table__.columns).where(pk == id)
-    #
-    #     try:
-    #         result = session.execute(q).fetchone()
-    #         if result:
-    #             return model(**result)
-    #     except NoResultFound:
-    #         return None
-
     async def resolve_id(self, info):
         key = "id"
         if isinstance(self, SQLAlchemyObjectType):

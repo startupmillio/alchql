@@ -21,10 +21,6 @@ requirements = [
     "singledispatch == 3.7.0",
     "aiodataloader == 0.2.0",
 ]
-try:
-    import enum
-except ImportError:  # Python < 2.7 and Python 3.3
-    requirements.append("enum34 >= 1.1.6")
 
 tests_require = [
     "pytest>=6.2.0,<7.0",
