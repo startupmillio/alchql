@@ -23,37 +23,10 @@ def generate_loader_by_foreign_key(relation):
             object_types = getattr(self.info.context, "object_types", {})
             object_type = object_types.get(self.info.field_name)
 
-            selected_fields = QueryHelper.get_selected_fields(self.info, model=target)
-            if not selected_fields:
-                selected_fields = self.fields or target.__table__.columns
-
-            q = sa.select(
-                *selected_fields,
-                f.label("_batch_key"),
-            )
-
             filters = QueryHelper.get_filters(self.info)
             gql_field = QueryHelper.get_current_field(self.info)
-
-            if object_type and hasattr(object_type, "set_select_from"):
-                q = await object_type.set_select_from(self.info, q, gql_field.values)
-                if list(q._group_by_clause):
-                    q = q.group_by(f)
-
-            if filters:
-                q = q.where(sa.and_(*filters))
-
-            if relation.primaryjoin is not None:
-                q = q.where(relation.primaryjoin)
-            if relation.secondaryjoin is not None:
-                q = q.where(relation.secondaryjoin)
-
-            q = q.where(f.in_(keys))
-
-            if relation.order_by:
-                for ob in relation.order_by:
-                    q = q.order_by(ob)
-
+            sort_args = []
+            sort = []
             if (
                 "sort" in gql_field.arguments
                 and gql_field.arguments["sort"] is not None
@@ -78,7 +51,38 @@ def generate_loader_by_foreign_key(relation):
                         sort_args.append(item.value)
                     else:
                         sort_args.append(item)
-                q = q.order_by(*sort_args)
+
+            selected_fields = QueryHelper.get_selected_fields(
+                self.info, model=target, sort=sort
+            )
+            if not selected_fields:
+                selected_fields = self.fields or target.__table__.columns
+
+            q = sa.select(
+                *selected_fields,
+                f.label("_batch_key"),
+            )
+
+            if object_type and hasattr(object_type, "set_select_from"):
+                q = await object_type.set_select_from(self.info, q, gql_field.values)
+                if list(q._group_by_clause):
+                    q = q.group_by(f)
+
+            if filters:
+                q = q.where(sa.and_(*filters))
+
+            if relation.primaryjoin is not None:
+                q = q.where(relation.primaryjoin)
+            if relation.secondaryjoin is not None:
+                q = q.where(relation.secondaryjoin)
+
+            q = q.where(f.in_(keys))
+
+            if relation.order_by:
+                for ob in relation.order_by:
+                    q = q.order_by(ob)
+
+            q = q.order_by(*sort_args)
 
             results_by_ids = defaultdict(list)
 
