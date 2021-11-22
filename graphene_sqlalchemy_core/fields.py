@@ -240,7 +240,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         object_type = object_types.get(info.field_name)
 
         filters = QueryHelper.get_filters(info)
-        select_fields = QueryHelper.get_selected_fields(info, model)
+        select_fields = QueryHelper.get_selected_fields(info, model, sort)
         gql_field = QueryHelper.get_current_field(info)
         query = sa.select(*select_fields)
 
