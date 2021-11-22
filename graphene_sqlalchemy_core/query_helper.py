@@ -1,5 +1,6 @@
 import base64
 from dataclasses import dataclass
+import enum
 from typing import List, Optional
 
 import graphene
@@ -8,7 +9,7 @@ from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
 from .gql_fields import camel_to_snake
-from .utils import FilterItem, filter_value_to_python
+from .utils import FilterItem, filter_value_to_python, EnumValue
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
@@ -98,7 +99,7 @@ class QueryHelper:
         return info.context.parsed_query[info.field_name].copy()
 
     @staticmethod
-    def get_selected_fields(info, model):
+    def get_selected_fields(info, model, sort=None):
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
 
@@ -123,17 +124,28 @@ class QueryHelper:
         type_ = info.context.object_types[info.field_name]
         meta_fields = type_._meta.fields
         select_fields = {sa.inspect(model).primary_key[0]}
-        for field in gql_field.values:
-            current_field = object_type_fields.get(field.name, None) or meta_fields.get(
-                field.name
+        field_names_to_process = {f.name for f in gql_field.values}
+        sort_field_names = set()
+        if sort is not None:
+            if not isinstance(sort, list):
+                sort = [sort]
+            for item in sort:
+                if isinstance(item, (EnumValue, enum.Enum)):
+                    field_name = "_".join(item.name.lower().split("_")[:-1])
+                    sort_field_names.add(field_name)
+                else:
+                    sort_field_names.add(item)
+
+        field_names_to_process.update(sort_field_names)
+        for field in field_names_to_process:
+            current_field = object_type_fields.get(field, None) or meta_fields.get(
+                field
             )
             if isinstance(current_field, Dynamic) and isinstance(
                 current_field.type(), Field
             ):
                 try:
-                    columns = getattr(
-                        object_type._meta.model, field.name
-                    ).prop.local_columns
+                    columns = getattr(object_type._meta.model, field).prop.local_columns
                     relation_key = next(iter(columns))
                     select_fields.add(relation_key)
                 except Exception as _:
@@ -141,7 +153,7 @@ class QueryHelper:
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
                 if getattr(current_field, "use_label", True):
-                    select_fields.add(model_field.label(field.name))
+                    select_fields.add(model_field.label(field))
                 else:
                     select_fields.add(model_field)
         return select_fields
