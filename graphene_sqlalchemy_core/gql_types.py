@@ -1,3 +1,4 @@
+import graphene
 from graphene.types import scalars
 
 
@@ -15,3 +16,6 @@ BigInt = _construct_type(scalars.BigInt)
 Float = _construct_type(scalars.Float)
 String = _construct_type(scalars.String)
 Boolean = _construct_type(scalars.Boolean)
+
+List = _construct_type(graphene.List)
+NonNull = _construct_type(graphene.NonNull)
