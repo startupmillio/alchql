@@ -16,9 +16,7 @@ test:
 
   variables:
     PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
-    PIPENV_CACHE_DIR: $CI_PROJECT_DIR/.cache/pipenv
     PIP_DOWNLOAD_CACHE: $CI_PROJECT_DIR/.cache/pip_download_cache
-    ENV_FOR_DYNACONF: test
 
   cache:
     key: ${CI_JOB_NAME}
