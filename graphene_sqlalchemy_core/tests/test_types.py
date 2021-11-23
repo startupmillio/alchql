@@ -16,6 +16,7 @@ from graphene import (
 from graphene.relay import Connection
 
 from .models import Article, CompositeFullName, Pet, Reporter
+from .. import scalars
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
@@ -318,6 +319,19 @@ def test_sqlalchemy_redefine_field():
     first_name_field = ReporterType._meta.fields["first_name"]
     assert isinstance(first_name_field, Field)
     assert first_name_field.type == Int
+
+
+def test_sqlalchemy_redefine_field2():
+    class ReporterType(SQLAlchemyObjectType):
+        class Meta:
+            model = Reporter
+
+        first_name = scalars.Int(model_field=Reporter.first_name)
+
+    first_name_field = ReporterType._meta.fields["first_name"]
+    assert isinstance(first_name_field, Field)
+    assert first_name_field.type == scalars.Int
+    assert first_name_field.type != Int
 
 
 @pytest.mark.asyncio

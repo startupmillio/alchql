@@ -3,7 +3,7 @@ from graphene.types import scalars
 
 def _construct_type(type_: type):
     def init_(self, *args, model_field=None, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(type_, self).__init__(*args, **kwargs)
         self.model_field = model_field
 
     return type(type_.__name__, (type_,), {"__init__": init_})
