@@ -11,13 +11,13 @@ from graphene.types.utils import get_type
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from sqlalchemy.orm import InstrumentedAttribute
 
-from .consts import OPERATORS_MAPPING, OP_IN, OP_EQ, OP_EQ
+from .batching import get_batch_resolver
+from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
 from .query_helper import QueryHelper
 from .registry import get_global_registry
-from .sqlalchemy_converter import convert_sqlalchemy_type
-from .batching import get_batch_resolver
 from .slice import connection_from_query
-from .utils import EnumValue, get_query, get_session, FilterItem, GlobalFilters
+from .sqlalchemy_converter import convert_sqlalchemy_type
+from .utils import EnumValue, FilterItem, GlobalFilters, get_query, get_session
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -30,11 +30,12 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         if issubclass(nullable_type, Connection):
             return type_
         assert issubclass(nullable_type, SQLAlchemyObjectType), (
-            "SQLALchemyConnectionField only accepts SQLAlchemyObjectType types, not {}"
-        ).format(nullable_type.__name__)
-        assert nullable_type.connection, "The type {} doesn't have a connection".format(
-            nullable_type.__name__
+            f"SQLALchemyConnectionField only accepts SQLAlchemyObjectType types, "
+            f"not {nullable_type.__name__}"
         )
+        assert (
+            nullable_type.connection
+        ), f"The type {nullable_type.__name__} doesn't have a connection"
         assert type_ == nullable_type, (
             "Passing a SQLAlchemyObjectType instance is deprecated. "
             "Pass the connection type instead accessible via SQLAlchemyObjectType.connection"
@@ -129,14 +130,14 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
                 kwargs.setdefault("sort", nullable_type.Edge.node._type.sort_argument())
             except (AttributeError, TypeError):
                 raise TypeError(
-                    'Cannot create sort argument for {}. A model is required. Set the "sort" argument'
-                    " to None to disabling the creation of the sort query argument".format(
-                        nullable_type.__name__
-                    )
+                    f"Cannot create sort argument for {nullable_type.__name__}. "
+                    'A model is required. Set the "sort" argument to None '
+                    "to disabling the creation of the sort query argument"
                 )
         elif "sort" in kwargs and kwargs["sort"] is None:
             del kwargs["sort"]
-        super(SQLAlchemyConnectionField, self).__init__(type_, *args, **kwargs)
+
+        super().__init__(type_, *args, **kwargs)
 
     @classmethod
     async def get_query(cls, model, info, sort=None, **args):
@@ -167,9 +168,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         if hasattr(type, "sort_argument"):
             kwargs["sort"] = type_.sort_argument()
 
-        super(SQLAlchemyConnectionField, self).__init__(
-            type_.connection, *args, **kwargs
-        )
+        super().__init__(type_.connection, *args, **kwargs)
 
     @staticmethod
     def set_filter_fields(type_, kwargs):
@@ -269,7 +268,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
 class ModelField(graphene.Field):
     def __init__(self, *args, model_field=None, use_label=True, **kwargs):
-        super(ModelField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.model_field = model_field
         self.use_label = use_label
 

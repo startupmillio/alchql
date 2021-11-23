@@ -3,13 +3,13 @@ import logging
 
 import graphene
 import pytest
+import sqlalchemy as sa
 from graphene import Context, relay
 
 from .models import Article, HairKind, Pet, Reporter
 from .utils import to_std_dicts
 from ..loaders_middleware import LoaderMiddleware
 from ..types import SQLAlchemyObjectType
-import sqlalchemy as sa
 
 
 class MockLoggingHandler(logging.Handler):

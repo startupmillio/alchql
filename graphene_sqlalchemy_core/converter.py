@@ -1,11 +1,10 @@
 from graphene import Dynamic, Field, List, String
 from sqlalchemy.orm import interfaces
 
-from .sqlalchemy_converter import convert_sqlalchemy_type
-from .fields import ModelField
 from .batching import get_batch_resolver
-from .fields import BatchSQLAlchemyConnectionField, FilterConnectionField
+from .fields import BatchSQLAlchemyConnectionField, ModelField
 from .resolvers import get_custom_resolver
+from .sqlalchemy_converter import convert_sqlalchemy_type
 
 try:
     from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType, TSVectorType

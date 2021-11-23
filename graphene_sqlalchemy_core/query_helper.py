@@ -1,6 +1,6 @@
 import base64
-from dataclasses import dataclass
 import enum
+from dataclasses import dataclass
 from typing import List, Optional
 
 import graphene
@@ -9,7 +9,7 @@ from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 
 from .gql_fields import camel_to_snake
-from .utils import FilterItem, filter_value_to_python, EnumValue
+from .utils import EnumValue, FilterItem, filter_value_to_python
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"

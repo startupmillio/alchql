@@ -12,7 +12,6 @@ from sqlalchemy.orm import (
     CompositeProperty,
     RelationshipProperty,
 )
-from sqlalchemy.orm.exc import NoResultFound
 
 from .converter import (
     convert_sqlalchemy_column,
@@ -81,7 +80,7 @@ class ORMField(OrderedType):
         :param int _creation_counter:
             Same behavior as in graphene.Field.
         """
-        super(ORMField, self).__init__(_creation_counter=_creation_counter)
+        super().__init__(_creation_counter=_creation_counter)
         # The is only useful for documentation and auto-completion
         common_kwargs = {
             "model_attr": model_attr,
@@ -158,9 +157,9 @@ def construct_fields(
         attr_name = orm_field.kwargs.get("model_attr", orm_field_name)
         if attr_name not in all_model_attrs:
             raise ValueError(
-                ("Cannot map ORMField to a model attribute.\n" "Field: '{}.{}'").format(
-                    obj_type.__name__,
-                    orm_field_name,
+                (
+                    f"Cannot map ORMField to a model attribute.\n"
+                    f"Field: '{obj_type.__name__}.{orm_field_name}'"
                 )
             )
         orm_field.kwargs["model_attr"] = attr_name
@@ -198,7 +197,7 @@ def construct_fields(
                 # TODO Add a way to override composite property fields
                 raise ValueError(
                     "ORMField kwargs for composite fields must be empty. "
-                    "Field: {}.{}".format(obj_type.__name__, orm_field_name)
+                    f"Field: {obj_type.__name__}.{orm_field_name}"
                 )
             field = convert_sqlalchemy_composite(attr, registry, resolver)
         elif isinstance(attr, hybrid_property):
@@ -238,16 +237,17 @@ class SQLAlchemyObjectType(ObjectType):
         **options,
     ):
         assert is_mapped_class(model), (
-            "You need to pass a valid SQLAlchemy Model in " '{}.Meta, received "{}".'
-        ).format(cls.__name__, model)
+            "You need to pass a valid SQLAlchemy Model in "
+            f'{cls.__name__}.Meta, received "{model}".'
+        )
 
         if not registry:
             registry = get_global_registry()
 
         assert isinstance(registry, Registry), (
-            "The attribute registry in {} needs to be an instance of "
-            'Registry, received "{}".'
-        ).format(cls.__name__, registry)
+            f"The attribute registry in {cls.__name__} needs to be an instance of "
+            f'Registry, received "{registry}".'
+        )
 
         if only_fields and exclude_fields:
             raise ValueError(
@@ -278,13 +278,13 @@ class SQLAlchemyObjectType(ObjectType):
                 connection_class = Connection
 
             connection = connection_class.create_type(
-                "{}Connection".format(cls.__name__), node=cls
+                f"{cls.__name__}Connection", node=cls
             )
 
         if connection is not None:
-            assert issubclass(connection, Connection), (
-                "The connection must be a Connection. Received {}"
-            ).format(connection.__name__)
+            assert issubclass(
+                connection, Connection
+            ), f"The connection must be a Connection. Received {connection.__name__}"
 
         if not _meta:
             _meta = SQLAlchemyObjectTypeOptions(cls)
@@ -305,7 +305,7 @@ class SQLAlchemyObjectType(ObjectType):
 
         cls.connection = connection  # Public way to get the connection
 
-        super(SQLAlchemyObjectType, cls).__init_subclass_with_meta__(
+        super().__init_subclass_with_meta__(
             _meta=_meta, interfaces=interfaces, **options
         )
 
@@ -317,7 +317,7 @@ class SQLAlchemyObjectType(ObjectType):
         if isinstance(root, cls):
             return True
         if not is_mapped_instance(root):
-            raise Exception(('Received incompatible instance "{}".').format(root))
+            raise Exception(f'Received incompatible instance "{root}".')
         return isinstance(root, cls._meta.model)
 
     @classmethod

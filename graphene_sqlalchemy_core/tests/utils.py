@@ -1,6 +1,3 @@
-from inspect import isawaitable
-
-
 def to_std_dicts(value):
     """Convert nested ordered dicts to normal dicts for better comparison."""
     if isinstance(value, dict):
