@@ -1,5 +1,6 @@
 import mock
 import pytest
+import sqlalchemy as sa
 from graphene import (
     Dynamic,
     Field,
@@ -18,7 +19,6 @@ from .models import Article, CompositeFullName, Pet, Reporter
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
-import sqlalchemy as sa
 
 
 def test_should_raise_if_no_model():
@@ -425,9 +425,7 @@ def test_objecttype_with_custom_options():
         def __init_subclass_with_meta__(cls, custom_option=None, **options):
             _meta = CustomOptions(cls)
             _meta.custom_option = custom_option
-            super(
-                SQLAlchemyObjectTypeWithCustomOptions, cls
-            ).__init_subclass_with_meta__(_meta=_meta, **options)
+            super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     class ReporterWithCustomOptions(SQLAlchemyObjectTypeWithCustomOptions):
         class Meta:

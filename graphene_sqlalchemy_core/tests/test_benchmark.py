@@ -1,5 +1,6 @@
 import graphene
 import pytest
+import sqlalchemy as sa
 from graphene import Context
 
 from .models import Article, HairKind, Pet, Reporter
@@ -7,7 +8,6 @@ from ..fields import BatchSQLAlchemyConnectionField
 from ..loaders_middleware import LoaderMiddleware
 from ..node import AsyncNode
 from ..types import SQLAlchemyObjectType
-import sqlalchemy as sa
 
 
 def get_schema():

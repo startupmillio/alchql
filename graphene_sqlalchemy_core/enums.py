@@ -2,7 +2,7 @@ from graphene import Argument, Enum, List
 from sqlalchemy.orm import ColumnProperty
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
-from .utils import EnumValue, to_enum_value_name, to_type_name
+from .utils import to_enum_value_name, to_type_name
 
 
 def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
@@ -17,7 +17,7 @@ def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
     The Enum value names are converted to upper case if necessary.
     """
     if not isinstance(sa_enum, SQLAlchemyEnumType):
-        raise TypeError("Expected sqlalchemy.types.Enum, but got: {!r}".format(sa_enum))
+        raise TypeError(f"Expected sqlalchemy.types.Enum, but got: {sa_enum!r}")
     enum_class = sa_enum.enum_class
     if enum_class:
         if all(to_enum_value_name(key) == key for key in enum_class.__members__):
@@ -34,7 +34,7 @@ def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
         elif fallback_name:
             name = fallback_name
         else:
-            raise TypeError("No type name specified for {!r}".format(sa_enum))
+            raise TypeError(f"No type name specified for {sa_enum!r}")
         members = [(to_enum_value_name(key), key) for key in sa_enum.enums]
     return Enum(name, members)
 
@@ -42,7 +42,7 @@ def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
 def enum_for_sa_enum(sa_enum, registry):
     """Return the Graphene Enum type for the specified SQLAlchemy Enum type."""
     if not isinstance(sa_enum, SQLAlchemyEnumType):
-        raise TypeError("Expected sqlalchemy.types.Enum, but got: {!r}".format(sa_enum))
+        raise TypeError(f"Expected sqlalchemy.types.Enum, but got: {sa_enum!r}")
     enum = registry.get_graphene_enum_for_sa_enum(sa_enum)
     if not enum:
         enum = _convert_sa_to_graphene_enum(sa_enum)
@@ -55,22 +55,22 @@ def enum_for_field(obj_type, field_name):
     from .types import SQLAlchemyObjectType
 
     if not isinstance(obj_type, type) or not issubclass(obj_type, SQLAlchemyObjectType):
-        raise TypeError("Expected SQLAlchemyObjectType, but got: {!r}".format(obj_type))
+        raise TypeError(f"Expected SQLAlchemyObjectType, but got: {obj_type!r}")
     if not field_name or not isinstance(field_name, str):
-        raise TypeError("Expected a field name, but got: {!r}".format(field_name))
+        raise TypeError(f"Expected a field name, but got: {field_name!r}")
     registry = obj_type._meta.registry
     orm_field = registry.get_orm_field_for_graphene_field(obj_type, field_name)
     if orm_field is None:
-        raise TypeError("Cannot get {}.{}".format(obj_type._meta.name, field_name))
+        raise TypeError(f"Cannot get {obj_type._meta.name}.{field_name}")
     if not isinstance(orm_field, ColumnProperty):
         raise TypeError(
-            "{}.{} does not map to model column".format(obj_type._meta.name, field_name)
+            f"{obj_type._meta.name}.{field_name} does not map to model column"
         )
     column = orm_field.columns[0]
     sa_enum = column.type
     if not isinstance(sa_enum, SQLAlchemyEnumType):
         raise TypeError(
-            "{}.{} does not map to enum column".format(obj_type._meta.name, field_name)
+            f"{obj_type._meta.name}.{field_name} does not map to enum column"
         )
     enum = registry.get_graphene_enum_for_sa_enum(sa_enum)
     if not enum:
@@ -124,9 +124,7 @@ def sort_enum_for_object_type(
     )
     if enum:
         if name != enum.__name__ or custom_options != enum.custom_options:
-            raise ValueError(
-                "Sort enum for {} has already been customized".format(obj_type)
-            )
+            raise ValueError(f"Sort enum for {obj_type} has already been customized")
     else:
         members = []
         default = []

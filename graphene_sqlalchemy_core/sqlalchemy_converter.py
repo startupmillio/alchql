@@ -5,6 +5,7 @@ from graphene.types.json import JSONString
 from singledispatch import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
+
 from .enums import enum_for_sa_enum
 from .registry import get_global_registry
 
@@ -80,7 +81,7 @@ def convert_enum_to_enum(type, column, registry=None):
 # TODO Make ChoiceType conversion consistent with other enums
 @convert_sqlalchemy_type.register(ChoiceType)
 def convert_choice_to_enum(type, column, registry=None):
-    name = "{}_{}".format(column.table.name, column.name).upper()
+    name = f"{column.table.name}_{column.name}".upper()
     if isinstance(type.choices, EnumMeta):
         # type.choices may be Enum/IntEnum, in ChoiceType both presented as EnumMeta
         # do not use from_enum here because we can have more than one enum column in table

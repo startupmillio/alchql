@@ -19,14 +19,12 @@ class Registry(object):
         if not isinstance(obj_type, type) or not issubclass(
             obj_type, SQLAlchemyObjectType
         ):
-            raise TypeError(
-                "Expected SQLAlchemyObjectType, but got: {!r}".format(obj_type)
-            )
+            raise TypeError(f"Expected SQLAlchemyObjectType, but got: {obj_type!r}")
         assert obj_type._meta.registry == self, "Registry for a Model have to match."
         # assert self.get_type_for_model(cls._meta.model) in [None, cls], (
-        #     'SQLAlchemy model "{}" already associated with '
-        #     'another type "{}".'
-        # ).format(cls._meta.model, self._registry[cls._meta.model])
+        #     f'SQLAlchemy model "{cls._meta.model}" already associated with '
+        #     f'another type "{self._registry[cls._meta.model]}".'
+        # )
         self._registry[obj_type._meta.model] = obj_type
 
     def get_type_for_model(self, model):
@@ -38,11 +36,9 @@ class Registry(object):
         if not isinstance(obj_type, type) or not issubclass(
             obj_type, SQLAlchemyObjectType
         ):
-            raise TypeError(
-                "Expected SQLAlchemyObjectType, but got: {!r}".format(obj_type)
-            )
+            raise TypeError(f"Expected SQLAlchemyObjectType, but got: {obj_type!r}")
         if not field_name or not isinstance(field_name, str):
-            raise TypeError("Expected a field name, but got: {!r}".format(field_name))
+            raise TypeError(f"Expected a field name, but got: {field_name!r}")
         self._registry_orm_fields[obj_type][field_name] = orm_field
 
     def get_orm_field_for_graphene_field(self, obj_type, field_name):
@@ -56,13 +52,9 @@ class Registry(object):
 
     def register_enum(self, sa_enum, graphene_enum):
         if not isinstance(sa_enum, SQLAlchemyEnumType):
-            raise TypeError(
-                "Expected SQLAlchemyEnumType, but got: {!r}".format(sa_enum)
-            )
+            raise TypeError(f"Expected SQLAlchemyEnumType, but got: {sa_enum!r}")
         if not isinstance(graphene_enum, type(Enum)):
-            raise TypeError(
-                "Expected Graphene Enum, but got: {!r}".format(graphene_enum)
-            )
+            raise TypeError(f"Expected Graphene Enum, but got: {graphene_enum!r}")
 
         self._registry_enums[sa_enum] = graphene_enum
 
@@ -75,11 +67,9 @@ class Registry(object):
         if not isinstance(obj_type, type) or not issubclass(
             obj_type, SQLAlchemyObjectType
         ):
-            raise TypeError(
-                "Expected SQLAlchemyObjectType, but got: {!r}".format(obj_type)
-            )
+            raise TypeError(f"Expected SQLAlchemyObjectType, but got: {obj_type!r}")
         if not isinstance(sort_enum, type(Enum)):
-            raise TypeError("Expected Graphene Enum, but got: {!r}".format(sort_enum))
+            raise TypeError(f"Expected Graphene Enum, but got: {sort_enum!r}")
         self._registry_sort_enums[obj_type] = sort_enum
 
     def get_sort_enum_for_object_type(self, obj_type):
