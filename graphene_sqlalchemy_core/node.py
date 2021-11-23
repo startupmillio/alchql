@@ -55,7 +55,7 @@ class AbstractAsyncNode(Interface):
     def __init_subclass_with_meta__(cls, **options):
         _meta = InterfaceOptions(cls)
         _meta.fields = {"id": AsyncGlobalID(cls, description="The ID of the object")}
-        super(AbstractAsyncNode, cls).__init_subclass_with_meta__(
+        super().__init_subclass_with_meta__(
             _meta=_meta, **options
         )
 

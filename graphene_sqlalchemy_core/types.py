@@ -12,7 +12,6 @@ from sqlalchemy.orm import (
     CompositeProperty,
     RelationshipProperty,
 )
-from sqlalchemy.orm.exc import NoResultFound
 
 from .converter import (
     convert_sqlalchemy_column,
@@ -81,7 +80,7 @@ class ORMField(OrderedType):
         :param int _creation_counter:
             Same behavior as in graphene.Field.
         """
-        super(ORMField, self).__init__(_creation_counter=_creation_counter)
+        super().__init__(_creation_counter=_creation_counter)
         # The is only useful for documentation and auto-completion
         common_kwargs = {
             "model_attr": model_attr,
@@ -305,7 +304,7 @@ class SQLAlchemyObjectType(ObjectType):
 
         cls.connection = connection  # Public way to get the connection
 
-        super(SQLAlchemyObjectType, cls).__init_subclass_with_meta__(
+        super().__init_subclass_with_meta__(
             _meta=_meta, interfaces=interfaces, **options
         )
 
@@ -317,7 +316,7 @@ class SQLAlchemyObjectType(ObjectType):
         if isinstance(root, cls):
             return True
         if not is_mapped_instance(root):
-            raise Exception(('Received incompatible instance "{}".').format(root))
+            raise Exception(f'Received incompatible instance "{root}".')
         return isinstance(root, cls._meta.model)
 
     @classmethod

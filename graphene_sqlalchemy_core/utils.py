@@ -91,10 +91,10 @@ class EnumValue(str):
     """
 
     def __new__(cls, s, value):
-        return super(EnumValue, cls).__new__(cls, s)
+        return super().__new__(cls, s)
 
     def __init__(self, _s, value):
-        super(EnumValue, self).__init__()
+        super().__init__()
         self.value = value
 
 

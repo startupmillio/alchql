@@ -25,7 +25,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     def type(self):
         from .types import SQLAlchemyObjectType
 
-        type_ = super(ConnectionField, self).type
+        type_ = super().type
         nullable_type = get_nullable_type(type_)
         if issubclass(nullable_type, Connection):
             return type_
@@ -136,7 +136,8 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
                 )
         elif "sort" in kwargs and kwargs["sort"] is None:
             del kwargs["sort"]
-        super(SQLAlchemyConnectionField, self).__init__(type_, *args, **kwargs)
+
+        super().__init__(type_, *args, **kwargs)
 
     @classmethod
     async def get_query(cls, model, info, sort=None, **args):
@@ -167,7 +168,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         if hasattr(type, "sort_argument"):
             kwargs["sort"] = type_.sort_argument()
 
-        super(SQLAlchemyConnectionField, self).__init__(
+        super().__init__(
             type_.connection, *args, **kwargs
         )
 
@@ -269,7 +270,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
 class ModelField(graphene.Field):
     def __init__(self, *args, model_field=None, use_label=True, **kwargs):
-        super(ModelField, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.model_field = model_field
         self.use_label = use_label
 
