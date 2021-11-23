@@ -157,9 +157,9 @@ def construct_fields(
         attr_name = orm_field.kwargs.get("model_attr", orm_field_name)
         if attr_name not in all_model_attrs:
             raise ValueError(
-                ("Cannot map ORMField to a model attribute.\n" "Field: '{}.{}'").format(
-                    obj_type.__name__,
-                    orm_field_name,
+                (
+                    f"Cannot map ORMField to a model attribute.\n"
+                    f"Field: '{obj_type.__name__}.{orm_field_name}'"
                 )
             )
         orm_field.kwargs["model_attr"] = attr_name
@@ -197,7 +197,7 @@ def construct_fields(
                 # TODO Add a way to override composite property fields
                 raise ValueError(
                     "ORMField kwargs for composite fields must be empty. "
-                    "Field: {}.{}".format(obj_type.__name__, orm_field_name)
+                    f"Field: {obj_type.__name__}.{orm_field_name}"
                 )
             field = convert_sqlalchemy_composite(attr, registry, resolver)
         elif isinstance(attr, hybrid_property):
@@ -237,16 +237,17 @@ class SQLAlchemyObjectType(ObjectType):
         **options,
     ):
         assert is_mapped_class(model), (
-            "You need to pass a valid SQLAlchemy Model in " '{}.Meta, received "{}".'
-        ).format(cls.__name__, model)
+            "You need to pass a valid SQLAlchemy Model in "
+            f'{cls.__name__}.Meta, received "{model}".'
+        )
 
         if not registry:
             registry = get_global_registry()
 
         assert isinstance(registry, Registry), (
-            "The attribute registry in {} needs to be an instance of "
-            'Registry, received "{}".'
-        ).format(cls.__name__, registry)
+            f"The attribute registry in {cls.__name__} needs to be an instance of "
+            f'Registry, received "{registry}".'
+        )
 
         if only_fields and exclude_fields:
             raise ValueError(
@@ -277,13 +278,13 @@ class SQLAlchemyObjectType(ObjectType):
                 connection_class = Connection
 
             connection = connection_class.create_type(
-                "{}Connection".format(cls.__name__), node=cls
+                f"{cls.__name__}Connection", node=cls
             )
 
         if connection is not None:
-            assert issubclass(connection, Connection), (
-                "The connection must be a Connection. Received {}"
-            ).format(connection.__name__)
+            assert issubclass(
+                connection, Connection
+            ), f"The connection must be a Connection. Received {connection.__name__}"
 
         if not _meta:
             _meta = SQLAlchemyObjectTypeOptions(cls)

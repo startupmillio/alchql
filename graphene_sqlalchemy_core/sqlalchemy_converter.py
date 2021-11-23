@@ -80,7 +80,7 @@ def convert_enum_to_enum(type, column, registry=None):
 # TODO Make ChoiceType conversion consistent with other enums
 @convert_sqlalchemy_type.register(ChoiceType)
 def convert_choice_to_enum(type, column, registry=None):
-    name = "{}_{}".format(column.table.name, column.name).upper()
+    name = f"{column.table.name}_{column.name}".upper()
     if isinstance(type.choices, EnumMeta):
         # type.choices may be Enum/IntEnum, in ChoiceType both presented as EnumMeta
         # do not use from_enum here because we can have more than one enum column in table
