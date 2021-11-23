@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Callable
+from typing import Callable, Dict, Tuple
 
 OP_LTE = "lte"
 OP_EQ = "eq"

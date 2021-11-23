@@ -11,13 +11,13 @@ from graphene.types.utils import get_type
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
 from sqlalchemy.orm import InstrumentedAttribute
 
-from .consts import OPERATORS_MAPPING, OP_IN, OP_EQ, OP_EQ
+from .batching import get_batch_resolver
+from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
 from .query_helper import QueryHelper
 from .registry import get_global_registry
-from .sqlalchemy_converter import convert_sqlalchemy_type
-from .batching import get_batch_resolver
 from .slice import connection_from_query
-from .utils import EnumValue, get_query, get_session, FilterItem, GlobalFilters
+from .sqlalchemy_converter import convert_sqlalchemy_type
+from .utils import EnumValue, FilterItem, GlobalFilters, get_query, get_session
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):

@@ -2,7 +2,7 @@ from graphene import Argument, Enum, List
 from sqlalchemy.orm import ColumnProperty
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
-from .utils import EnumValue, to_enum_value_name, to_type_name
+from .utils import to_enum_value_name, to_type_name
 
 
 def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):

@@ -5,6 +5,7 @@ from graphene.types.json import JSONString
 from singledispatch import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
+
 from .enums import enum_for_sa_enum
 from .registry import get_global_registry
 

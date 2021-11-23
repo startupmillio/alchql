@@ -1,5 +1,6 @@
 import mock
 import pytest
+import sqlalchemy as sa
 from graphene import (
     Dynamic,
     Field,
@@ -18,7 +19,6 @@ from .models import Article, CompositeFullName, Pet, Reporter
 from ..converter import convert_sqlalchemy_composite
 from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
 from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
-import sqlalchemy as sa
 
 
 def test_should_raise_if_no_model():

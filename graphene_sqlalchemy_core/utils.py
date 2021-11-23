@@ -2,7 +2,7 @@ import logging
 import re
 import warnings
 from dataclasses import dataclass
-from typing import Union, Optional
+from typing import Optional, Union
 
 import graphene
 import sqlalchemy as sa
