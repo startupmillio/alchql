@@ -27,6 +27,10 @@ test:
 
   coverage: '/TOTAL.*\s+(\d+%)$/'
 
+  artifacts:
+    reports:
+      cobertura: coverage.xml
+
   before_script:
     - pip install .[test]
 
@@ -36,6 +40,7 @@ test:
     - coverage run -m pytest
     #  - black -S -l 80 --check --diff ./
     - coverage report -m --skip-covered
+    - coverage xml
 
 build package:
   image: python:3.9
