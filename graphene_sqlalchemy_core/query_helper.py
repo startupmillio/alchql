@@ -66,7 +66,7 @@ class QueryHelper:
                     value = int(decoded.split(":")[1])
 
                 if (
-                    filter_item.field_type == graphene.List
+                    filter_item.field_type == graphene.List(of_type=graphene.ID)
                     and filter_item.field_type.of_type == graphene.ID
                 ):
                     new_value = []
