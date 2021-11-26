@@ -50,7 +50,7 @@ def generate_loader_by_foreign_key(relation):
                     if isinstance(item, (EnumValue, enum.Enum)):
                         sort_args.append(item.value.nullslast())
                     else:
-                        sort_args.append(item)
+                        sort_args.append(item.nullslast())
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort
