@@ -255,7 +255,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
             # plain strings
             for item in sort:
                 if isinstance(item, (EnumValue, enum.Enum)):
-                    sort_args.append(item.value)
+                    sort_args.append(item.value.nullslast())
                 else:
                     sort_args.append(item.nullslast())
 
