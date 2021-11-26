@@ -257,7 +257,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                 if isinstance(item, (EnumValue, enum.Enum)):
                     sort_args.append(item.value)
                 else:
-                    sort_args.append(item)
+                    sort_args.append(item.nullslast())
 
             if hasattr(model, "id"):
                 sort_args.append(model.id)
