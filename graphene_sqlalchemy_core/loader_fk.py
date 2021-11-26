@@ -80,7 +80,7 @@ def generate_loader_by_foreign_key(relation):
 
             if relation.order_by:
                 for ob in relation.order_by:
-                    q = q.order_by(ob)
+                    q = q.order_by(ob.nullslast())
 
             q = q.order_by(*sort_args)
 
