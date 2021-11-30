@@ -21,6 +21,7 @@ def generate_loader_by_foreign_key(relation):
             target = relation.mapper.entity
 
             object_types = getattr(self.info.context, "object_types", {})
+            setattr(self.info.context, "keys", keys)
             object_type = object_types.get(self.info.field_name)
 
             filters = QueryHelper.get_filters(self.info)
@@ -64,26 +65,28 @@ def generate_loader_by_foreign_key(relation):
             )
 
             if object_type and hasattr(object_type, "set_select_from"):
+                setattr(self.info.context, "keys", keys)
                 q = await object_type.set_select_from(self.info, q, gql_field.values)
                 if list(q._group_by_clause):
                     q = q.group_by(f)
 
             if filters:
                 q = q.where(sa.and_(*filters))
+            if hasattr(object_type, 'custom_mega_logic'):
+                q = object_type.custom_mega_logic(self.info, q)
+            else:
+                if relation.primaryjoin is not None:
+                    q = q.where(relation.primaryjoin)
+                if relation.secondaryjoin is not None:
+                    q = q.where(relation.secondaryjoin)
 
-            if relation.primaryjoin is not None:
-                q = q.where(relation.primaryjoin)
-            if relation.secondaryjoin is not None:
-                q = q.where(relation.secondaryjoin)
+                q = q.where(f.in_(keys))
 
-            q = q.where(f.in_(keys))
+                if relation.order_by:
+                    for ob in relation.order_by:
+                        q = q.order_by(ob.nullslast())
 
-            if relation.order_by:
-                for ob in relation.order_by:
-                    q = q.order_by(ob.nullslast())
-
-            q = q.order_by(*sort_args)
-
+                q = q.order_by(*sort_args)
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
