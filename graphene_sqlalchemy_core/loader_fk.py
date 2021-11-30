@@ -72,7 +72,7 @@ def generate_loader_by_foreign_key(relation):
 
             if filters:
                 q = q.where(sa.and_(*filters))
-            if hasattr(object_type, 'custom_mega_logic'):
+            if getattr(self.info.context, 'custom_mega_logic', False):
                 q = object_type.custom_mega_logic(self.info, q)
             else:
                 if relation.primaryjoin is not None:
