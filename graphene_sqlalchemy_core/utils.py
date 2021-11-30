@@ -218,3 +218,19 @@ def filter_requested_fields_for_object(
                 result[key] = value
 
     return result
+
+
+def get_object_type_manual_fields(object_type):
+    object_type_fields = {}
+    for _name in dir(object_type):
+        if _name.startswith("_"):
+            continue
+
+        attr = getattr(object_type, _name, None)
+        if attr and isinstance(attr, (Field, Scalar)):
+            if hasattr(attr, "kwargs") and attr.kwargs.get("name"):
+                object_type_fields[attr.kwargs.get("name")] = attr
+            else:
+                object_type_fields[_name] = attr
+
+    return object_type_fields

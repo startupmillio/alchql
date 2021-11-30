@@ -2,7 +2,7 @@ from graphene import Argument, Enum, List
 from sqlalchemy.orm import ColumnProperty
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
-from .utils import to_enum_value_name, to_type_name
+from .utils import to_enum_value_name, to_type_name, get_object_type_manual_fields
 
 
 def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
@@ -126,7 +126,7 @@ def sort_enum_for_object_type(
         if name != enum.__name__ or custom_options != enum.custom_options:
             raise ValueError(f"Sort enum for {obj_type} has already been customized")
     else:
-        members = []
+        members = {}
         default = []
         fields = obj_type._meta.fields
         get_name = get_symbol_name or _default_sort_enum_symbol_name
@@ -145,8 +145,21 @@ def sort_enum_for_object_type(
             desc_value = column.desc()
             if column.primary_key:
                 default.append(asc_value)
-            members.extend(((asc_name, asc_value), (desc_name, desc_value)))
-        enum = Enum(name, members)
+            members.update({asc_name: asc_value, desc_name: desc_value})
+
+        extra_fields = get_object_type_manual_fields(obj_type)
+        for field_name, attr in extra_fields.items():
+            if hasattr(attr, "model_field"):
+                column = getattr(attr, "model_field", None)
+                if column is not None:
+                    asc_name = get_name(field_name, True)
+                    asc_value = column.asc()
+                    desc_name = get_name(field_name, False)
+                    desc_value = column.desc()
+                    if column.primary_key:
+                        default.append(asc_value)
+                    members.update({asc_name: asc_value, desc_name: desc_value})
+        enum = Enum(name, members.items())
         enum.default = default  # store default as attribute
         enum.custom_options = custom_options
         registry.register_sort_enum(obj_type, enum)
