@@ -82,21 +82,23 @@ class QueryHelper:
 
     @staticmethod
     def parse_query(info) -> List[QueryField]:
+        # TODO: cache was removed because of bug with two diff. fragments
+        #  with the same ObjectType and different fields in each fragment
+        # if not hasattr(
+        #     info.context, "parsed_query"
+        # ) or not info.context.parsed_query.get(info.field_name):
 
-        if not hasattr(
-            info.context, "parsed_query"
-        ) or not info.context.parsed_query.get(info.field_name):
+        nodes = info.field_nodes
 
-            nodes = info.field_nodes
+        variables = info.variable_values
+        result = QueryHelper.__parse_nodes(nodes, variables)
+        fragments = QueryHelper.__parse_fragments(info.fragments, variables)
 
-            variables = info.variable_values
-            result = QueryHelper.__parse_nodes(nodes, variables)
-            fragments = QueryHelper.__parse_fragments(info.fragments, variables)
+        result = QueryHelper.__set_fragment_fields(result, fragments)
+        return result
+            # setattr(info.context, "parsed_query", {info.field_name: result})
 
-            result = QueryHelper.__set_fragment_fields(result, fragments)
-            setattr(info.context, "parsed_query", {info.field_name: result})
-
-        return info.context.parsed_query[info.field_name].copy()
+        # return info.context.parsed_query[info.field_name].copy()
 
     @staticmethod
     def get_selected_fields(info, model, sort=None):
