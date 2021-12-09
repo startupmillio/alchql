@@ -64,6 +64,17 @@ def generate_loader_by_foreign_key(relation):
                 f.label("_batch_key"),
             )
 
+            if relation.primaryjoin is not None:
+                q = q.where(relation.primaryjoin)
+            if relation.secondaryjoin is not None:
+                q = q.where(relation.secondaryjoin)
+
+            if relation.order_by:
+                for ob in relation.order_by:
+                    q = q.order_by(ob.nullslast())
+
+            q = q.where(f.in_(keys))
+
             if object_type and hasattr(object_type, "set_select_from"):
                 setattr(self.info.context, "keys", keys)
                 q = await object_type.set_select_from(self.info, q, gql_field.values)
@@ -72,23 +83,9 @@ def generate_loader_by_foreign_key(relation):
 
             if filters:
                 q = q.where(sa.and_(*filters))
-            if hasattr(
-                    self.info.context, "custom_mega_logic"
-            ) and self.info.context.custom_mega_logic.get(self.info.field_name):
-                pass
-            else:
-                if relation.primaryjoin is not None:
-                    q = q.where(relation.primaryjoin)
-                if relation.secondaryjoin is not None:
-                    q = q.where(relation.secondaryjoin)
 
-                q = q.where(f.in_(keys))
+            q = q.order_by(*sort_args)
 
-                if relation.order_by:
-                    for ob in relation.order_by:
-                        q = q.order_by(ob.nullslast())
-
-                q = q.order_by(*sort_args)
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
