@@ -7,12 +7,14 @@ import graphene
 import sqlalchemy as sa
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
+from graphql_relay import from_global_id
 
 from .gql_fields import camel_to_snake
 from .utils import EnumValue, FilterItem, filter_value_to_python
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
+INLINE_FRAGMENT = "inline_fragment"
 
 
 @dataclass
@@ -62,8 +64,8 @@ class QueryHelper:
                     value = filter_item.field_type.parse_value(value)
 
                 if filter_item.field_type == graphene.ID:
-                    decoded = base64.b64decode(value).decode()
-                    value = int(decoded.split(":")[1])
+                    global_id = from_global_id(value)
+                    value = int(global_id.id)
 
                 if (
                     filter_item.field_type == graphene.List(of_type=graphene.ID)
@@ -71,8 +73,8 @@ class QueryHelper:
                 ):
                     new_value = []
                     for item in value:
-                        decoded = base64.b64decode(item).decode()
-                        new_value.append(int(decoded.split(":")[1]))
+                        global_id = from_global_id(item)
+                        new_value.append(int(global_id.id))
                     value = new_value
 
                 value = parsed_filters[name].value_func(value)
@@ -96,7 +98,7 @@ class QueryHelper:
 
         result = QueryHelper.__set_fragment_fields(result, fragments)
         return result
-            # setattr(info.context, "parsed_query", {info.field_name: result})
+        # setattr(info.context, "parsed_query", {info.field_name: result})
 
         # return info.context.parsed_query[info.field_name].copy()
 
@@ -191,6 +193,17 @@ class QueryHelper:
         values = []
         node: FieldNode
         for node in nodes:
+            if node.kind == INLINE_FRAGMENT:
+                if (
+                    node.type_condition.name.value
+                    == variables["representations"][0]["__typename"]
+                ):
+                    node_values = QueryHelper.__parse_nodes(
+                        node.selection_set.selections, variables
+                    )
+                    return node_values
+                continue
+
             name = camel_to_snake(node.name.value)
             node_values = None
             if node.kind == FRAGMENT:
