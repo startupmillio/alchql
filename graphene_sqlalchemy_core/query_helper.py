@@ -1,3 +1,4 @@
+import base64
 import enum
 from dataclasses import dataclass
 from typing import List, Optional
@@ -13,6 +14,7 @@ from .utils import EnumValue, FilterItem, filter_value_to_python
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
+INLINE_FRAGMENT = "inline_fragment"
 
 
 @dataclass
@@ -191,6 +193,17 @@ class QueryHelper:
         values = []
         node: FieldNode
         for node in nodes:
+            if node.kind == INLINE_FRAGMENT:
+                if (
+                    node.type_condition.name.value
+                    == variables["representations"][0]["__typename"]
+                ):
+                    node_values = QueryHelper.__parse_nodes(
+                        node.selection_set.selections, variables
+                    )
+                    return node_values
+                continue
+
             name = camel_to_snake(node.name.value)
             node_values = None
             if node.kind == FRAGMENT:
