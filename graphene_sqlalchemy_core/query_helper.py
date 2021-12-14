@@ -94,7 +94,8 @@ class QueryHelper:
 
         variables = info.variable_values
         object_types = getattr(info.context, "object_types", {})
-        object_type_name = object_types.get(info.field_name).__name__
+        object_type = object_types.get(info.field_name)
+        object_type_name = object_type.__name__ if object_type else None
         result = QueryHelper.__parse_nodes(nodes, variables, object_type_name)
         fragments = QueryHelper.__parse_fragments(info.fragments, variables)
 
