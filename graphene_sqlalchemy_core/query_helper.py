@@ -93,7 +93,10 @@ class QueryHelper:
         nodes = info.field_nodes
 
         variables = info.variable_values
-        result = QueryHelper.__parse_nodes(nodes, variables)
+        object_types = getattr(info.context, "object_types", {})
+        object_type = object_types.get(info.field_name)
+        object_type_name = object_type.__name__ if object_type else None
+        result = QueryHelper.__parse_nodes(nodes, variables, object_type_name)
         fragments = QueryHelper.__parse_fragments(info.fragments, variables)
 
         result = QueryHelper.__set_fragment_fields(result, fragments)
@@ -189,17 +192,14 @@ class QueryHelper:
         return False
 
     @staticmethod
-    def __parse_nodes(nodes, variables) -> list:
+    def __parse_nodes(nodes, variables, object_type_name=None) -> list:
         values = []
         node: FieldNode
         for node in nodes:
             if node.kind == INLINE_FRAGMENT:
-                if (
-                    node.type_condition.name.value
-                    == variables["representations"][0]["__typename"]
-                ):
+                if node.type_condition.name.value == object_type_name:
                     node_values = QueryHelper.__parse_nodes(
-                        node.selection_set.selections, variables
+                        node.selection_set.selections, variables, object_type_name
                     )
                     return node_values
                 continue
@@ -212,7 +212,7 @@ class QueryHelper:
 
             if node.selection_set:
                 node_values = QueryHelper.__parse_nodes(
-                    node.selection_set.selections, variables
+                    node.selection_set.selections, variables, object_type_name
                 )
 
             arguments = {}
