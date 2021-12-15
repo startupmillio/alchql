@@ -19,3 +19,4 @@ Boolean = _construct_type(scalars.Boolean)
 
 List = _construct_type(graphene.List)
 NonNull = _construct_type(graphene.NonNull)
+Date = _construct_type(graphene.Date)
