@@ -1,4 +1,5 @@
 from functools import partial
+from inspect import isawaitable
 
 from graphene.types import Field, ID, Interface
 from graphene.types.interface import InterfaceOptions
@@ -16,7 +17,9 @@ class AsyncGlobalID(Field):
     async def id_resolver(
         parent_resolver, node, root, info, parent_type_name=None, **args
     ):
-        type_id = await parent_resolver(root, info, **args)
+        type_id = parent_resolver(root, info, **args)
+        if isawaitable(type_id):
+            type_id = await type_id
         parent_type_name = parent_type_name or info.parent_type.name
         return node.to_global_id(parent_type_name, type_id)  # root._meta.name
 
