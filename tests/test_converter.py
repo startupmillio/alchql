@@ -17,14 +17,14 @@ from graphene.relay import Node
 from graphene.types.datetime import DateTime
 from graphene.types.json import JSONString
 
-from ..converter import (
+from graphene_sqlalchemy_core.converter import (
     convert_sqlalchemy_column,
     convert_sqlalchemy_composite,
     convert_sqlalchemy_relationship,
 )
-from ..fields import UnsortedSQLAlchemyConnectionField, default_connection_field_factory
-from ..registry import Registry, get_global_registry
-from ..types import SQLAlchemyObjectType
+from graphene_sqlalchemy_core.fields import UnsortedSQLAlchemyConnectionField, default_connection_field_factory
+from graphene_sqlalchemy_core.registry import Registry, get_global_registry
+from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Pet, Reporter
 
 

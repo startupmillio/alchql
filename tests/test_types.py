@@ -16,10 +16,10 @@ from graphene import (
 from graphene.relay import Connection
 
 from .models import Article, CompositeFullName, Pet, Reporter
-from .. import gql_types
-from ..converter import convert_sqlalchemy_composite
-from ..fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
-from ..types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
+from graphene_sqlalchemy_core import gql_types
+from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
+from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
+from graphene_sqlalchemy_core.types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
 
 
 def test_should_raise_if_no_model():

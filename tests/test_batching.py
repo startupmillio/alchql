@@ -8,8 +8,8 @@ from graphene import Context, relay
 
 from .models import Article, HairKind, Pet, Reporter
 from .utils import to_std_dicts
-from ..loaders_middleware import LoaderMiddleware
-from ..types import SQLAlchemyObjectType
+from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 
 
 class MockLoggingHandler(logging.Handler):
