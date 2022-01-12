@@ -424,38 +424,3 @@ async def test_mutation(session):
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected
-
-@pytest.mark.asyncio
-async def test_query_fields(session):
-    await add_test_data(session)
-
-    class ReporterType(SQLAlchemyObjectType):
-        class Meta:
-            model = Reporter
-
-        id = gql_types.ID(model_field=Reporter.first_name, required=True, name="id")
-
-    class Query(graphene.ObjectType):
-        reporter = graphene.Field(ReporterType)
-
-        async def resolve_reporter(self, _info):
-            _result = await session.execute(sa.select(Reporter))
-            return _result.scalars().first()
-
-    query = """
-        query {
-          reporter {
-            id
-          }
-        }
-    """
-    expected = {
-        "reporter": {
-            "pk": "asd",
-        },
-    }
-    schema = graphene.Schema(query=Query)
-    result = await schema.execute_async(query)
-    assert not result.errors
-    result = to_std_dicts(result.data)
-    assert result == expected
