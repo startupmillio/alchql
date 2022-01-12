@@ -8,6 +8,7 @@ import graphene
 import sqlalchemy as sa
 from graphene import Field, Scalar
 from graphene.types.objecttype import ObjectTypeMeta
+from sqlalchemy import Table
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import class_mapper, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
@@ -204,20 +205,32 @@ def filter_value_to_python(value):
 def filter_requested_fields_for_object(
     data: dict, conversion_type: Union[ObjectTypeMeta, object]
 ):
-    if not isinstance(conversion_type, ObjectTypeMeta):
-        return data
-
-    result = {}
-    fields = conversion_type._meta.fields.keys()
-    for key, value in data.items():
-        if key in fields:
-            result[key] = value
-        else:
-            attr = getattr(conversion_type, key, None)
-            if attr and isinstance(attr, (Field, Scalar)):
+    if isinstance(conversion_type, ObjectTypeMeta):
+        result = {}
+        fields = conversion_type._meta.fields.keys()
+        for key, value in data.items():
+            if key in fields:
                 result[key] = value
+            else:
+                attr = getattr(conversion_type, key, None)
+                if attr and isinstance(attr, (Field, Scalar)):
+                    result[key] = value
 
-    return result
+        return result
+    if isinstance(conversion_type, Table):
+        result = {}
+        fields = conversion_type.columns.keys()
+        for key, value in data.items():
+            if key in fields:
+                result[key] = value
+            else:
+                attr = getattr(conversion_type, key, None)
+                if attr and isinstance(attr, (Field, Scalar)):
+                    result[key] = value
+
+        return result
+
+    return data
 
 
 def get_object_type_manual_fields(object_type):

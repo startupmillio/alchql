@@ -3,12 +3,14 @@ from collections import defaultdict
 
 import sqlalchemy as sa
 from aiodataloader import DataLoader
+from sqlalchemy import Table
+from sqlalchemy_utils import get_mapper
 
 from .query_helper import QueryHelper
 from .utils import EnumValue, filter_requested_fields_for_object
 
 
-def generate_loader_by_foreign_key(relation):
+def generate_loader_by_relationship(relation):
     class Loader(DataLoader):
         def __init__(self, session, info=None, *args, **kwargs):
             self.session = session
@@ -89,6 +91,97 @@ def generate_loader_by_foreign_key(relation):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
+            for result in await self.session.execute(q.distinct()):
+                _data = dict(**result)
+                _batch_key = _data.pop("_batch_key")
+                _data = filter_requested_fields_for_object(_data, conversion_type)
+                results_by_ids[_batch_key].append(conversion_type(**_data))
+
+            return [results_by_ids.get(id, []) for id in keys]
+
+    return Loader
+
+
+def generate_loader_by_foreign_key(fk):
+    class Loader(DataLoader):
+        def __init__(self, session, info=None, *args, **kwargs):
+            self.session = session
+            self.info = info
+            self.fields = set()
+            super().__init__(*args, **kwargs)
+
+        async def batch_load_fn(self, keys):
+            f = fk.parent
+            target: Table = fk.column.table
+
+            object_types = getattr(self.info.context, "object_types", {})
+            setattr(self.info.context, "keys", keys)
+            object_type = object_types.get(self.info.field_name)
+
+            filters = QueryHelper.get_filters(self.info)
+            gql_field = QueryHelper.get_current_field(self.info)
+            sort_args = []
+            sort = []
+            if (
+                "sort" in gql_field.arguments
+                and gql_field.arguments["sort"] is not None
+            ):
+                sort = gql_field.arguments["sort"]
+                if not isinstance(sort, list):
+                    sort = [sort]
+
+                if hasattr(object_type, "sort_argument"):
+                    sort_type = object_type.sort_argument().type.of_type
+                    new_sort = []
+                    for s in sort:
+                        new_sort.append(getattr(sort_type, s).value)
+
+                    sort = new_sort
+
+                sort_args = []
+                # ensure consistent handling of graphene Enums, enum values and
+                # plain strings
+                for item in sort:
+                    if isinstance(item, (EnumValue, enum.Enum)):
+                        sort_args.append(item.value.nullslast())
+                    else:
+                        sort_args.append(item.nullslast())
+
+            selected_fields = QueryHelper.get_selected_fields(
+                self.info, model=target, sort=sort
+            )
+            if not selected_fields:
+                selected_fields = self.fields or target.columns
+
+            q = (
+                sa.select(
+                    *selected_fields,
+                    f.label("_batch_key"),
+                )
+                .select_from(
+                    sa.outerjoin(
+                        target,
+                        fk.parent.table,
+                        fk.parent == fk.column,
+                    )
+                )
+                .where(fk.parent.in_(keys))
+            )
+
+            if object_type and hasattr(object_type, "set_select_from"):
+                setattr(self.info.context, "keys", keys)
+                q = await object_type.set_select_from(self.info, q, gql_field.values)
+                if list(q._group_by_clause):
+                    q = q.group_by(f)
+
+            if filters:
+                q = q.where(sa.and_(*filters))
+
+            q = q.order_by(*sort_args)
+
+            results_by_ids = defaultdict(list)
+
+            conversion_type = object_type or get_mapper(target).class_
             for result in await self.session.execute(q.distinct()):
                 _data = dict(**result)
                 _batch_key = _data.pop("_batch_key")

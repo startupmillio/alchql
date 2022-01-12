@@ -1,8 +1,10 @@
 from collections import defaultdict
 
 from graphene import Enum
+from sqlalchemy import Table
+from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
-
+import sqlalchemy as sa
 
 class Registry(object):
     def __init__(self):
@@ -25,9 +27,11 @@ class Registry(object):
         #     f'SQLAlchemy model "{cls._meta.model}" already associated with '
         #     f'another type "{self._registry[cls._meta.model]}".'
         # )
-        self._registry[obj_type._meta.model] = obj_type
+        self._registry[sa.inspect(obj_type._meta.model).local_table] = obj_type
 
     def get_type_for_model(self, model):
+        if isinstance(model, DeclarativeMeta):
+            model = sa.inspect(model).local_table
         return self._registry.get(model)
 
     def register_orm_field(self, obj_type, field_name, orm_field):

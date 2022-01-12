@@ -1,10 +1,11 @@
 from graphene import Dynamic, Field, List, String
 from sqlalchemy.orm import interfaces
 
-from .batching import get_batch_resolver
+from .batching import get_batch_resolver, get_fk_resolver
 from .fields import BatchSQLAlchemyConnectionField, ModelField
 from .resolvers import get_custom_resolver
 from .sqlalchemy_converter import convert_sqlalchemy_type
+import sqlalchemy as sa
 
 try:
     from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType, TSVectorType
@@ -49,7 +50,10 @@ def convert_sqlalchemy_relationship(
 
         if direction == interfaces.MANYTOONE or not relationship_prop.uselist:
             return _convert_o2o_or_m2o_relationship(
-                relationship_prop, obj_type, orm_field_name, **field_kwargs
+                relationship_prop,
+                obj_type,
+                orm_field_name,
+                **field_kwargs,
             )
 
         if direction in (interfaces.ONETOMANY, interfaces.MANYTOMANY):
@@ -59,6 +63,39 @@ def convert_sqlalchemy_relationship(
                 connection_field_factory,
                 **field_kwargs,
             )
+
+    return Dynamic(dynamic_type)
+
+
+def convert_sqlalchemy_fk(
+    fk,
+    obj_type,
+    connection_field_factory,
+    orm_field_name,
+):
+    """
+    :param sqlalchemy.RelationshipProperty relationship_prop:
+    :param SQLAlchemyObjectType obj_type:
+    :param function|None connection_field_factory:
+    :param bool batching:
+    :param str orm_field_name:
+    :param dict field_kwargs:
+    :rtype: Dynamic
+    """
+
+    def dynamic_type():
+        child_type = obj_type._meta.registry.get_type_for_model(
+            fk.constraint.referred_table
+        )
+
+        if child_type is None:
+            return
+
+        resolver = get_custom_resolver(obj_type, orm_field_name)
+        if resolver is None:
+            resolver = get_fk_resolver(fk, single=True)
+
+        return Field(child_type, resolver=resolver)
 
     return Dynamic(dynamic_type)
 

@@ -1,3 +1,5 @@
+import re
+
 from graphene import Dynamic, Field
 from graphene.types.objecttype import ObjectTypeMeta
 
@@ -43,6 +45,32 @@ def get_batch_resolver(relationship_prop, single=False):
         set_object_type(root, info)
 
         key = getattr(root, next(iter(relationship_prop.local_columns)).key)
+        if not key:
+            p = None
+        else:
+            p = await _loader.load(key)
+
+        if single:
+            return p[0] if p else None
+
+        return p
+
+    return resolve
+
+
+def get_fk_resolver(fk, single=False):
+    async def resolve(root, info, **args):
+        key = (
+            fk.constraint.table,
+            fk.constraint.referred_table,
+            re.sub(r"_(?:id|pk)$", "", fk.parent.key),
+        )
+        _loader = info.context.loaders[key]
+
+        _loader.info = info
+        set_object_type(root, info)
+
+        key = getattr(root, fk.parent.key)
         if not key:
             p = None
         else:

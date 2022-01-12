@@ -425,6 +425,7 @@ async def test_mutation(session):
     result = to_std_dicts(result.data)
     assert result == expected
 
+
 @pytest.mark.asyncio
 async def test_query_fields(session):
     await add_test_data(session)
@@ -433,7 +434,7 @@ async def test_query_fields(session):
         class Meta:
             model = Reporter
 
-        id = gql_types.ID(model_field=Reporter.first_name, required=True, name="id")
+        ida = gql_types.ID(model_field=Reporter.first_name, name="ida")
 
     class Query(graphene.ObjectType):
         reporter = graphene.Field(ReporterType)
@@ -444,14 +445,16 @@ async def test_query_fields(session):
 
     query = """
         query {
-          reporter {
-            id
-          }
+            reporter {
+                ida
+                firstName
+            }
         }
     """
     expected = {
         "reporter": {
-            "pk": "asd",
+            "firstName": "John",
+            "ida": "John",
         },
     }
     schema = graphene.Schema(query=Query)

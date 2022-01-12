@@ -1,3 +1,4 @@
+import re
 from collections import OrderedDict
 
 import sqlalchemy
@@ -13,9 +14,11 @@ from sqlalchemy.orm import (
     RelationshipProperty,
 )
 
+from .batching import get_batch_resolver, get_fk_resolver
 from .converter import (
     convert_sqlalchemy_column,
     convert_sqlalchemy_composite,
+    convert_sqlalchemy_fk,
     convert_sqlalchemy_hybrid_method,
     convert_sqlalchemy_relationship,
 )
@@ -28,6 +31,7 @@ from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
+import sqlalchemy as sa
 
 
 class ORMField(OrderedType):
@@ -207,6 +211,16 @@ def construct_fields(
 
         registry.register_orm_field(obj_type, orm_field_name, attr)
         fields[orm_field_name] = field
+
+    for fk in inspected_model.mapped_table.foreign_keys:
+        orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
+        # registry.register_orm_field(obj_type, orm_field_name, attr)
+        fields[orm_field_name] = convert_sqlalchemy_fk(
+            fk,
+            obj_type,
+            connection_field_factory,
+            orm_field_name,
+        )
 
     return fields
 
