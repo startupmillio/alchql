@@ -76,7 +76,7 @@ def get_schema():
 
 
 @pytest.mark.asyncio
-async def test_many_to_one(session):
+async def test_many_to_one(session, raise_graphql):
     await session.execute(sa.insert(Reporter).values({"first_name": "Reporter_1"}))
     await session.execute(sa.insert(Reporter).values({"first_name": "Reporter_2"}))
 
@@ -113,6 +113,13 @@ async def test_many_to_one(session):
                   headline
                   reporter {
                     firstName
+                    articles {
+                      edges {
+                        node {
+                          headline
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -155,16 +162,18 @@ async def test_many_to_one(session):
             {
                 "headline": "Article_1",
                 "reporter": {
+                    "articles": {"edges": [{"node": {"headline": "Article_1"}}]},
                     "firstName": "Reporter_1",
                 },
             },
             {
                 "headline": "Article_2",
                 "reporter": {
+                    "articles": {"edges": [{"node": {"headline": "Article_2"}}]},
                     "firstName": "Reporter_2",
                 },
             },
-        ],
+        ]
     }
 
 
@@ -256,7 +265,7 @@ async def test_one_to_one(session):
 
 
 @pytest.mark.asyncio
-async def test_one_to_many(session):
+async def test_one_to_many(session, raise_graphql):
     reporter_1 = Reporter(
         first_name="Reporter_1",
     )
@@ -293,12 +302,8 @@ async def test_one_to_many(session):
           query {
             reporters {
               firstName
-              articles(first: 2) {
-                edges {
-                  node {
-                    headline
-                  }
-                }
+              articles {
+                headline
               }
             }
           }

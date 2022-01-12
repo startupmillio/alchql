@@ -25,6 +25,13 @@ class LoaderMiddleware:
                 )
                 self.loaders[key] = generate_loader_by_foreign_key(fk)
 
+                key = (
+                    fk.constraint.referred_table,
+                    fk.constraint.table,
+                    str(fk.constraint.table.fullname),
+                )
+                self.loaders[key] = generate_loader_by_foreign_key(fk, reverse=True)
+
             for relationship in inspected_model.relationships.values():
                 key = (
                     relationship.parent.entity,

@@ -82,3 +82,29 @@ def get_fk_resolver(fk, single=False):
         return p
 
     return resolve
+
+
+def get_fk_resolver_reverse(fk, single=False):
+    async def resolve(root, info, **args):
+        key = (
+            fk.constraint.referred_table,
+            fk.constraint.table,
+            str(fk.constraint.table.fullname),
+        )
+        _loader = info.context.loaders[key]
+
+        _loader.info = info
+        set_object_type(root, info)
+
+        key = getattr(root, fk.column.key)
+        if not key:
+            p = None
+        else:
+            p = await _loader.load(key)
+
+        if single:
+            return p[0] if p else None
+
+        return p
+
+    return resolve

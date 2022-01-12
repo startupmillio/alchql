@@ -102,7 +102,7 @@ def generate_loader_by_relationship(relation):
     return Loader
 
 
-def generate_loader_by_foreign_key(fk):
+def generate_loader_by_foreign_key(fk, reverse=False):
     class Loader(DataLoader):
         def __init__(self, session, info=None, *args, **kwargs):
             self.session = session
@@ -111,8 +111,12 @@ def generate_loader_by_foreign_key(fk):
             super().__init__(*args, **kwargs)
 
         async def batch_load_fn(self, keys):
-            f = fk.parent
-            target: Table = fk.column.table
+            if reverse:
+                f = fk.column
+                target: Table = fk.parent.table
+            else:
+                f = fk.parent
+                target: Table = fk.column.table
 
             object_types = getattr(self.info.context, "object_types", {})
             setattr(self.info.context, "keys", keys)
@@ -161,11 +165,11 @@ def generate_loader_by_foreign_key(fk):
                 .select_from(
                     sa.outerjoin(
                         target,
-                        fk.parent.table,
-                        fk.parent == fk.column,
+                        f.table,
+                        f == fk.column,
                     )
                 )
-                .where(fk.parent.in_(keys))
+                .where(f.in_(keys))
             )
 
             if object_type and hasattr(object_type, "set_select_from"):

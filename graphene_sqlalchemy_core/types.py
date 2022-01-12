@@ -14,11 +14,11 @@ from sqlalchemy.orm import (
     RelationshipProperty,
 )
 
-from .batching import get_batch_resolver, get_fk_resolver
 from .converter import (
     convert_sqlalchemy_column,
     convert_sqlalchemy_composite,
     convert_sqlalchemy_fk,
+    convert_sqlalchemy_fk_reverse,
     convert_sqlalchemy_hybrid_method,
     convert_sqlalchemy_relationship,
 )
@@ -31,7 +31,6 @@ from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
-import sqlalchemy as sa
 
 
 class ORMField(OrderedType):
@@ -218,9 +217,22 @@ def construct_fields(
         fields[orm_field_name] = convert_sqlalchemy_fk(
             fk,
             obj_type,
-            connection_field_factory,
             orm_field_name,
         )
+
+    table = inspected_model.selectable
+    for mapper in inspected_model.registry.mappers:
+        for fk in mapper.local_table.foreign_keys:
+            if table == fk.column.table:
+                # fk_obj_type = registry.get_type_for_model(fk.parent.table)
+                # if fk_obj_type is None:
+                #     continue
+                orm_field_name = str(fk.parent.table.fullname)
+                fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
+                    fk,
+                    obj_type,
+                    orm_field_name,
+                )
 
     return fields
 

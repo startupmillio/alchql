@@ -1,11 +1,10 @@
 from graphene import Dynamic, Field, List, String
 from sqlalchemy.orm import interfaces
 
-from .batching import get_batch_resolver, get_fk_resolver
+from .batching import get_batch_resolver, get_fk_resolver, get_fk_resolver_reverse
 from .fields import BatchSQLAlchemyConnectionField, ModelField
 from .resolvers import get_custom_resolver
 from .sqlalchemy_converter import convert_sqlalchemy_type
-import sqlalchemy as sa
 
 try:
     from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType, TSVectorType
@@ -70,7 +69,6 @@ def convert_sqlalchemy_relationship(
 def convert_sqlalchemy_fk(
     fk,
     obj_type,
-    connection_field_factory,
     orm_field_name,
 ):
     """
@@ -96,6 +94,36 @@ def convert_sqlalchemy_fk(
             resolver = get_fk_resolver(fk, single=True)
 
         return Field(child_type, resolver=resolver)
+
+    return Dynamic(dynamic_type)
+
+
+def convert_sqlalchemy_fk_reverse(
+    fk,
+    obj_type,
+    orm_field_name,
+):
+    """
+    :param sqlalchemy.RelationshipProperty relationship_prop:
+    :param SQLAlchemyObjectType obj_type:
+    :param function|None connection_field_factory:
+    :param bool batching:
+    :param str orm_field_name:
+    :param dict field_kwargs:
+    :rtype: Dynamic
+    """
+
+    def dynamic_type():
+        child_type = obj_type._meta.registry.get_type_for_model(fk.constraint.table)
+
+        if child_type is None:
+            return
+
+        resolver = get_custom_resolver(obj_type, orm_field_name)
+        if resolver is None:
+            resolver = get_fk_resolver_reverse(fk, single=False)
+
+        return Field(List(child_type), resolver=resolver)
 
     return Dynamic(dynamic_type)
 
