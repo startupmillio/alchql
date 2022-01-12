@@ -1,4 +1,3 @@
-import base64
 import enum
 from dataclasses import dataclass
 from typing import List, Optional
@@ -8,6 +7,8 @@ import sqlalchemy as sa
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 from graphql_relay import from_global_id
+from sqlalchemy import PrimaryKeyConstraint, Table
+from sqlalchemy.orm import DeclarativeMeta
 
 from .gql_fields import camel_to_snake
 from .utils import EnumValue, FilterItem, filter_value_to_python
@@ -130,7 +131,14 @@ class QueryHelper:
 
         type_ = info.context.object_types[info.field_name]
         meta_fields = type_._meta.fields
-        select_fields = {sa.inspect(model).primary_key[0]}
+        if isinstance(model, Table):
+            select_fields = set()
+            for fk in model.constraints:
+                if isinstance(fk, PrimaryKeyConstraint):
+                    for i in fk.columns:
+                        select_fields.add(i)
+        elif isinstance(model, DeclarativeMeta):
+            select_fields = {sa.inspect(model).primary_key[0]}
         field_names_to_process = {f.name for f in gql_field.values}
         sort_field_names = set()
         if sort is not None:
