@@ -176,6 +176,23 @@ def construct_fields(
 
     # Build all the field dictionary
     fields = OrderedDict()
+
+    for mapper in inspected_model.registry.mappers:
+        for fk in mapper.local_table.foreign_keys:
+            if inspected_model.selectable == fk.column.table:
+                orm_field_name = str(fk.parent.table.fullname)
+                fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
+                    fk, obj_type, orm_field_name
+                )
+
+    for fk in inspected_model.mapped_table.foreign_keys:
+        orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
+        fields[orm_field_name] = convert_sqlalchemy_fk(
+            fk,
+            obj_type,
+            orm_field_name,
+        )
+
     for orm_field_name, orm_field in orm_fields.items():
         attr_name = orm_field.kwargs.pop("model_attr")
         attr = all_model_attrs[attr_name]
@@ -210,29 +227,6 @@ def construct_fields(
 
         registry.register_orm_field(obj_type, orm_field_name, attr)
         fields[orm_field_name] = field
-
-    for fk in inspected_model.mapped_table.foreign_keys:
-        orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
-        # registry.register_orm_field(obj_type, orm_field_name, attr)
-        fields[orm_field_name] = convert_sqlalchemy_fk(
-            fk,
-            obj_type,
-            orm_field_name,
-        )
-
-    table = inspected_model.selectable
-    for mapper in inspected_model.registry.mappers:
-        for fk in mapper.local_table.foreign_keys:
-            if table == fk.column.table:
-                # fk_obj_type = registry.get_type_for_model(fk.parent.table)
-                # if fk_obj_type is None:
-                #     continue
-                orm_field_name = str(fk.parent.table.fullname)
-                fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
-                    fk,
-                    obj_type,
-                    orm_field_name,
-                )
 
     return fields
 

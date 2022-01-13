@@ -9,9 +9,10 @@ from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphene.types.utils import get_type
 from graphql_relay.connection.arrayconnection import connection_from_array_slice
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import InstrumentedAttribute
 
-from .batching import get_batch_resolver
+from .batching import get_batch_resolver, get_fk_resolver, get_fk_resolver_reverse
 from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
 from .query_helper import QueryHelper
 from .registry import get_global_registry
@@ -293,6 +294,19 @@ class BatchSQLAlchemyConnectionField(FilterConnectionField, ModelField):
         model = relationship.mapper.entity
         model_type = registry.get_type_for_model(model)
         resolver = get_batch_resolver(relationship)
+
+        if hasattr(model_type._meta, "filter_fields"):
+            BatchSQLAlchemyConnectionField.set_filter_fields(model_type, field_kwargs)
+
+        if hasattr(model_type, "sort_argument"):
+            field_kwargs["sort"] = model_type.sort_argument()
+
+        return cls(model_type, resolver=resolver, **field_kwargs)
+
+    @classmethod
+    def from_fk(cls, fk: ForeignKey, registry, **field_kwargs):
+        model_type = registry.get_type_for_model(fk.constraint.table)
+        resolver = get_fk_resolver_reverse(fk, single=False)
 
         if hasattr(model_type._meta, "filter_fields"):
             BatchSQLAlchemyConnectionField.set_filter_fields(model_type, field_kwargs)

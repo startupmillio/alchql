@@ -111,12 +111,16 @@ def generate_loader_by_foreign_key(fk, reverse=False):
             super().__init__(*args, **kwargs)
 
         async def batch_load_fn(self, keys):
-            if reverse:
-                f = fk.column
-                target: Table = fk.parent.table
+            if not reverse:
+                target_field = fk.column
+                source_field = fk.parent
+                target: Table = target_field.table
+                source: Table = source_field.table
             else:
-                f = fk.parent
-                target: Table = fk.column.table
+                target_field = fk.parent
+                source_field = fk.column
+                target: Table = target_field.table
+                source: Table = source_field.table
 
             object_types = getattr(self.info.context, "object_types", {})
             setattr(self.info.context, "keys", keys)
@@ -154,29 +158,30 @@ def generate_loader_by_foreign_key(fk, reverse=False):
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort
             )
+
             if not selected_fields:
                 selected_fields = self.fields or target.columns
 
             q = (
                 sa.select(
                     *selected_fields,
-                    f.label("_batch_key"),
+                    source_field.label("_batch_key"),
                 )
                 .select_from(
                     sa.outerjoin(
                         target,
-                        f.table,
-                        f == fk.column,
+                        source,
+                        target_field == source_field,
                     )
                 )
-                .where(f.in_(keys))
+                .where(source_field.in_(keys))
             )
 
             if object_type and hasattr(object_type, "set_select_from"):
                 setattr(self.info.context, "keys", keys)
                 q = await object_type.set_select_from(self.info, q, gql_field.values)
                 if list(q._group_by_clause):
-                    q = q.group_by(f)
+                    q = q.group_by(source_field)
 
             if filters:
                 q = q.where(sa.and_(*filters))
@@ -186,8 +191,8 @@ def generate_loader_by_foreign_key(fk, reverse=False):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or get_mapper(target).class_
-            for result in await self.session.execute(q.distinct()):
-                _data = dict(**result)
+            results = list(map(dict, await self.session.execute(q.distinct())))
+            for _data in results:
                 _batch_key = _data.pop("_batch_key")
                 _data = filter_requested_fields_for_object(_data, conversion_type)
                 results_by_ids[_batch_key].append(conversion_type(**_data))

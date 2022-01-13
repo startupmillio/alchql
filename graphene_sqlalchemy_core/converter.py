@@ -1,4 +1,5 @@
 from graphene import Dynamic, Field, List, String
+from sqlalchemy import ForeignKey
 from sqlalchemy.orm import interfaces
 
 from .batching import get_batch_resolver, get_fk_resolver, get_fk_resolver_reverse
@@ -99,9 +100,7 @@ def convert_sqlalchemy_fk(
 
 
 def convert_sqlalchemy_fk_reverse(
-    fk,
-    obj_type,
-    orm_field_name,
+    fk: ForeignKey, obj_type, orm_field_name
 ):
     """
     :param sqlalchemy.RelationshipProperty relationship_prop:
@@ -114,16 +113,7 @@ def convert_sqlalchemy_fk_reverse(
     """
 
     def dynamic_type():
-        child_type = obj_type._meta.registry.get_type_for_model(fk.constraint.table)
-
-        if child_type is None:
-            return
-
-        resolver = get_custom_resolver(obj_type, orm_field_name)
-        if resolver is None:
-            resolver = get_fk_resolver_reverse(fk, single=False)
-
-        return Field(List(child_type), resolver=resolver)
+        return BatchSQLAlchemyConnectionField.from_fk(fk, obj_type._meta.registry)
 
     return Dynamic(dynamic_type)
 
