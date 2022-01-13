@@ -37,6 +37,7 @@ def convert_sqlalchemy_type(type, column, registry=None):
 @convert_sqlalchemy_type.register(postgresql.INET)
 @convert_sqlalchemy_type.register(postgresql.CIDR)
 @convert_sqlalchemy_type.register(TSVectorType)
+@convert_sqlalchemy_type.register(postgresql.TSVECTOR)
 def convert_column_to_string(type, column, registry=None):
     return String
 

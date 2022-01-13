@@ -8,7 +8,7 @@ from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import column_property, composite
 
 try:
-    from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType
+    from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType, TSVectorType
 except ImportError:
     ChoiceType = JSONType = ScalarListType = object
 
@@ -22,7 +22,10 @@ from graphene_sqlalchemy_core.converter import (
     convert_sqlalchemy_composite,
     convert_sqlalchemy_relationship,
 )
-from graphene_sqlalchemy_core.fields import UnsortedSQLAlchemyConnectionField, default_connection_field_factory
+from graphene_sqlalchemy_core.fields import (
+    UnsortedSQLAlchemyConnectionField,
+    default_connection_field_factory,
+)
 from graphene_sqlalchemy_core.registry import Registry, get_global_registry
 from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 from .models import Article, CompositeFullName, Pet, Reporter
@@ -205,6 +208,15 @@ def test_should_scalar_list_convert_list():
 @pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_jsontype_convert_jsonstring():
     assert get_field(JSONType()).type == JSONString
+
+
+@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
+def test_should_tsvector_convert_string():
+    assert get_field(TSVectorType).type == graphene.String
+
+
+def test_should_tsvector_convert_string2():
+    assert get_field(postgresql.TSVECTOR()).type == graphene.String
 
 
 def test_should_manytomany_convert_connectionorlist():
