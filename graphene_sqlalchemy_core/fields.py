@@ -306,6 +306,10 @@ class BatchSQLAlchemyConnectionField(FilterConnectionField, ModelField):
     @classmethod
     def from_fk(cls, fk: ForeignKey, registry, **field_kwargs):
         model_type = registry.get_type_for_model(fk.constraint.table)
+
+        if not model_type:
+            return
+
         resolver = get_fk_resolver_reverse(fk, single=False)
 
         if hasattr(model_type._meta, "filter_fields"):
