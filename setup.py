@@ -20,6 +20,7 @@ requirements = [
     "SQLAlchemy>=1.4,<2",
     "singledispatch == 3.7.0",
     "aiodataloader == 0.2.0",
+    "sqlalchemy-utils",
 ]
 
 tests_require = [
