@@ -18,8 +18,15 @@ from graphene.relay import Connection
 from .models import Article, CompositeFullName, Pet, Reporter
 from graphene_sqlalchemy_core import gql_types
 from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
-from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField, UnsortedSQLAlchemyConnectionField
-from graphene_sqlalchemy_core.types import ORMField, SQLAlchemyObjectType, SQLAlchemyObjectTypeOptions
+from graphene_sqlalchemy_core.fields import (
+    SQLAlchemyConnectionField,
+    UnsortedSQLAlchemyConnectionField,
+)
+from graphene_sqlalchemy_core.types import (
+    ORMField,
+    SQLAlchemyObjectType,
+    SQLAlchemyObjectTypeOptions,
+)
 
 
 def test_should_raise_if_no_model():
@@ -87,7 +94,7 @@ def test_sqlalchemy_default_fields():
             model = Article
             interfaces = (Node,)
 
-    assert list(ReporterType._meta.fields.keys()) == [
+    assert set(ReporterType._meta.fields.keys()) == {
         # Columns
         "column_prop",  # SQLAlchemy retuns column properties first
         "id",
@@ -103,7 +110,7 @@ def test_sqlalchemy_default_fields():
         "pets",
         "articles",
         "favorite_article",
-    ]
+    }
 
     # column
     first_name_field = ReporterType._meta.fields["first_name"]
@@ -284,7 +291,7 @@ def test_exclude_fields():
         first_name = ORMField()  # Takes precedence
         last_name = ORMField()  # Noop
 
-    assert list(ReporterType._meta.fields.keys()) == [
+    assert set(ReporterType._meta.fields.keys()) == {
         "first_name",
         "last_name",
         "column_prop",
@@ -295,7 +302,7 @@ def test_exclude_fields():
         "pets",
         "articles",
         "favorite_article",
-    ]
+    }
 
 
 def test_only_and_exclude_fields():
