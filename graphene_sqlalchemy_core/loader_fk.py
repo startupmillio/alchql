@@ -4,10 +4,9 @@ from collections import defaultdict
 import sqlalchemy as sa
 from aiodataloader import DataLoader
 from sqlalchemy import Table
-from sqlalchemy_utils import get_mapper
 
 from .query_helper import QueryHelper
-from .utils import EnumValue, filter_requested_fields_for_object
+from .utils import EnumValue, filter_requested_fields_for_object, table_to_class
 
 
 def generate_loader_by_relationship(relation):
@@ -190,7 +189,7 @@ def generate_loader_by_foreign_key(fk, reverse=False):
 
             results_by_ids = defaultdict(list)
 
-            conversion_type = object_type or get_mapper(target).class_
+            conversion_type = object_type or table_to_class(target)
             results = list(map(dict, await self.session.execute(q.distinct())))
             for _data in results:
                 _batch_key = _data.pop("_batch_key")

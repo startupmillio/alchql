@@ -10,7 +10,7 @@ from graphene import Field, Scalar
 from graphene.types.objecttype import ObjectTypeMeta
 from sqlalchemy import Table
 from sqlalchemy.exc import ArgumentError
-from sqlalchemy.orm import class_mapper, object_mapper
+from sqlalchemy.orm import DeclarativeMeta, class_mapper, mapperlib, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
 
 from .gql_fields import get_fields
@@ -247,3 +247,10 @@ def get_object_type_manual_fields(object_type):
                 object_type_fields[_name] = attr
 
     return object_type_fields
+
+
+def table_to_class(table: Table) -> DeclarativeMeta:
+    for mapper_registry in mapperlib._all_registries():
+        for mapper in mapper_registry.mappers:
+            if table in mapper.tables:
+                return mapper.entity
