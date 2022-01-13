@@ -181,12 +181,20 @@ def construct_fields(
         for fk in mapper.local_table.foreign_keys:
             if inspected_model.selectable == fk.column.table:
                 orm_field_name = str(fk.parent.table.fullname)
+                if (only_fields and orm_field_name not in only_fields) or (
+                    orm_field_name in exclude_fields
+                ):
+                    continue
                 fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
                     fk, obj_type, orm_field_name
                 )
 
     for fk in inspected_model.mapped_table.foreign_keys:
         orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
+        if (only_fields and orm_field_name not in only_fields) or (
+            orm_field_name in exclude_fields
+        ):
+            continue
         fields[orm_field_name] = convert_sqlalchemy_fk(
             fk,
             obj_type,
