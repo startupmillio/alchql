@@ -3,13 +3,14 @@ from collections import defaultdict
 
 import sqlalchemy as sa
 from aiodataloader import DataLoader
-from sqlalchemy import Table
+from sqlalchemy import ForeignKey, Table
+from sqlalchemy.orm import RelationshipProperty
 
 from .query_helper import QueryHelper
 from .utils import EnumValue, filter_requested_fields_for_object, table_to_class
 
 
-def generate_loader_by_relationship(relation):
+def generate_loader_by_relationship(relation: RelationshipProperty):
     class Loader(DataLoader):
         def __init__(self, session, info=None, *args, **kwargs):
             self.session = session
@@ -101,7 +102,7 @@ def generate_loader_by_relationship(relation):
     return Loader
 
 
-def generate_loader_by_foreign_key(fk, reverse=False):
+def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
     class Loader(DataLoader):
         def __init__(self, session, info=None, *args, **kwargs):
             self.session = session

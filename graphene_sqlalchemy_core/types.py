@@ -32,7 +32,7 @@ from .enums import (
 from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
-from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
+from .utils import get_query, is_mapped_class, is_mapped_instance
 
 if TYPE_CHECKING:
     from .types import SQLAlchemyObjectType
@@ -41,13 +41,13 @@ if TYPE_CHECKING:
 class ORMField(OrderedType):
     def __init__(
         self,
-        model_attr=None,
+        model_attr: str = None,
         type_=None,
-        required=None,
-        description=None,
-        deprecation_reason=None,
-        batching=None,
-        _creation_counter=None,
+        required: bool = None,
+        description: str = None,
+        deprecation_reason: str = None,
+        batching: bool = None,
+        _creation_counter: int = None,
         **field_kwargs,
     ):
         """
@@ -199,7 +199,7 @@ def construct_fields(
         attr_name = orm_field.kwargs.pop("model_attr")
         attr = all_model_attrs[attr_name]
         resolver = get_custom_resolver(obj_type, orm_field_name) or get_attr_resolver(
-            obj_type, attr_name
+            attr_name
         )
 
         if isinstance(attr, ColumnProperty):
@@ -349,7 +349,7 @@ class SQLAlchemyObjectType(ObjectType):
 
     @classmethod
     async def get_node(cls, info, id):
-        session = get_session(info.context)
+        session = info.context.session
         model = cls._meta.model
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]

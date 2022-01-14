@@ -19,7 +19,7 @@ from sqlalchemy.orm import relationship
 from graphene_sqlalchemy_core import gql_types
 from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
 from graphene_sqlalchemy_core.fields import (
-    SQLAlchemyConnectionField,
+    SortableSQLAlchemyConnectionField,
     UnsortedSQLAlchemyConnectionField,
 )
 from graphene_sqlalchemy_core.types import (
@@ -461,7 +461,7 @@ def test_objecttype_with_custom_options():
 # Tests for connection_field_factory
 
 
-class _TestSQLAlchemyConnectionField(SQLAlchemyConnectionField):
+class _TestSQLAlchemyConnectionField(SortableSQLAlchemyConnectionField):
     pass
 
 

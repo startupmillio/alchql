@@ -1,17 +1,16 @@
 import pkg_resources
 
-from .fields import SQLAlchemyConnectionField
+from .fields import SortableSQLAlchemyConnectionField
 from .types import SQLAlchemyObjectType
-from .utils import get_query, get_session
+from .utils import get_query
 
 __version__ = "3.0.0"
 
 __all__ = [
     "__version__",
     "SQLAlchemyObjectType",
-    "SQLAlchemyConnectionField",
+    "SortableSQLAlchemyConnectionField",
     "get_query",
-    "get_session",
 ]
 
 

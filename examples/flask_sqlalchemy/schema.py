@@ -4,7 +4,7 @@ from models import Role as RoleModel
 
 import graphene
 from graphene import relay
-from graphene_sqlalchemy_core import SQLAlchemyConnectionField, SQLAlchemyObjectType
+from graphene_sqlalchemy_core import SortableSQLAlchemyConnectionField, SQLAlchemyObjectType
 
 
 class Department(SQLAlchemyObjectType):
@@ -28,13 +28,13 @@ class Role(SQLAlchemyObjectType):
 class Query(graphene.ObjectType):
     node = relay.Node.Field()
     # Allow only single column sorting
-    all_employees = SQLAlchemyConnectionField(
+    all_employees = SortableSQLAlchemyConnectionField(
         Employee.connection, sort=Employee.sort_argument()
     )
     # Allows sorting over multiple columns, by default over the primary key
-    all_roles = SQLAlchemyConnectionField(Role.connection)
+    all_roles = SortableSQLAlchemyConnectionField(Role.connection)
     # Disable sorting over this field
-    all_departments = SQLAlchemyConnectionField(Department.connection, sort=None)
+    all_departments = SortableSQLAlchemyConnectionField(Department.connection, sort=None)
 
 
 schema = graphene.Schema(query=Query)

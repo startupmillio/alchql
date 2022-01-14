@@ -1,11 +1,12 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 from graphene import Dynamic, Field, List, String
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy.orm import RelationshipProperty, interfaces
+from sqlalchemy.orm import ColumnProperty, RelationshipProperty, interfaces
 
 from .batching import get_batch_resolver, get_fk_resolver
 from .fields import BatchSQLAlchemyConnectionField, ModelField
+from .registry import Registry
 from .resolvers import get_custom_resolver
 from .sqlalchemy_converter import convert_sqlalchemy_type
 
@@ -29,22 +30,12 @@ def is_column_nullable(column: Column) -> bool:
 
 
 def convert_sqlalchemy_relationship(
-    relationship_prop,
-    obj_type,
-    connection_field_factory,
-    orm_field_name,
+    relationship_prop: RelationshipProperty,
+    obj_type: Type["SQLAlchemyObjectType"],
+    connection_field_factory: Optional[Callable],
+    orm_field_name: str,
     **field_kwargs,
-):
-    """
-    :param sqlalchemy.RelationshipProperty relationship_prop:
-    :param SQLAlchemyObjectType obj_type:
-    :param function|None connection_field_factory:
-    :param bool batching:
-    :param str orm_field_name:
-    :param dict field_kwargs:
-    :rtype: Dynamic
-    """
-
+) -> Dynamic:
     def dynamic_type():
         """:rtype: Field|None"""
         direction = relationship_prop.direction
@@ -108,7 +99,7 @@ def convert_sqlalchemy_fk_reverse(
 
 def _convert_o2o_or_m2o_relationship(
     relationship_prop: RelationshipProperty,
-    obj_type: "SQLAlchemyObjectType",
+    obj_type: Type["SQLAlchemyObjectType"],
     orm_field_name: str,
     **field_kwargs,
 ) -> Field:
@@ -130,7 +121,7 @@ def _convert_o2o_or_m2o_relationship(
 
 def _convert_o2m_or_m2m_relationship(
     relationship_prop: RelationshipProperty,
-    obj_type: "SQLAlchemyObjectType",
+    obj_type: Type["SQLAlchemyObjectType"],
     connection_field_factory: Optional[Callable],
     **field_kwargs,
 ) -> Field:
@@ -182,7 +173,7 @@ def convert_sqlalchemy_composite(composite_prop, registry, resolver):
     return converter(composite_prop, registry)
 
 
-def _register_composite_class(cls, registry=None):
+def _register_composite_class(cls, registry: Registry = None):
     if registry is None:
         from .registry import get_global_registry
 
@@ -197,7 +188,9 @@ def _register_composite_class(cls, registry=None):
 convert_sqlalchemy_composite.register = _register_composite_class
 
 
-def convert_sqlalchemy_column(column_prop, registry, resolver, **field_kwargs):
+def convert_sqlalchemy_column(
+    column_prop: ColumnProperty, registry: Registry, resolver: Callable, **field_kwargs
+):
     column = column_prop.columns[0]
     field_kwargs.setdefault(
         "type_",

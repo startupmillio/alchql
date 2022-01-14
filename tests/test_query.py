@@ -7,7 +7,7 @@ from graphene_sqlalchemy_core import gql_types
 from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Reporter
 from .utils import to_std_dicts
 from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
-from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.fields import SortableSQLAlchemyConnectionField
 from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.types import ORMField, SQLAlchemyObjectType
@@ -155,7 +155,7 @@ async def test_query_node(session):
     class Query(graphene.ObjectType):
         node = AsyncNode.Field()
         reporter = graphene.Field(ReporterNode)
-        all_articles = SQLAlchemyConnectionField(ArticleNode.connection)
+        all_articles = SortableSQLAlchemyConnectionField(ArticleNode.connection)
 
         async def resolve_reporter(self, _info):
             return (await session.execute(sa.select(Reporter))).scalars().first()
@@ -289,7 +289,7 @@ async def test_custom_identifier(session):
 
     class Query(graphene.ObjectType):
         node = AsyncNode.Field()
-        all_editors = SQLAlchemyConnectionField(EditorNode.connection)
+        all_editors = SortableSQLAlchemyConnectionField(EditorNode.connection)
 
     query = """
         query {

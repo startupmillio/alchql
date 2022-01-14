@@ -1,11 +1,17 @@
+from typing import Callable, Optional, Sequence, TYPE_CHECKING, Type
+
 from graphene import Argument, Enum, List
 from sqlalchemy.orm import ColumnProperty
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
-from .utils import to_enum_value_name, to_type_name, get_object_type_manual_fields
+from .registry import Registry
+from .utils import get_object_type_manual_fields, to_enum_value_name, to_type_name
+
+if TYPE_CHECKING:
+    from .types import SQLAlchemyObjectType
 
 
-def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
+def _convert_sa_to_graphene_enum(sa_enum: SQLAlchemyEnumType, fallback_name=None):
     """Convert the given SQLAlchemy Enum type to a Graphene Enum type.
 
     The name of the Graphene Enum will be determined as follows:
@@ -39,7 +45,7 @@ def _convert_sa_to_graphene_enum(sa_enum, fallback_name=None):
     return Enum(name, members)
 
 
-def enum_for_sa_enum(sa_enum, registry):
+def enum_for_sa_enum(sa_enum: SQLAlchemyEnumType, registry: Registry):
     """Return the Graphene Enum type for the specified SQLAlchemy Enum type."""
     if not isinstance(sa_enum, SQLAlchemyEnumType):
         raise TypeError(f"Expected sqlalchemy.types.Enum, but got: {sa_enum!r}")
@@ -50,7 +56,7 @@ def enum_for_sa_enum(sa_enum, registry):
     return enum
 
 
-def enum_for_field(obj_type, field_name):
+def enum_for_field(obj_type: Type["SQLAlchemyObjectType"], field_name: str):
     """Return the Graphene Enum type for the specified Graphene field."""
     from .types import SQLAlchemyObjectType
 
@@ -80,31 +86,26 @@ def enum_for_field(obj_type, field_name):
     return enum
 
 
-def _default_sort_enum_symbol_name(column_name, sort_asc=True):
+def _default_sort_enum_symbol_name(column_name: str, sort_asc=True):
     return to_enum_value_name(column_name) + ("_ASC" if sort_asc else "_DESC")
 
 
 def sort_enum_for_object_type(
-    obj_type,
-    name=None,
-    only_fields=None,
-    only_indexed=None,
-    get_symbol_name=None,
+    obj_type: Type["SQLAlchemyObjectType"],
+    name: Optional[str] = None,
+    only_fields: Optional[Sequence[str]] = None,
+    only_indexed: Optional[bool] = None,
+    get_symbol_name: Optional[Callable] = None,
 ):
     """Return Graphene Enum for sorting the given SQLAlchemyObjectType.
 
     Parameters
-    - obj_type : SQLAlchemyObjectType
-        The object type for which the sort Enum shall be generated.
-    - name : str, optional, default None
-        Name to use for the sort Enum.
+    - obj_type: The object type for which the sort Enum shall be generated.
+    - name: Name to use for the sort Enum.
         If not provided, it will be set to the object type name + 'SortEnum'
-    - only_fields : sequence, optional, default None
-        If this is set, only fields from this sequence will be considered.
-    - only_indexed : bool, optional, default False
-        If this is set, only indexed columns will be considered.
-    - get_symbol_name : function, optional, default None
-        Function which takes the column name and a boolean indicating
+    - only_fields: If this is set, only fields from this sequence will be considered.
+    - only_indexed : If this is set, only indexed columns will be considered.
+    - get_symbol_name : Function which takes the column name and a boolean indicating
         if the sort direction is ascending, and returns the symbol name
         for the current column and sort direction. If no such function
         is passed, a default function will be used that creates the symbols
@@ -167,33 +168,27 @@ def sort_enum_for_object_type(
 
 
 def sort_argument_for_object_type(
-    obj_type,
-    enum_name=None,
-    only_fields=None,
-    only_indexed=None,
-    get_symbol_name=None,
-    has_default=True,
+    obj_type: Type["SQLAlchemyObjectType"],
+    enum_name: Optional[str] = None,
+    only_fields: Optional[Sequence] = None,
+    only_indexed: Optional[bool] = None,
+    get_symbol_name: Optional[Callable] = None,
+    has_default: bool = True,
 ):
     """ "Returns Graphene Argument for sorting the given SQLAlchemyObjectType.
 
     Parameters
-    - obj_type : SQLAlchemyObjectType
-        The object type for which the sort Argument shall be generated.
-    - enum_name : str, optional, default None
-        Name to use for the sort Enum.
+    - obj_type: The object type for which the sort Argument shall be generated.
+    - enum_name: Name to use for the sort Enum.
         If not provided, it will be set to the object type name + 'SortEnum'
-    - only_fields : sequence, optional, default None
-        If this is set, only fields from this sequence will be considered.
-    - only_indexed : bool, optional, default False
-        If this is set, only indexed columns will be considered.
-    - get_symbol_name : function, optional, default None
-        Function which takes the column name and a boolean indicating
+    - only_fields: If this is set, only fields from this sequence will be considered.
+    - only_indexed: If this is set, only indexed columns will be considered.
+    - get_symbol_name: Function which takes the column name and a boolean indicating
         if the sort direction is ascending, and returns the symbol name
         for the current column and sort direction. If no such function
         is passed, a default function will be used that creates the symbols
         'foo_asc' and 'foo_desc' for a column with the name 'foo'.
-    - has_default : bool, optional, default True
-        If this is set to False, no sorting will happen when this argument is not
+    - has_default: If this is set to False, no sorting will happen when this argument is not
         passed. Otherwise results will be sortied by the primary key(s) of the model.
 
     Returns

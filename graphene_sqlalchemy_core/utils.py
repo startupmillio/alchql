@@ -2,7 +2,7 @@ import logging
 import re
 import warnings
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 import graphene
 import sqlalchemy as sa
@@ -18,7 +18,7 @@ from .gql_fields import get_fields
 
 @dataclass
 class FilterItem:
-    field_type: graphene.Field
+    field_type: Type[graphene.Field]
     filter_func: callable
     value_func: Optional[callable] = lambda x: x
 
@@ -27,15 +27,6 @@ class FilterItem:
 class GlobalFilters:
     ID__EQ = "id__eq"
     ID__IN = "id__in"
-
-
-def get_session(context):
-    if hasattr(context, "session"):
-        return context.session
-    elif hasattr(context, "get"):
-        return context.get("session")
-    else:
-        raise Exception("Session not found")
 
 
 def get_query(model, info):

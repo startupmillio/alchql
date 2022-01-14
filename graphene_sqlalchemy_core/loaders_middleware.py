@@ -5,8 +5,7 @@ from typing import Sequence, Type, Union
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeMeta, Mapper
 
-from . import get_session
-from .loader_fk import generate_loader_by_relationship, generate_loader_by_foreign_key
+from .loader_fk import generate_loader_by_foreign_key, generate_loader_by_relationship
 
 
 class LoaderMiddleware:
@@ -42,7 +41,7 @@ class LoaderMiddleware:
 
     async def resolve(self, next_, root, info, **args):
         if root is None:
-            session = get_session(info.context)
+            session = info.context.session
 
             info.context.loaders = {k: v(session) for k, v in self.loaders.items()}
 

@@ -3,7 +3,6 @@ from graphene import Context, ObjectType, Schema, String
 
 from graphene_sqlalchemy_core.gql_fields import camel_to_snake
 from graphene_sqlalchemy_core.utils import (
-    get_session,
     to_enum_value_name,
     to_type_name,
 )
@@ -17,7 +16,7 @@ async def test_get_session():
         x = String()
 
         def resolve_x(self, info):
-            return get_session(info.context)
+            return info.context.session
 
     query = """
         query ReporterQuery {

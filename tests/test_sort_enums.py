@@ -5,7 +5,7 @@ from graphene.relay import Node
 
 from .models import Base, HairKind, Pet
 from .test_query import to_std_dicts
-from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.fields import SortableSQLAlchemyConnectionField
 from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
 from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 from graphene_sqlalchemy_core.utils import to_type_name
@@ -255,17 +255,17 @@ async def test_sort_query(session):
             interfaces = (Node,)
 
     class Query(ObjectType):
-        defaultSort = SQLAlchemyConnectionField(PetNode.connection)
-        nameSort = SQLAlchemyConnectionField(PetNode.connection)
-        multipleSort = SQLAlchemyConnectionField(PetNode.connection)
-        descSort = SQLAlchemyConnectionField(PetNode.connection)
-        singleColumnSort = SQLAlchemyConnectionField(
+        defaultSort = SortableSQLAlchemyConnectionField(PetNode.connection)
+        nameSort = SortableSQLAlchemyConnectionField(PetNode.connection)
+        multipleSort = SortableSQLAlchemyConnectionField(PetNode.connection)
+        descSort = SortableSQLAlchemyConnectionField(PetNode.connection)
+        singleColumnSort = SortableSQLAlchemyConnectionField(
             PetNode.connection, sort=Argument(PetNode.sort_enum())
         )
-        noDefaultSort = SQLAlchemyConnectionField(
+        noDefaultSort = SortableSQLAlchemyConnectionField(
             PetNode.connection, sort=PetNode.sort_argument(has_default=False)
         )
-        noSort = SQLAlchemyConnectionField(PetNode.connection, sort=None)
+        noSort = SortableSQLAlchemyConnectionField(PetNode.connection, sort=None)
 
     query = """
         query sortTest {
