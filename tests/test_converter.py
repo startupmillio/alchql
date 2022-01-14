@@ -286,10 +286,10 @@ def test_should_manytoone_convert_connectionorlist():
 def test_should_manytoone_convert_connectionorlist_list():
     class A(SQLAlchemyObjectType):
         class Meta:
-            model = Reporter
+            model = Article
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Article.reporter.property,
+        Reporter.favorite_article.property,
         A,
         default_connection_field_factory,
         "orm_field_name",
@@ -303,11 +303,11 @@ def test_should_manytoone_convert_connectionorlist_list():
 def test_should_manytoone_convert_connectionorlist_connection():
     class A(SQLAlchemyObjectType):
         class Meta:
-            model = Reporter
+            model = Article
             interfaces = (Node,)
 
     dynamic_field = convert_sqlalchemy_relationship(
-        Article.reporter.property,
+        Reporter.favorite_article.property,
         A,
         default_connection_field_factory,
         "orm_field_name",

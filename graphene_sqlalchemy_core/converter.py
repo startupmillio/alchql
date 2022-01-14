@@ -1,8 +1,10 @@
-from graphene import Dynamic, Field, List, String
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import interfaces
+from typing import Callable, Optional
 
-from .batching import get_batch_resolver, get_fk_resolver, get_fk_resolver_reverse
+from graphene import Dynamic, Field, List, String
+from sqlalchemy import Column, ForeignKey
+from sqlalchemy.orm import RelationshipProperty, interfaces
+
+from .batching import get_batch_resolver, get_fk_resolver
 from .fields import BatchSQLAlchemyConnectionField, ModelField
 from .resolvers import get_custom_resolver
 from .sqlalchemy_converter import convert_sqlalchemy_type
@@ -12,12 +14,17 @@ try:
 except ImportError:
     ChoiceType = JSONType = ScalarListType = TSVectorType = object
 
+from typing import TYPE_CHECKING
 
-def get_column_doc(column):
+if TYPE_CHECKING:
+    from .types import SQLAlchemyObjectType
+
+
+def get_column_doc(column: Column) -> Optional[str]:
     return getattr(column, "doc", None)
 
 
-def is_column_nullable(column):
+def is_column_nullable(column: Column) -> bool:
     return bool(getattr(column, "nullable", True))
 
 
@@ -68,20 +75,10 @@ def convert_sqlalchemy_relationship(
 
 
 def convert_sqlalchemy_fk(
-    fk,
-    obj_type,
-    orm_field_name,
-):
-    """
-    :param sqlalchemy.RelationshipProperty relationship_prop:
-    :param SQLAlchemyObjectType obj_type:
-    :param function|None connection_field_factory:
-    :param bool batching:
-    :param str orm_field_name:
-    :param dict field_kwargs:
-    :rtype: Dynamic
-    """
-
+    fk: ForeignKey,
+    obj_type: "SQLAlchemyObjectType",
+    orm_field_name: str,
+) -> Dynamic:
     def dynamic_type():
         child_type = obj_type._meta.registry.get_type_for_model(
             fk.constraint.referred_table
@@ -100,18 +97,9 @@ def convert_sqlalchemy_fk(
 
 
 def convert_sqlalchemy_fk_reverse(
-    fk: ForeignKey, obj_type, orm_field_name
-):
-    """
-    :param sqlalchemy.RelationshipProperty relationship_prop:
-    :param SQLAlchemyObjectType obj_type:
-    :param function|None connection_field_factory:
-    :param bool batching:
-    :param str orm_field_name:
-    :param dict field_kwargs:
-    :rtype: Dynamic
-    """
-
+    fk: ForeignKey,
+    obj_type: "SQLAlchemyObjectType",
+) -> Dynamic:
     def dynamic_type():
         return BatchSQLAlchemyConnectionField.from_fk(fk, obj_type._meta.registry)
 
@@ -119,18 +107,16 @@ def convert_sqlalchemy_fk_reverse(
 
 
 def _convert_o2o_or_m2o_relationship(
-    relationship_prop, obj_type, orm_field_name, batching=True, **field_kwargs
-):
+    relationship_prop: RelationshipProperty,
+    obj_type: "SQLAlchemyObjectType",
+    orm_field_name: str,
+    **field_kwargs,
+) -> Field:
     """
-    Convert one-to-one or many-to-one relationshsip. Return an object field.
+    Convert one-to-one or many-to-one relationshsip.
+    Return an object field.
+    """
 
-    :param sqlalchemy.RelationshipProperty relationship_prop:
-    :param SQLAlchemyObjectType obj_type:
-    :param bool batching:
-    :param str orm_field_name:
-    :param dict field_kwargs:
-    :rtype: Field
-    """
     child_type = obj_type._meta.registry.get_type_for_model(
         relationship_prop.mapper.entity
     )
@@ -143,18 +129,16 @@ def _convert_o2o_or_m2o_relationship(
 
 
 def _convert_o2m_or_m2m_relationship(
-    relationship_prop, obj_type, connection_field_factory, **field_kwargs
-):
+    relationship_prop: RelationshipProperty,
+    obj_type: "SQLAlchemyObjectType",
+    connection_field_factory: Optional[Callable],
+    **field_kwargs,
+) -> Field:
     """
-    Convert one-to-many or many-to-many relationshsip. Return a list field or a connection field.
+    Convert one-to-many or many-to-many relationshsip.
+    Return a list field or a connection field.
+    """
 
-    :param sqlalchemy.RelationshipProperty relationship_prop:
-    :param SQLAlchemyObjectType obj_type:
-    :param bool batching:
-    :param function|None connection_field_factory:
-    :param dict field_kwargs:
-    :rtype: Field
-    """
     child_type = obj_type._meta.registry.get_type_for_model(
         relationship_prop.mapper.entity
     )

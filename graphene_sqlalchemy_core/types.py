@@ -1,5 +1,6 @@
 import re
 from collections import OrderedDict
+from typing import Callable, Optional, TYPE_CHECKING, Tuple, Type
 
 import sqlalchemy
 from graphene import Field
@@ -11,6 +12,7 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     ColumnProperty,
     CompositeProperty,
+    DeclarativeMeta,
     RelationshipProperty,
 )
 
@@ -31,6 +33,9 @@ from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
+
+if TYPE_CHECKING:
+    from .types import SQLAlchemyObjectType
 
 
 class ORMField(OrderedType):
@@ -101,28 +106,19 @@ class ORMField(OrderedType):
 
 
 def construct_fields(
-    obj_type,
-    model,
-    registry,
-    only_fields,
-    exclude_fields,
-    connection_field_factory,
-):
+    obj_type: Type["SQLAlchemyObjectType"],
+    model: DeclarativeMeta,
+    registry: Registry,
+    only_fields: Tuple[str, ...],
+    exclude_fields: Tuple[str, ...],
+    connection_field_factory: Optional[Callable],
+) -> OrderedDict[str, Field]:
     """
     Construct all the fields for a SQLAlchemyObjectType.
     The main steps are:
       - Gather all the relevant attributes from the SQLAlchemy model
       - Gather all the ORM fields defined on the type
       - Merge in overrides and build up all the fields
-
-    :param SQLAlchemyObjectType obj_type:
-    :param model: the SQLAlchemy model
-    :param Registry registry:
-    :param tuple[string] only_fields:
-    :param tuple[string] exclude_fields:
-    :param bool batching:
-    :param function|None connection_field_factory:
-    :rtype: OrderedDict[str, graphene.Field]
     """
     inspected_model = sqlalchemy.inspect(model)
     # Gather all the relevant attributes from the SQLAlchemy model in order
@@ -185,9 +181,7 @@ def construct_fields(
                     orm_field_name in exclude_fields
                 ):
                     continue
-                fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
-                    fk, obj_type, orm_field_name
-                )
+                fields[orm_field_name] = convert_sqlalchemy_fk_reverse(fk, obj_type)
 
     for fk in inspected_model.mapped_table.foreign_keys:
         orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
@@ -250,8 +244,8 @@ class SQLAlchemyObjectType(ObjectType):
     @classmethod
     def __init_subclass_with_meta__(
         cls,
-        model=None,
-        registry=None,
+        model: DeclarativeMeta = None,
+        registry: Registry = None,
         skip_registry=False,
         only_fields=(),
         exclude_fields=(),
