@@ -69,6 +69,6 @@ async def connection_from_query(
             startCursor=first_edge_cursor,
             endCursor=last_edge_cursor,
             hasPreviousPage=isinstance(last, int) and start_offset > lower_bound,
-            hasNextPage=isinstance(first, int) and end_offset < upper_bound,
+            hasNextPage=isinstance(first, int) and end_offset < upper_bound and edges,
         ),
     )
