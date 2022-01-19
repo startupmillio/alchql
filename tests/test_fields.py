@@ -3,8 +3,8 @@ from graphene import NonNull, ObjectType
 from graphene.relay import Connection, Node
 
 from .models import Editor as EditorModel, Pet as PetModel
-from ..fields import SQLAlchemyConnectionField
-from ..types import SQLAlchemyObjectType
+from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 
 
 class Pet(SQLAlchemyObjectType):

@@ -5,10 +5,10 @@ from graphene.relay import Node
 
 from .models import Base, HairKind, Pet
 from .test_query import to_std_dicts
-from ..fields import SQLAlchemyConnectionField
-from ..loaders_middleware import LoaderMiddleware
-from ..types import SQLAlchemyObjectType
-from ..utils import to_type_name
+from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
+from graphene_sqlalchemy_core.utils import to_type_name
 
 
 async def add_pets(session):
