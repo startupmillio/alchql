@@ -1,4 +1,5 @@
 import enum
+import logging
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -131,15 +132,18 @@ class QueryHelper:
 
         type_ = info.context.object_types[info.field_name]
         meta_fields = type_._meta.fields
+
+        select_fields = set()
         if isinstance(model, Table):
-            select_fields = set()
             for constraint in model.constraints:
                 if isinstance(constraint, PrimaryKeyConstraint):
                     for i in constraint.columns:
                         select_fields.add(i)
         elif isinstance(model, DeclarativeMeta):
-            select_fields = {sa.inspect(model).primary_key[0]}
+            select_fields.add(sa.inspect(model).primary_key[0])
+
         field_names_to_process = {f.name for f in gql_field.values}
+
         sort_field_names = set()
         if sort is not None:
             if not isinstance(sort, list):
@@ -163,14 +167,15 @@ class QueryHelper:
                     columns = getattr(object_type._meta.model, field).prop.local_columns
                     relation_key = next(iter(columns))
                     select_fields.add(relation_key)
-                except Exception as _:
-                    pass
+                except Exception as e:
+                    logging.warning(e)
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
                 if getattr(current_field, "use_label", True):
                     select_fields.add(model_field.label(field))
                 else:
                     select_fields.add(model_field)
+
         return select_fields
 
     @staticmethod
