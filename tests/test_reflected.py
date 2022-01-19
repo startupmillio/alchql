@@ -1,8 +1,8 @@
 from graphene import ObjectType
 
 from .models import ReflectedEditor
-from ..registry import Registry
-from ..types import SQLAlchemyObjectType
+from graphene_sqlalchemy_core.registry import Registry
+from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 
 registry = Registry()
 

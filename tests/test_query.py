@@ -3,13 +3,14 @@ import pytest
 import sqlalchemy as sa
 from graphene import Context
 
+from graphene_sqlalchemy_core import gql_types
 from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Reporter
 from .utils import to_std_dicts
-from ..converter import convert_sqlalchemy_composite
-from ..fields import SQLAlchemyConnectionField
-from ..loaders_middleware import LoaderMiddleware
-from ..node import AsyncNode
-from ..types import ORMField, SQLAlchemyObjectType
+from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
+from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.node import AsyncNode
+from graphene_sqlalchemy_core.types import ORMField, SQLAlchemyObjectType
 
 
 async def add_test_data(session):

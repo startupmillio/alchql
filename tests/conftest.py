@@ -3,8 +3,8 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from .models import Base, CompositeFullName
-from ..converter import convert_sqlalchemy_composite
-from ..registry import reset_global_registry
+from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
+from graphene_sqlalchemy_core.registry import reset_global_registry
 
 test_db_url = "sqlite+aiosqlite:///:memory:"  # use in-memory database for tests
 engine = create_async_engine(test_db_url, convert_unicode=True, echo=False)
