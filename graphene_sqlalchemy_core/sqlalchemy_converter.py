@@ -36,8 +36,8 @@ def convert_sqlalchemy_type(type_, column, registry=None):
 @convert_sqlalchemy_type.register(postgresql.UUID)
 @convert_sqlalchemy_type.register(postgresql.INET)
 @convert_sqlalchemy_type.register(postgresql.CIDR)
-@convert_sqlalchemy_type.register(TSVectorType)
 @convert_sqlalchemy_type.register(postgresql.TSVECTOR)
+@convert_sqlalchemy_type.register(TSVectorType)
 def convert_column_to_string(type_, column, registry=None):
     return String
 
@@ -106,10 +106,7 @@ def convert_array_to_list(type_, column, registry=None):
 @convert_sqlalchemy_type.register(postgresql.HSTORE)
 @convert_sqlalchemy_type.register(postgresql.JSON)
 @convert_sqlalchemy_type.register(postgresql.JSONB)
-def convert_json_to_string(type_, column, registry=None):
-    return JSONString
-
-
 @convert_sqlalchemy_type.register(JSONType)
+@convert_sqlalchemy_type.register(types.JSON)
 def convert_json_type_to_string(type_, column, registry=None):
     return JSONString
