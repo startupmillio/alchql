@@ -133,9 +133,9 @@ class QueryHelper:
         meta_fields = type_._meta.fields
         if isinstance(model, Table):
             select_fields = set()
-            for fk in model.constraints:
-                if isinstance(fk, PrimaryKeyConstraint):
-                    for i in fk.columns:
+            for constraint in model.constraints:
+                if isinstance(constraint, PrimaryKeyConstraint):
+                    for i in constraint.columns:
                         select_fields.add(i)
         elif isinstance(model, DeclarativeMeta):
             select_fields = {sa.inspect(model).primary_key[0]}
