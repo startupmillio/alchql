@@ -4,7 +4,7 @@ from models import Role as RoleModel
 
 import graphene
 from graphene import relay
-from graphene_sqlalchemy_core import SortableSQLAlchemyConnectionField, SQLAlchemyObjectType
+from graphene_sqlalchemy_core import SQLAlchemyConnectionField, SQLAlchemyObjectType
 
 
 class Department(SQLAlchemyObjectType):
@@ -27,8 +27,8 @@ class Role(SQLAlchemyObjectType):
 
 class Query(graphene.ObjectType):
     node = relay.Node.Field()
-    all_employees = SortableSQLAlchemyConnectionField(Employee.connection)
-    all_roles = SortableSQLAlchemyConnectionField(Role.connection)
+    all_employees = SQLAlchemyConnectionField(Employee.connection)
+    all_roles = SQLAlchemyConnectionField(Role.connection)
     role = graphene.Field(Role)
 
 

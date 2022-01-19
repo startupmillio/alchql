@@ -120,7 +120,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         )
 
 
-class SortableSQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
+class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
     def __init__(self, type_, *args, **kwargs):
         nullable_type = get_nullable_type(type_)
         if "sort" not in kwargs and issubclass(nullable_type, Connection):
@@ -158,7 +158,7 @@ class SortableSQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
         return query
 
 
-class FilterConnectionField(SortableSQLAlchemyConnectionField):
+class FilterConnectionField(SQLAlchemyConnectionField):
     def __init__(self, type_, *args, **kwargs):
         type_ = get_type(type_)
         if hasattr(type_._meta, "filter_fields"):

@@ -171,8 +171,7 @@ def construct_fields(
         orm_fields[orm_field_name] = ORMField(model_attr=orm_field_name)
 
     # Build all the field dictionary
-    fields = OrderedDict()
-
+    auto_fields = OrderedDict()
     for mapper in inspected_model.registry.mappers:
         for fk in mapper.local_table.foreign_keys:
             if inspected_model.selectable == fk.column.table:
@@ -181,7 +180,9 @@ def construct_fields(
                     orm_field_name in exclude_fields
                 ):
                     continue
-                fields[orm_field_name] = convert_sqlalchemy_fk_reverse(fk, obj_type)
+                auto_fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
+                    fk, obj_type
+                )
 
     for fk in inspected_model.mapped_table.foreign_keys:
         orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
@@ -189,12 +190,13 @@ def construct_fields(
             orm_field_name in exclude_fields
         ):
             continue
-        fields[orm_field_name] = convert_sqlalchemy_fk(
+        auto_fields[orm_field_name] = convert_sqlalchemy_fk(
             fk,
             obj_type,
             orm_field_name,
         )
 
+    fields = OrderedDict()
     for orm_field_name, orm_field in orm_fields.items():
         attr_name = orm_field.kwargs.pop("model_attr")
         attr = all_model_attrs[attr_name]
@@ -230,7 +232,7 @@ def construct_fields(
         registry.register_orm_field(obj_type, orm_field_name, attr)
         fields[orm_field_name] = field
 
-    return fields
+    return OrderedDict(auto_fields | fields)
 
 
 class SQLAlchemyObjectTypeOptions(ObjectTypeOptions):

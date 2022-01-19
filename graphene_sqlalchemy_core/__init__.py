@@ -1,6 +1,6 @@
 import pkg_resources
 
-from .fields import SortableSQLAlchemyConnectionField
+from .fields import SQLAlchemyConnectionField
 from .types import SQLAlchemyObjectType
 from .utils import get_query
 
@@ -9,7 +9,7 @@ __version__ = "3.0.0"
 __all__ = [
     "__version__",
     "SQLAlchemyObjectType",
-    "SortableSQLAlchemyConnectionField",
+    "SQLAlchemyConnectionField",
     "get_query",
 ]
 
