@@ -3,7 +3,7 @@ from enum import EnumMeta
 from graphene import Boolean, Enum, Float, ID, Int, List, String
 from graphene.types.json import JSONString
 from singledispatch import singledispatch
-from sqlalchemy import JSON, types
+from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
 
 from .enums import enum_for_sa_enum
@@ -36,6 +36,7 @@ def convert_sqlalchemy_type(type, column, registry=None):
 @convert_sqlalchemy_type.register(postgresql.UUID)
 @convert_sqlalchemy_type.register(postgresql.INET)
 @convert_sqlalchemy_type.register(postgresql.CIDR)
+@convert_sqlalchemy_type.register(postgresql.TSVECTOR)
 @convert_sqlalchemy_type.register(TSVectorType)
 def convert_column_to_string(type, column, registry=None):
     return String
@@ -106,6 +107,6 @@ def convert_array_to_list(_type, column, registry=None):
 @convert_sqlalchemy_type.register(postgresql.JSON)
 @convert_sqlalchemy_type.register(postgresql.JSONB)
 @convert_sqlalchemy_type.register(JSONType)
-@convert_sqlalchemy_type.register(JSON)
+@convert_sqlalchemy_type.register(types.JSON)
 def convert_json_type_to_string(type, column, registry=None):
     return JSONString
