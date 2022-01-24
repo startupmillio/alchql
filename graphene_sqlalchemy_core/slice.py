@@ -1,7 +1,4 @@
-from graphql_relay.connection.arrayconnection import (
-    get_offset_with_default,
-    offset_to_cursor,
-)
+from graphql_relay import get_offset_with_default, offset_to_cursor
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .utils import filter_requested_fields_for_object

@@ -8,7 +8,7 @@ from graphene import Argument, NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphene.types.utils import get_type
-from graphql_relay.connection.arrayconnection import connection_from_array_slice
+from graphql_relay import connection_from_array_slice
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import InstrumentedAttribute, RelationshipProperty
 
