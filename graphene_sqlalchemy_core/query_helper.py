@@ -172,7 +172,12 @@ class QueryHelper:
                     relation_key = next(iter(columns))
                     select_fields.add(relation_key)
                 else:
-                    mapped_table = sa.inspect(model).mapped_table
+                    mapped_table = (
+                        model
+                        if isinstance(model, Table)
+                        else sa.inspect(model).mapped_table
+                    )
+
                     for fk in mapped_table.foreign_keys:
                         if re.sub(r"_(?:id|pk)$", "", fk.parent.key) == field:
                             select_fields.add(fk.parent)
