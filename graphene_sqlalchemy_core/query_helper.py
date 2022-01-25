@@ -1,5 +1,6 @@
 import enum
 import logging
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -157,18 +158,30 @@ class QueryHelper:
 
         field_names_to_process.update(sort_field_names)
         for field in field_names_to_process:
-            current_field = object_type_fields.get(field, None) or meta_fields.get(
-                field
-            )
+            current_field = object_type_fields.get(field) or meta_fields.get(field)
+
+            if current_field is None:
+                continue
+
             if isinstance(current_field, Dynamic) and isinstance(
                 current_field.type(), Field
             ):
-                try:
-                    columns = getattr(object_type._meta.model, field).prop.local_columns
+                model_field = getattr(object_type._meta.model, field, None)
+                if model_field is not None:
+                    columns = model_field.prop.local_columns
                     relation_key = next(iter(columns))
                     select_fields.add(relation_key)
-                except Exception as e:
-                    logging.warning(e)
+                else:
+                    mapped_table = sa.inspect(model).mapped_table
+                    for fk in mapped_table.foreign_keys:
+                        if re.sub(r"_(?:id|pk)$", "", fk.parent.key) == field:
+                            select_fields.add(fk.parent)
+                            break
+                    else:
+                        logging.warning(
+                            f"No field {field!r} in {object_type._meta.model.__name__}"
+                        )
+
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
                 if getattr(current_field, "use_label", True):
