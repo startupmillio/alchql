@@ -4,7 +4,7 @@ from .fields import SQLAlchemyConnectionField
 from .types import SQLAlchemyObjectType
 from .utils import get_query
 
-__version__ = "3.0.0b2"
+__version__ = "3.0.0"
 
 __all__ = [
     "__version__",
