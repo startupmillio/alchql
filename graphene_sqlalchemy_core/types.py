@@ -371,17 +371,16 @@ class SQLAlchemyObjectType(ObjectType):
     def enum_for_field(cls, field_name):
         return enum_for_field(cls, field_name)
 
-    # TODO: REFACTOR
     @classmethod
     async def _resolve_reference_bulk(cls, model_instance, info):
-        resolvers_mapping = {}
         for field in info.parent_type.fields.values():
-            if hasattr(field.type, "name") and field.type.name.endswith("Connection"):
-                resolvers_mapping[field.type.name[:-10]] = field.resolve
-
-        return await resolvers_mapping[info.context.representation](
-            model_instance, info
-        )
+            if hasattr(field.type, "name"):
+                field_type_name = field.type.name
+                if (
+                    field_type_name.endswith("Connection")
+                    and field_type_name[:-10] == info.context.representation
+                ):
+                    return await field.resolve(model_instance, info)
 
     sort_enum = classmethod(sort_enum_for_object_type)
 
