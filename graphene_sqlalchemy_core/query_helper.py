@@ -1,5 +1,6 @@
-import base64
 import enum
+import logging
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -8,6 +9,8 @@ import sqlalchemy as sa
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
 from graphql_relay import from_global_id
+from sqlalchemy import PrimaryKeyConstraint, Table
+from sqlalchemy.orm import DeclarativeMeta
 
 from .gql_fields import camel_to_snake
 from .utils import EnumValue, FilterItem, filter_value_to_python
@@ -130,8 +133,18 @@ class QueryHelper:
 
         type_ = info.context.object_types[info.field_name]
         meta_fields = type_._meta.fields
-        select_fields = {sa.inspect(model).primary_key[0]}
+
+        select_fields = set()
+        if isinstance(model, Table):
+            for constraint in model.constraints:
+                if isinstance(constraint, PrimaryKeyConstraint):
+                    for i in constraint.columns:
+                        select_fields.add(i)
+        elif isinstance(model, DeclarativeMeta):
+            select_fields.add(sa.inspect(model).primary_key[0])
+
         field_names_to_process = {f.name for f in gql_field.values}
+
         sort_field_names = set()
         if sort is not None:
             if not isinstance(sort, list):
@@ -145,24 +158,42 @@ class QueryHelper:
 
         field_names_to_process.update(sort_field_names)
         for field in field_names_to_process:
-            current_field = object_type_fields.get(field, None) or meta_fields.get(
-                field
-            )
+            current_field = object_type_fields.get(field) or meta_fields.get(field)
+
+            if current_field is None:
+                continue
+
             if isinstance(current_field, Dynamic) and isinstance(
                 current_field.type(), Field
             ):
-                try:
-                    columns = getattr(object_type._meta.model, field).prop.local_columns
+                model_field = getattr(object_type._meta.model, field, None)
+                if model_field is not None:
+                    columns = model_field.prop.local_columns
                     relation_key = next(iter(columns))
                     select_fields.add(relation_key)
-                except Exception as _:
-                    pass
+                else:
+                    mapped_table = (
+                        model
+                        if isinstance(model, Table)
+                        else sa.inspect(model).mapped_table
+                    )
+
+                    for fk in mapped_table.foreign_keys:
+                        if re.sub(r"_(?:id|pk)$", "", fk.parent.key) == field:
+                            select_fields.add(fk.parent)
+                            break
+                    else:
+                        logging.warning(
+                            f"No field {field!r} in {object_type._meta.model.__name__}"
+                        )
+
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
                 if getattr(current_field, "use_label", True):
                     select_fields.add(model_field.label(field))
                 else:
                     select_fields.add(model_field)
+
         return select_fields
 
     @staticmethod

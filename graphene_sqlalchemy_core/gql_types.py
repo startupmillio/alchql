@@ -1,8 +1,10 @@
+from typing import Type
+
 import graphene
 from graphene.types import scalars
 
 
-def _construct_type(type_: type):
+def _construct_type(type_: Type):
     def init_(self, *args, model_field=None, **kwargs):
         super(type_, self).__init__(*args, **kwargs)
         self.model_field = model_field

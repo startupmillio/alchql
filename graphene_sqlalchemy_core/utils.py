@@ -2,14 +2,15 @@ import logging
 import re
 import warnings
 from dataclasses import dataclass
-from typing import Optional, Union
+from typing import Optional, Type, Union
 
 import graphene
 import sqlalchemy as sa
 from graphene import Field, Scalar
 from graphene.types.objecttype import ObjectTypeMeta
+from sqlalchemy import Table
 from sqlalchemy.exc import ArgumentError
-from sqlalchemy.orm import class_mapper, object_mapper
+from sqlalchemy.orm import DeclarativeMeta, class_mapper, mapperlib, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
 
 from .gql_fields import get_fields
@@ -17,7 +18,7 @@ from .gql_fields import get_fields
 
 @dataclass
 class FilterItem:
-    field_type: graphene.Field
+    field_type: Type[graphene.Field]
     filter_func: callable
     value_func: Optional[callable] = lambda x: x
 
@@ -26,15 +27,6 @@ class FilterItem:
 class GlobalFilters:
     ID__EQ = "id__eq"
     ID__IN = "id__in"
-
-
-def get_session(context):
-    if hasattr(context, "session"):
-        return context.session
-    elif hasattr(context, "get"):
-        return context.get("session")
-    else:
-        raise Exception("Session not found")
 
 
 def get_query(model, info):
@@ -204,20 +196,32 @@ def filter_value_to_python(value):
 def filter_requested_fields_for_object(
     data: dict, conversion_type: Union[ObjectTypeMeta, object]
 ):
-    if not isinstance(conversion_type, ObjectTypeMeta):
-        return data
-
-    result = {}
-    fields = conversion_type._meta.fields.keys()
-    for key, value in data.items():
-        if key in fields:
-            result[key] = value
-        else:
-            attr = getattr(conversion_type, key, None)
-            if attr and isinstance(attr, (Field, Scalar)):
+    if isinstance(conversion_type, ObjectTypeMeta):
+        result = {}
+        fields = conversion_type._meta.fields.keys()
+        for key, value in data.items():
+            if key in fields:
                 result[key] = value
+            else:
+                attr = getattr(conversion_type, key, None)
+                if attr and isinstance(attr, (Field, Scalar)):
+                    result[key] = value
 
-    return result
+        return result
+    if isinstance(conversion_type, Table):
+        result = {}
+        fields = conversion_type.columns.keys()
+        for key, value in data.items():
+            if key in fields:
+                result[key] = value
+            else:
+                attr = getattr(conversion_type, key, None)
+                if attr and isinstance(attr, (Field, Scalar)):
+                    result[key] = value
+
+        return result
+
+    return data
 
 
 def get_object_type_manual_fields(object_type):
@@ -234,3 +238,10 @@ def get_object_type_manual_fields(object_type):
                 object_type_fields[_name] = attr
 
     return object_type_fields
+
+
+def table_to_class(table: Table) -> DeclarativeMeta:
+    for mapper_registry in mapperlib._all_registries():
+        for mapper in mapper_registry.mappers:
+            if table in mapper.tables:
+                return mapper.entity

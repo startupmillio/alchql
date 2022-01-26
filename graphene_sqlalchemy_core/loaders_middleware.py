@@ -1,11 +1,11 @@
+import re
 from inspect import isawaitable
 from typing import Sequence, Type, Union
 
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeMeta, Mapper
 
-from . import get_session
-from .loader_fk import generate_loader_by_foreign_key
+from .loader_fk import generate_loader_by_foreign_key, generate_loader_by_relationship
 
 
 class LoaderMiddleware:
@@ -16,17 +16,32 @@ class LoaderMiddleware:
                 model = model.entity
 
             inspected_model = sa.inspect(model)
+            for fk in inspected_model.mapped_table.foreign_keys:
+                key = (
+                    fk.constraint.table,
+                    fk.constraint.referred_table,
+                    re.sub(r"_(?:id|pk)$", "", fk.parent.key),
+                )
+                self.loaders[key] = generate_loader_by_foreign_key(fk)
+
+                key = (
+                    fk.constraint.referred_table,
+                    fk.constraint.table,
+                    str(fk.constraint.table.fullname),
+                )
+                self.loaders[key] = generate_loader_by_foreign_key(fk, reverse=True)
+
             for relationship in inspected_model.relationships.values():
                 key = (
                     relationship.parent.entity,
                     relationship.mapper.entity,
                     relationship.key,
                 )
-                self.loaders[key] = generate_loader_by_foreign_key(relationship)
+                self.loaders[key] = generate_loader_by_relationship(relationship)
 
     async def resolve(self, next_, root, info, **args):
         if root is None:
-            session = get_session(info.context)
+            session = info.context.session
 
             info.context.loaders = {k: v(session) for k, v in self.loaders.items()}
 

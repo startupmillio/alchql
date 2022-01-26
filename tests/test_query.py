@@ -231,7 +231,6 @@ async def test_orm_field(session):
         column_prop_v2 = ORMField(model_attr="column_prop")
         composite_prop = ORMField()
         favorite_article_v2 = ORMField(model_attr="favorite_article")
-        articles_v2 = ORMField(model_attr="articles")
 
     class ArticleType(SQLAlchemyObjectType):
         class Meta:
@@ -254,13 +253,6 @@ async def test_orm_field(session):
             favoriteArticleV2 {
               headline
             }
-            articlesV2(first: 1) {
-              edges {
-                node {
-                  headline
-                }
-              }
-            }
           }
         }
     """
@@ -271,7 +263,6 @@ async def test_orm_field(session):
             "columnPropV2": 2,
             "compositeProp": "John Doe",
             "favoriteArticleV2": {"headline": "Hi!"},
-            "articlesV2": {"edges": [{"node": {"headline": "Hi!"}}]},
         },
     }
     schema = graphene.Schema(query=Query)

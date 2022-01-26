@@ -1,4 +1,6 @@
+import re
 from collections import OrderedDict
+from typing import Callable, Optional, TYPE_CHECKING, Tuple, Type
 
 import sqlalchemy
 from graphene import Field
@@ -10,12 +12,15 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     ColumnProperty,
     CompositeProperty,
+    DeclarativeMeta,
     RelationshipProperty,
 )
 
 from .converter import (
     convert_sqlalchemy_column,
     convert_sqlalchemy_composite,
+    convert_sqlalchemy_fk,
+    convert_sqlalchemy_fk_reverse,
     convert_sqlalchemy_hybrid_method,
     convert_sqlalchemy_relationship,
 )
@@ -27,19 +32,22 @@ from .enums import (
 from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
-from .utils import get_query, get_session, is_mapped_class, is_mapped_instance
+from .utils import get_query, is_mapped_class, is_mapped_instance
+
+if TYPE_CHECKING:
+    from .types import SQLAlchemyObjectType
 
 
 class ORMField(OrderedType):
     def __init__(
         self,
-        model_attr=None,
+        model_attr: str = None,
         type_=None,
-        required=None,
-        description=None,
-        deprecation_reason=None,
-        batching=None,
-        _creation_counter=None,
+        required: bool = None,
+        description: str = None,
+        deprecation_reason: str = None,
+        batching: bool = None,
+        _creation_counter: int = None,
         **field_kwargs,
     ):
         """
@@ -98,28 +106,19 @@ class ORMField(OrderedType):
 
 
 def construct_fields(
-    obj_type,
-    model,
-    registry,
-    only_fields,
-    exclude_fields,
-    connection_field_factory,
-):
+    obj_type: Type["SQLAlchemyObjectType"],
+    model: DeclarativeMeta,
+    registry: Registry,
+    only_fields: Tuple[str, ...],
+    exclude_fields: Tuple[str, ...],
+    connection_field_factory: Optional[Callable],
+) -> OrderedDict[str, Field]:
     """
     Construct all the fields for a SQLAlchemyObjectType.
     The main steps are:
       - Gather all the relevant attributes from the SQLAlchemy model
       - Gather all the ORM fields defined on the type
       - Merge in overrides and build up all the fields
-
-    :param SQLAlchemyObjectType obj_type:
-    :param model: the SQLAlchemy model
-    :param Registry registry:
-    :param tuple[string] only_fields:
-    :param tuple[string] exclude_fields:
-    :param bool batching:
-    :param function|None connection_field_factory:
-    :rtype: OrderedDict[str, graphene.Field]
     """
     inspected_model = sqlalchemy.inspect(model)
     # Gather all the relevant attributes from the SQLAlchemy model in order
@@ -172,12 +171,37 @@ def construct_fields(
         orm_fields[orm_field_name] = ORMField(model_attr=orm_field_name)
 
     # Build all the field dictionary
+    auto_fields = OrderedDict()
+    for mapper in inspected_model.registry.mappers:
+        for fk in mapper.local_table.foreign_keys:
+            if inspected_model.selectable == fk.column.table:
+                orm_field_name = str(fk.parent.table.fullname)
+                if (only_fields and orm_field_name not in only_fields) or (
+                    orm_field_name in exclude_fields
+                ):
+                    continue
+                auto_fields[orm_field_name] = convert_sqlalchemy_fk_reverse(
+                    fk, obj_type
+                )
+
+    for fk in inspected_model.mapped_table.foreign_keys:
+        orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
+        if (only_fields and orm_field_name not in only_fields) or (
+            orm_field_name in exclude_fields
+        ):
+            continue
+        auto_fields[orm_field_name] = convert_sqlalchemy_fk(
+            fk,
+            obj_type,
+            orm_field_name,
+        )
+
     fields = OrderedDict()
     for orm_field_name, orm_field in orm_fields.items():
         attr_name = orm_field.kwargs.pop("model_attr")
         attr = all_model_attrs[attr_name]
         resolver = get_custom_resolver(obj_type, orm_field_name) or get_attr_resolver(
-            obj_type, attr_name
+            attr_name
         )
 
         if isinstance(attr, ColumnProperty):
@@ -208,7 +232,7 @@ def construct_fields(
         registry.register_orm_field(obj_type, orm_field_name, attr)
         fields[orm_field_name] = field
 
-    return fields
+    return OrderedDict(auto_fields | fields)
 
 
 class SQLAlchemyObjectTypeOptions(ObjectTypeOptions):
@@ -222,8 +246,8 @@ class SQLAlchemyObjectType(ObjectType):
     @classmethod
     def __init_subclass_with_meta__(
         cls,
-        model=None,
-        registry=None,
+        model: DeclarativeMeta = None,
+        registry: Registry = None,
         skip_registry=False,
         only_fields=(),
         exclude_fields=(),
@@ -327,7 +351,7 @@ class SQLAlchemyObjectType(ObjectType):
 
     @classmethod
     async def get_node(cls, info, id):
-        session = get_session(info.context)
+        session = info.context.session
         model = cls._meta.model
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
@@ -347,17 +371,16 @@ class SQLAlchemyObjectType(ObjectType):
     def enum_for_field(cls, field_name):
         return enum_for_field(cls, field_name)
 
-    # TODO: REFACTOR
     @classmethod
     async def _resolve_reference_bulk(cls, model_instance, info):
-        resolvers_mapping = {}
         for field in info.parent_type.fields.values():
-            if hasattr(field.type, "name") and field.type.name.endswith("Connection"):
-                resolvers_mapping[field.type.name[:-10]] = field.resolve
-
-        return await resolvers_mapping[info.context.representation](
-            model_instance, info
-        )
+            if hasattr(field.type, "name"):
+                field_type_name = field.type.name
+                if (
+                    field_type_name.endswith("Connection")
+                    and field_type_name[:-10] == info.context.representation
+                ):
+                    return await field.resolve(model_instance, info)
 
     sort_enum = classmethod(sort_enum_for_object_type)
 

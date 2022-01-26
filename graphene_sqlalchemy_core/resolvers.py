@@ -1,7 +1,13 @@
+from typing import Callable, Type
+
 from graphene.utils.get_unbound_function import get_unbound_function
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .types import SQLAlchemyObjectType
 
 
-def get_custom_resolver(obj_type, orm_field_name):
+def get_custom_resolver(obj_type: Type["SQLAlchemyObjectType"], orm_field_name):
     """
     Since `graphene` will call `resolve_<field_name>` on a field only if it
     does not have a `resolver`, we need to re-implement that logic here so
@@ -14,14 +20,10 @@ def get_custom_resolver(obj_type, orm_field_name):
     return None
 
 
-def get_attr_resolver(obj_type, model_attr):
+def get_attr_resolver(model_attr: str) -> Callable:
     """
     In order to support field renaming via `ORMField.model_attr`,
     we need to define resolver functions for each field.
-
-    :param SQLAlchemyObjectType obj_type:
-    :param str model_attr: the name of the SQLAlchemy attribute
-    :rtype: Callable
     """
 
     async def resolver(root, _info):
