@@ -1,6 +1,5 @@
 import logging
 import re
-import warnings
 from dataclasses import dataclass
 from typing import Optional, Type, Union
 
@@ -114,51 +113,6 @@ def _deprecated_object_type_for_model(cls, name):
 
         _deprecated_object_type_cache[cls, name] = ObjType
         return ObjType
-
-
-def sort_enum_for_model(cls, name=None, symbol_name=None):
-    """Get a Graphene Enum for sorting the given model class.
-
-    This is deprecated, please use object_type.sort_enum() instead.
-    """
-    warnings.warn(
-        "sort_enum_for_model() is deprecated; use object_type.sort_enum() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    from .enums import sort_enum_for_object_type
-
-    return sort_enum_for_object_type(
-        _deprecated_object_type_for_model(cls, name),
-        name,
-        get_symbol_name=symbol_name or _deprecated_default_symbol_name,
-    )
-
-
-def sort_argument_for_model(cls, has_default=True):
-    """Get a Graphene Argument for sorting the given model class.
-
-    This is deprecated, please use object_type.sort_argument() instead.
-    """
-    warnings.warn(
-        "sort_argument_for_model() is deprecated;"
-        " use object_type.sort_argument() instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-
-    from graphene import Argument, List
-    from .enums import sort_enum_for_object_type
-
-    enum = sort_enum_for_object_type(
-        _deprecated_object_type_for_model(cls, None),
-        get_symbol_name=_deprecated_default_symbol_name,
-    )
-    if not has_default:
-        enum.default = None
-
-    return Argument(List(enum), default_value=enum.default)
 
 
 def filter_value_to_python(value):
