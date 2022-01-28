@@ -14,3 +14,9 @@ profile = "hug"
 [tool.coverage.run]
 branch = true
 omit = ['tests/*']
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:"
+]
