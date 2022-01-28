@@ -14,17 +14,14 @@ with open("graphene_sqlalchemy_core/__init__.py", "rb") as f:
 
 requirements = [
     # To keep things simple, we only support newer versions of Graphene
-    "graphene>=3.0b7",
+    "graphene>=3.0",
     "promise>=2.3",
-    # Tests fail with 1.0.19
     "SQLAlchemy>=1.4,<2",
-    "singledispatch == 3.7.0",
-    "aiodataloader == 0.2.0",
+    "aiodataloader == 0.2.1",
 ]
 
 tests_require = [
     "pytest>=6.2.0,<7.0",
-    # "pytest-cov>=2.11.0,<3.0",
     "coverage[toml]",
     "sqlalchemy_utils>=0.37.0,<1.0",
     "pytest-benchmark>=3.4.0,<4.0",
@@ -48,10 +45,8 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Libraries",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
     ],
     keywords="api graphql protocol rest relay graphene",
     packages=find_packages(exclude=["tests"]),

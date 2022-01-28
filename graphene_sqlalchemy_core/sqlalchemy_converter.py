@@ -2,7 +2,7 @@ from enum import EnumMeta
 
 from graphene import Boolean, Enum, Float, ID, Int, List, String
 from graphene.types.json import JSONString
-from singledispatch import singledispatch
+from functools import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
 
