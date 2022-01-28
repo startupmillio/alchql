@@ -29,10 +29,10 @@ class GlobalFilters:
     ID__IN = "id__in"
 
 
-def get_query(model, info):
+def get_query(model, info, cls_name=None):
     try:
         if info:
-            fields = get_fields(model, info)
+            fields = get_fields(model, info, cls_name)
         else:
             fields = model.__table__.columns
     except Exception as e:

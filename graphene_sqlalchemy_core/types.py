@@ -345,9 +345,9 @@ class SQLAlchemyObjectType(ObjectType):
         return isinstance(root, cls._meta.model)
 
     @classmethod
-    def get_query(cls, info):
+    async def get_query(cls, info):
         model = cls._meta.model
-        return get_query(model, info)
+        return get_query(model, info, cls.__name__)
 
     @classmethod
     async def get_node(cls, info, id):
@@ -355,9 +355,8 @@ class SQLAlchemyObjectType(ObjectType):
         model = cls._meta.model
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
-        q = sqlalchemy.select(model).where(pk == id)
-
-        result = (await session.execute(q)).scalars().first()
+        q = (await cls.get_query(info)).where(pk == id)
+        result = model(**(await session.execute(q)).first())
         return result
 
     async def resolve_id(self, info):

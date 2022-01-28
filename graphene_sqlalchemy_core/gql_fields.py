@@ -36,7 +36,7 @@ def camel_to_snake(name: str) -> str:
     return name.lower()
 
 
-def collect_fields(node, fragments):
+def collect_fields(node, fragments, cls_name: str = None):
     """Recursively collects fields from the AST
 
     Args:
@@ -63,6 +63,11 @@ def collect_fields(node, fragments):
                 field.update(
                     collect_fields(fragments[leaf["name"]["value"]], fragments)
                 )
+            elif (
+                leaf["kind"] == "inline_fragment"
+                and leaf["type_condition"].name.value == cls_name
+            ):
+                field.update(collect_fields(leaf, fragments))
 
     return field
 
@@ -86,7 +91,7 @@ def ast_to_dict(ast: Union[FieldNode, FragmentDefinitionNode]):
     return result
 
 
-def get_tree(info: GraphQLResolveInfo):
+def get_tree(info: GraphQLResolveInfo, cls_name: str = None):
     """A convenience function to call collect_fields with info
 
     Args:
@@ -102,11 +107,11 @@ def get_tree(info: GraphQLResolveInfo):
     for name, value in info.fragments.items():
         fragments[name] = ast_to_dict(value)
 
-    return collect_fields(node, fragments)
+    return collect_fields(node, fragments, cls_name)
 
 
-def get_fields(model, info):
-    tree = get_tree(info)
+def get_fields(model, info, cls_name=None):
+    tree = get_tree(info, cls_name)
 
     if "edges" in tree:
         tree = tree["edges"]
