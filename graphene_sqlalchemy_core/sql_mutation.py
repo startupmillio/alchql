@@ -2,6 +2,7 @@ from inspect import isawaitable
 from typing import Callable, Dict, Iterable, Type
 
 import graphene
+import sqlalchemy
 import sqlalchemy as sa
 from graphene import Argument, Field, Interface, ObjectType
 from graphene.types.mutation import MutationOptions
@@ -12,8 +13,9 @@ from graphene.utils.props import props
 from graphql_relay import from_global_id
 from sqlalchemy.orm import DeclarativeMeta
 
-from .gql_fields import get_fields
+from .utils import get_query
 from .get_input_type import get_input_type
+from .gql_fields import get_fields
 
 
 class SQLMutationOptions(ObjectTypeOptions):
@@ -152,8 +154,6 @@ class SQLAlchemyUpdateMutation(ObjectType):
         pk = table.primary_key.columns[0]
 
         type_name, id_ = from_global_id(id)
-        if type_name != output.__name__:
-            raise Exception(f"Invalid id type: {type_name} != {output.__name__}")
 
         try:
             field_set = get_fields(model, info, type_name)
@@ -167,7 +167,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
 
         if field_set and session.bind.name != "sqlite":
             row = (await session.execute(q.returning(*field_set))).first()
-            result = model(**row)
+            result = output(**row)
         else:
             await session.execute(q)
             result = output.get_node(info, id_)
@@ -175,4 +175,17 @@ class SQLAlchemyUpdateMutation(ObjectType):
             if isawaitable(result):
                 result = await result
 
+        return result
+
+    @classmethod
+    async def get_query(cls, info):
+        return get_query(cls._meta.model, info, cls.__name__)
+
+    @classmethod
+    async def get_node(cls, info, id):
+        session = info.context.session
+
+        pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
+        q = (await cls.get_query(info)).where(pk == id)
+        result = cls(**(await session.execute(q)).first())
         return result
