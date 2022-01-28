@@ -33,12 +33,34 @@ test:
     - pip install .[test]
 
   script:
-    #  - pip install black --upgrade
-    #  - python -m unittest -v
     - coverage run -m pytest
-    #  - black -S -l 80 --check --diff ./
     - coverage report -m --skip-covered
     - coverage xml
+
+
+black:
+  image: python:3.9
+  stage: test
+  allow_failure: true
+
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /hotfix/
+
+  variables:
+    PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
+    PIP_DOWNLOAD_CACHE: $CI_PROJECT_DIR/.cache/pip_download_cache
+
+  cache:
+    key: ${CI_JOB_NAME}
+    paths:
+      - .cache
+
+  script:
+    - pip install black==21.12b0
+    - black --version
+    - black --check --diff ./
+
 
 build package:
   image: python:3.9
