@@ -24,7 +24,8 @@ requirements = [
 
 tests_require = [
     "pytest>=6.2.0,<7.0",
-    "pytest-cov>=2.11.0,<3.0",
+    # "pytest-cov>=2.11.0,<3.0",
+    "coverage[toml]",
     "sqlalchemy_utils>=0.37.0,<1.0",
     "pytest-benchmark>=3.4.0,<4.0",
     "mock == 4.0.3",
