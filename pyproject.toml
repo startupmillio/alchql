@@ -1,3 +1,16 @@
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+
 [tool.black]
+line-length = 88
 target-version = ['py39']
 include = '\.pyi?$'
+
+[tool.isort]
+profile = "hug"
+
+[tool.coverage.run]
+branch = true
+omit = ['tests/*']
