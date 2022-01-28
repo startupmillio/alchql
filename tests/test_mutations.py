@@ -5,7 +5,7 @@ from graphene import Context, relay
 from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
 from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
-from graphene_sqlalchemy_core.sql_mutation import SQLUpdateMutation
+from graphene_sqlalchemy_core.sql_mutation import SQLAlchemyUpdateMutation
 from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 from .models import Article, Pet, Reporter
 from .test_query import add_test_data
@@ -21,7 +21,7 @@ async def test_get_session(session, raise_graphql):
             interfaces = (AsyncNode,)
             batching = True
 
-    class MutationUpdatePet(SQLUpdateMutation):
+    class MutationUpdatePet(SQLAlchemyUpdateMutation):
         class Meta:
             model = Pet
             output = PetType

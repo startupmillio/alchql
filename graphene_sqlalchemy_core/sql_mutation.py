@@ -10,10 +10,9 @@ from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.get_unbound_function import get_unbound_function
 from graphene.utils.props import props
 from graphql_relay import from_global_id
-
-from graphene_sqlalchemy_core.gql_fields import get_fields
 from sqlalchemy.orm import DeclarativeMeta
 
+from .gql_fields import get_fields
 from .get_input_type import get_input_type
 
 
@@ -25,7 +24,7 @@ class SQLMutationOptions(ObjectTypeOptions):
     interfaces: Iterable[Type[Interface]] = ()
 
 
-class SQLUpdateMutation(ObjectType):
+class SQLAlchemyUpdateMutation(ObjectType):
     _meta: Type[SQLMutationOptions]
     """
     Object Type Definition (mutation field)
@@ -124,7 +123,7 @@ class SQLUpdateMutation(ObjectType):
         _meta.arguments = arguments
         _meta.model = model
 
-        super(SQLUpdateMutation, cls).__init_subclass_with_meta__(
+        super(SQLAlchemyUpdateMutation, cls).__init_subclass_with_meta__(
             _meta=_meta, **options
         )
 

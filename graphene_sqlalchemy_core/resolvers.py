@@ -1,7 +1,6 @@
-from typing import Callable, Type
+from typing import Callable, TYPE_CHECKING, Type
 
 from graphene.utils.get_unbound_function import get_unbound_function
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .types import SQLAlchemyObjectType

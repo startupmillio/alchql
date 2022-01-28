@@ -2,8 +2,9 @@ from typing import Type
 
 import graphene
 import sqlalchemy as sa
-from graphene_sqlalchemy_core.sqlalchemy_converter import convert_sqlalchemy_type
 from sqlalchemy.orm import DeclarativeMeta
+
+from .sqlalchemy_converter import convert_sqlalchemy_type
 
 
 def get_input_type(model: DeclarativeMeta) -> Type:
