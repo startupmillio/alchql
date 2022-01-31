@@ -1,5 +1,8 @@
+from unittest.mock import patch
+
 import graphene
 import pytest
+from graphql import ASTValidationRule, GraphQLError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from .models import Base, CompositeFullName
@@ -38,3 +41,29 @@ async def session_factory():
 @pytest.fixture(scope="function")
 def session(session_factory):
     return session_factory
+
+
+@pytest.fixture
+def raise_graphql():
+    def r(self, x, *args, **kwargs):
+        raise x
+
+    def init(
+        self,
+        message: str,
+        nodes=None,
+        source=None,
+        positions=None,
+        path=None,
+        original_error=None,
+        extensions=None,
+    ):
+        if isinstance(original_error, Exception):
+            raise original_error
+        else:
+            raise Exception(message)
+
+    with patch.object(ASTValidationRule, "report_error", r), patch.object(
+        GraphQLError, "__init__", init
+    ):
+        yield

@@ -8,16 +8,17 @@ from graphene import Argument, NonNull
 from graphene.relay import Connection, ConnectionField
 from graphene.relay.connection import connection_adapter, page_info_adapter
 from graphene.types.utils import get_type
-from graphql_relay.connection.arrayconnection import connection_from_array_slice
-from sqlalchemy.orm import InstrumentedAttribute
+from graphql_relay import connection_from_array_slice
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import InstrumentedAttribute, RelationshipProperty
 
-from .batching import get_batch_resolver
+from .batching import get_batch_resolver, get_fk_resolver_reverse
 from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
 from .query_helper import QueryHelper
-from .registry import get_global_registry
+from .registry import Registry, get_global_registry
 from .slice import connection_from_query
 from .sqlalchemy_converter import convert_sqlalchemy_type
-from .utils import EnumValue, FilterItem, GlobalFilters, get_query, get_session
+from .utils import EnumValue, FilterItem, GlobalFilters, get_query
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -53,7 +54,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
     @classmethod
     async def resolve_connection(cls, connection_type, model, info, args, resolved):
         query = await cls.get_query(model, info, **args)
-        session = get_session(info.context)
+        session = info.context.session
 
         if resolved is None:
             q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
@@ -68,7 +69,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
             connection = await connection_from_query(
                 query,
-                model,
                 session,
                 args,
                 slice_start=0,
@@ -120,7 +120,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         )
 
 
-# TODO Rename this to SortableSQLAlchemyConnectionField
 class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
     def __init__(self, type_, *args, **kwargs):
         nullable_type = get_nullable_type(type_)
@@ -302,15 +301,32 @@ class BatchSQLAlchemyConnectionField(FilterConnectionField, ModelField):
 
         return cls(model_type, resolver=resolver, **field_kwargs)
 
+    @classmethod
+    def from_fk(cls, fk: ForeignKey, registry, **field_kwargs):
+        model_type = registry.get_type_for_model(fk.constraint.table)
 
-def default_connection_field_factory(relationship, registry, **field_kwargs):
+        if not model_type:
+            return
+
+        resolver = get_fk_resolver_reverse(fk, single=False)
+
+        if hasattr(model_type._meta, "filter_fields"):
+            BatchSQLAlchemyConnectionField.set_filter_fields(model_type, field_kwargs)
+
+        if hasattr(model_type, "sort_argument"):
+            field_kwargs["sort"] = model_type.sort_argument()
+
+        return cls(model_type, resolver=resolver, **field_kwargs)
+
+
+def default_connection_field_factory(
+    relationship: RelationshipProperty,
+    registry: Registry,
+    **field_kwargs,
+):
     model = relationship.mapper.entity
     model_type = registry.get_type_for_model(model)
-    return __connectionFactory(model_type, **field_kwargs)
-
-
-# TODO Remove in next major version
-__connectionFactory = UnsortedSQLAlchemyConnectionField
+    return UnsortedSQLAlchemyConnectionField(model_type, **field_kwargs)
 
 
 def get_nullable_type(_type):

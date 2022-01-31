@@ -85,18 +85,19 @@ class SessionQLApp(GraphQLApp):
     @asynccontextmanager
     async def _get_context_value(self, request: HTTPConnection) -> Any:
         async with AsyncSession(self.engine) as session:
-            if callable(self.context_value):
-                context = self.context_value(
-                    request=request,
-                    background=BackgroundTasks(),
-                    session=session,
-                )
-                if isawaitable(context):
-                    context = await context
-                yield context
-            else:
-                yield self.context_value or Context(
-                    request=request,
-                    background=BackgroundTasks(),
-                    session=session,
-                )
+            async with session.begin():
+                if callable(self.context_value):
+                    context = self.context_value(
+                        request=request,
+                        background=BackgroundTasks(),
+                        session=session,
+                    )
+                    if isawaitable(context):
+                        context = await context
+                    yield context
+                else:
+                    yield self.context_value or Context(
+                        request=request,
+                        background=BackgroundTasks(),
+                        session=session,
+                    )

@@ -2,16 +2,17 @@ import pkg_resources
 
 from .fields import SQLAlchemyConnectionField
 from .types import SQLAlchemyObjectType
-from .utils import get_query, get_session
+from .utils import get_query
+from .sql_mutation import SQLAlchemyUpdateMutation
 
-__version__ = "2.3.1"
+__version__ = "3.0.7"
 
 __all__ = [
     "__version__",
     "SQLAlchemyObjectType",
     "SQLAlchemyConnectionField",
+    "SQLAlchemyUpdateMutation",
     "get_query",
-    "get_session",
 ]
 
 

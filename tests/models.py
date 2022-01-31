@@ -79,7 +79,7 @@ class Reporter(Base):
     pets = relationship(
         "Pet", secondary=association_table, backref="reporters", order_by="Pet.id"
     )
-    articles = relationship("Article", backref="reporter")
+    # articles = relationship("Article", backref="reporter")
     favorite_article = relationship("Article", uselist=False)
 
     @hybrid_property

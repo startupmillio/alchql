@@ -1,15 +1,12 @@
-from graphql_relay.connection.arrayconnection import (
-    get_offset_with_default,
-    offset_to_cursor,
-)
+from graphql_relay import get_offset_with_default, offset_to_cursor
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .utils import filter_requested_fields_for_object
 
 
 async def connection_from_query(
     query,
-    model,
-    session,
+    session: AsyncSession,
     args=None,
     connection_type=None,
     edge_type=None,
@@ -69,6 +66,8 @@ async def connection_from_query(
             startCursor=first_edge_cursor,
             endCursor=last_edge_cursor,
             hasPreviousPage=isinstance(last, int) and start_offset > lower_bound,
-            hasNextPage=isinstance(first, int) and end_offset < upper_bound and edges != [],
+            hasNextPage=isinstance(first, int)
+            and end_offset < upper_bound
+            and edges != [],
         ),
     )
