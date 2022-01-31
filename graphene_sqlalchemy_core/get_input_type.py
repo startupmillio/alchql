@@ -12,7 +12,7 @@ def get_input_fields(model: DeclarativeMeta) -> dict:
     table = sa.inspect(model).mapped_table
 
     fields = {}
-    for name, column in table.columns.items():
+    for name, column in dict(table.columns).items():
         field = convert_sqlalchemy_type(
             getattr(column, "type", None),
             column,
