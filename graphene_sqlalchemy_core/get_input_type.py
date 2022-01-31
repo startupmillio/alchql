@@ -2,6 +2,7 @@ from typing import Type
 
 import graphene
 import sqlalchemy as sa
+from graphene.types.enum import EnumMeta
 from sqlalchemy.orm import DeclarativeMeta
 
 from .sqlalchemy_converter import convert_sqlalchemy_type
@@ -10,18 +11,20 @@ from .sqlalchemy_converter import convert_sqlalchemy_type
 def get_input_fields(model: DeclarativeMeta) -> dict:
     table = sa.inspect(model).mapped_table
 
-    fields = (
-        (
-            name,
-            convert_sqlalchemy_type(
-                getattr(column, "type", None),
-                column,
-            ),
+    fields = {}
+    for name, column in table.columns.items():
+        field = convert_sqlalchemy_type(
+            getattr(column, "type", None),
+            column,
         )
-        for name, column in table.columns.items()
-    )
+        if callable(field):
+            field = field()
+        if isinstance(field, EnumMeta):
+            field = field()
 
-    return {name: field() if callable(field) else field for name, field in fields}
+        fields[name] = field
+
+    return fields
 
 
 def get_input_type(model: DeclarativeMeta) -> Type:
