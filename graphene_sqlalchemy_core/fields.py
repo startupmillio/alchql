@@ -58,8 +58,8 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
         if resolved is None:
             only_q = query.with_only_columns(*sa.inspect(model).primary_key)
-            q = sa.select([sa.func.count()]).select_from(only_q.alias())
             if QueryHelper.get_filters(info):
+                q = sa.select([sa.func.count()]).select_from(only_q.alias())
                 q_res = await session.execute(q)
                 _len = q_res.scalar()
             elif QueryHelper.has_last_arg(info):
