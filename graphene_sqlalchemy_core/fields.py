@@ -57,15 +57,18 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         session = info.context.session
 
         if resolved is None:
-            q_aliased = query.with_only_columns(*sa.inspect(model).primary_key).alias()
-            q = sa.select([sa.func.count()]).select_from(q_aliased)
+            only_q = query.with_only_columns(*sa.inspect(model).primary_key)
             if QueryHelper.get_filters(info):
+                q = sa.select([sa.func.count()]).select_from(only_q.alias())
                 q_res = await session.execute(q)
                 _len = q_res.scalar()
             elif QueryHelper.has_last_arg(info):
                 raise TypeError('Cannot set "last" without filters applied')
             else:
-                _len = 100
+                limited_q = only_q.limit(10000).cte("limited_q")
+                q = sa.select([sa.func.count()]).select_from(limited_q)
+                q_res = await session.execute(q)
+                _len = q_res.scalar()
 
             connection = await connection_from_query(
                 query,
@@ -161,8 +164,7 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
 class FilterConnectionField(SQLAlchemyConnectionField):
     def __init__(self, type_, *args, **kwargs):
         type_ = get_type(type_)
-        if hasattr(type_._meta, "filter_fields"):
-            FilterConnectionField.set_filter_fields(type_, kwargs)
+        FilterConnectionField.set_filter_fields(type_, kwargs)
 
         if hasattr(type, "sort_argument"):
             kwargs["sort"] = type_.sort_argument()
@@ -195,7 +197,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
             field_type=graphene.List(of_type=graphene.ID),
         )
 
-        for field, operators in type_._meta.filter_fields.items():
+        for field, operators in getattr(type_._meta, "filter_fields", {}).items():
             if isinstance(field, str) and isinstance(operators, FilterItem):
                 kwargs[field] = Argument(type_=operators.field_type)
                 filters[field] = operators
