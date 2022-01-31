@@ -1,13 +1,11 @@
 from collections import defaultdict
-from typing import Type, Union
+from typing import TYPE_CHECKING, Type, Union
 
 import sqlalchemy as sa
 from graphene import Enum
 from sqlalchemy import Column, Table
 from sqlalchemy.orm import DeclarativeMeta
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
-from typing import TYPE_CHECKING
-
 
 if TYPE_CHECKING:
     from .types import SQLAlchemyObjectType

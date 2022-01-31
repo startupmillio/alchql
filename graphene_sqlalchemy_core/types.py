@@ -346,17 +346,15 @@ class SQLAlchemyObjectType(ObjectType):
 
     @classmethod
     async def get_query(cls, info):
-        model = cls._meta.model
-        return get_query(model, info, cls.__name__)
+        return get_query(cls._meta.model, info, cls.__name__)
 
     @classmethod
     async def get_node(cls, info, id):
         session = info.context.session
-        model = cls._meta.model
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
         q = (await cls.get_query(info)).where(pk == id)
-        result = model(**(await session.execute(q)).first())
+        result = cls(**(await session.execute(q)).first())
         return result
 
     async def resolve_id(self, info):

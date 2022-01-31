@@ -3,7 +3,6 @@ import pytest
 import sqlalchemy as sa
 from graphene import Context
 
-from graphene_sqlalchemy_core import gql_types
 from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Reporter
 from .utils import to_std_dicts
 from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
