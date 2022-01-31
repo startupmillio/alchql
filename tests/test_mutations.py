@@ -80,7 +80,7 @@ async def test_get_update_mutation_case1(session):
         """
 
     id_to_update = all_pets[0]["id"]
-    new_name = "pedobear"
+    new_name = "bear"
 
     result = await schema.execute_async(
         query,
@@ -165,7 +165,7 @@ async def test_get_update_mutation_case2(session):
         """
 
     id_to_update = all_pets[0]["id"]
-    new_name = "pedobear"
+    new_name = "bear"
 
     result = await schema.execute_async(
         query,
@@ -254,7 +254,7 @@ async def test_get_update_mutation_case3(session):
     """
 
     id_to_update = all_pets[0]["id"]
-    new_name = "pedobear"
+    new_name = "bear"
 
     result = await schema.execute_async(
         query,
