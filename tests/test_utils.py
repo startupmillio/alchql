@@ -25,7 +25,10 @@ async def test_get_session():
     """
 
     schema = Schema(query=Query)
-    result = await schema.execute_async(query, context_value=Context(session=session))
+    result = await schema.execute_async(
+        query,
+        context_value=Context(session=session),
+    )
     assert not result.errors
     assert result.data["x"] == session
 
