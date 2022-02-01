@@ -214,19 +214,23 @@ class FilterConnectionField(SQLAlchemyConnectionField):
             else:
                 field_key = f"{field.parent.tables[0].name}_{field.key}"
 
+            field_type = convert_sqlalchemy_type(
+                getattr(field, "type", None), field, registry
+            )
+
+            if field.prop.columns[0].foreign_keys:
+                field_type = graphene.ID
+
             for operator in operators:
-                field_type = convert_sqlalchemy_type(
-                    getattr(field, "type", None), field, registry
-                )
-                if field.prop.columns[0].foreign_keys:
-                    field_type = graphene.ID
                 if operator == OP_IN:
-                    field_type = graphene.List(of_type=field_type)
+                    operator_field_type = graphene.List(of_type=field_type)
+                else:
+                    operator_field_type = field_type
 
                 filter_name = f"{field_key}__{operator}"
-                kwargs[filter_name] = Argument(type_=field_type)
+                kwargs[filter_name] = Argument(type_=operator_field_type)
                 filters[filter_name] = FilterItem(
-                    field_type=field_type,
+                    field_type=operator_field_type,
                     filter_func=getattr(field, OPERATORS_MAPPING[operator][0]),
                     value_func=OPERATORS_MAPPING[operator][1],
                 )
