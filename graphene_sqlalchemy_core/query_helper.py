@@ -217,7 +217,7 @@ class QueryHelper:
         gql_field = QueryHelper.get_current_field(info)
         if gql_field and gql_field.arguments:
             for name, value in gql_field.arguments.items():
-                if name == "last":
+                if name == "last" and value is not None:
                     return True
 
         return False
