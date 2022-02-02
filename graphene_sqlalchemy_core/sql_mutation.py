@@ -165,7 +165,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
 
         q = sa.update(model).values(value).where(pk == int(id_))
 
-        if field_set and session.bind.name != "sqlite":
+        if field_set and getattr(session.bind, "name", "") != "sqlite":
             row = (await session.execute(q.returning(*field_set))).first()
             result = output(**row)
         else:
@@ -324,7 +324,7 @@ class SQLAlchemyCreateMutation(ObjectType):
             {k: v.value if isinstance(v, Enum) else v for k, v in value.items()}
         )
 
-        if field_set and session.bind.name != "sqlite":
+        if field_set and getattr(session.bind, "name", "") != "sqlite":
             row = (await session.execute(q.returning(*field_set))).first()
             result = output(**row)
         else:
