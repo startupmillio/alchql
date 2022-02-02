@@ -57,7 +57,7 @@ black:
       - .cache
 
   script:
-    - pip install black==21.12b0
+    - pip install black==22.1
     - black --version
     - black --check --diff ./
 

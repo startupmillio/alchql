@@ -30,46 +30,6 @@ class SQLMutationOptions(ObjectTypeOptions):
 
 class SQLAlchemyUpdateMutation(ObjectType):
     _meta: Type[SQLMutationOptions]
-    """
-    Object Type Definition (mutation field)
-
-    Mutation is a convenience type that helps us build a Field which takes Arguments and returns a
-    mutation Output ObjectType.
-
-    .. code:: python
-
-        from graphene import Mutation, ObjectType, String, Boolean, Field
-
-        class CreatePerson(Mutation):
-            class Arguments:
-                name = String()
-
-            def mutate(parent, info, name):
-                person = Person(name=name)
-                ok = True
-                return CreatePerson(person=person, ok=ok)
-
-        class Mutation(ObjectType):
-            create_person = CreatePerson.Field()
-
-    Meta class options (optional):
-        model (DeclarativeMeta): SQLAlchemy model type
-        output (graphene.ObjectType): Or ``Output`` inner class with attributes on Mutation class.
-            Or attributes from Mutation class. Fields which can be returned from this mutation
-            field.
-        resolver (Callable resolver method): Or ``mutate`` method on Mutation class. Perform data
-            change and return output.
-        arguments (Dict[str, graphene.Argument]): Or ``Arguments`` inner class with attributes on
-            Mutation class. Arguments to use for the mutation Field.
-        name (str): Name of the GraphQL type (must be unique in schema). Defaults to class
-            name.
-        description (str): Description of the GraphQL type in the schema. Defaults to class
-            docstring.
-        interfaces (Iterable[graphene.Interface]): GraphQL interfaces to extend with the payload
-            object. All fields from interface will be included in this object's schema.
-        fields (Dict[str, graphene.Field]): Dictionary of field name to Field. Not recommended to
-            use (prefer class attributes or ``Meta.output``).
-    """
 
     @classmethod
     def __init_subclass_with_meta__(
@@ -79,6 +39,8 @@ class SQLAlchemyUpdateMutation(ObjectType):
         output=None,
         arguments=None,
         model: DeclarativeMeta = None,
+        only_fields=(),
+        exclude_fields=(),
         _meta=None,
         **options,
     ):
@@ -106,7 +68,9 @@ class SQLAlchemyUpdateMutation(ObjectType):
             if input_class:
                 arguments = props(input_class)
             else:
-                input_type = get_input_type(model)
+                input_type = get_input_type(
+                    model, only_fields=only_fields, exclude_fields=exclude_fields
+                )
                 arguments = {
                     "id": graphene.ID(required=True),
                     "value": graphene.Argument(input_type, required=True),
@@ -193,46 +157,6 @@ class SQLAlchemyUpdateMutation(ObjectType):
 
 class SQLAlchemyCreateMutation(ObjectType):
     _meta: Type[SQLMutationOptions]
-    """
-    Object Type Definition (mutation field)
-
-    Mutation is a convenience type that helps us build a Field which takes Arguments and returns a
-    mutation Output ObjectType.
-
-    .. code:: python
-
-        from graphene import Mutation, ObjectType, String, Boolean, Field
-
-        class CreatePerson(Mutation):
-            class Arguments:
-                name = String()
-
-            def mutate(parent, info, name):
-                person = Person(name=name)
-                ok = True
-                return CreatePerson(person=person, ok=ok)
-
-        class Mutation(ObjectType):
-            create_person = CreatePerson.Field()
-
-    Meta class options (optional):
-        model (DeclarativeMeta): SQLAlchemy model type
-        output (graphene.ObjectType): Or ``Output`` inner class with attributes on Mutation class.
-            Or attributes from Mutation class. Fields which can be returned from this mutation
-            field.
-        resolver (Callable resolver method): Or ``mutate`` method on Mutation class. Perform data
-            change and return output.
-        arguments (Dict[str, graphene.Argument]): Or ``Arguments`` inner class with attributes on
-            Mutation class. Arguments to use for the mutation Field.
-        name (str): Name of the GraphQL type (must be unique in schema). Defaults to class
-            name.
-        description (str): Description of the GraphQL type in the schema. Defaults to class
-            docstring.
-        interfaces (Iterable[graphene.Interface]): GraphQL interfaces to extend with the payload
-            object. All fields from interface will be included in this object's schema.
-        fields (Dict[str, graphene.Field]): Dictionary of field name to Field. Not recommended to
-            use (prefer class attributes or ``Meta.output``).
-    """
 
     @classmethod
     def __init_subclass_with_meta__(
@@ -242,6 +166,8 @@ class SQLAlchemyCreateMutation(ObjectType):
         output=None,
         arguments=None,
         model: DeclarativeMeta = None,
+        only_fields=(),
+        exclude_fields=(),
         _meta=None,
         **options,
     ):
@@ -269,7 +195,9 @@ class SQLAlchemyCreateMutation(ObjectType):
             if input_class:
                 arguments = props(input_class)
             else:
-                input_type = get_input_type(model)
+                input_type = get_input_type(
+                    model, only_fields=only_fields, exclude_fields=exclude_fields
+                )
                 arguments = {
                     "value": graphene.Argument(input_type, required=True),
                 }

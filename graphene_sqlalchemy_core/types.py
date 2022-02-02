@@ -1,6 +1,6 @@
 import re
 from collections import OrderedDict
-from typing import Callable, Optional, TYPE_CHECKING, Tuple, Type
+from typing import Callable, Optional, Tuple, Type
 
 import sqlalchemy
 from graphene import Field
@@ -33,9 +33,6 @@ from .node import AsyncNode
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, is_mapped_class, is_mapped_instance
-
-if TYPE_CHECKING:
-    from .types import SQLAlchemyObjectType
 
 
 class ORMField(OrderedType):
@@ -236,13 +233,15 @@ def construct_fields(
 
 
 class SQLAlchemyObjectTypeOptions(ObjectTypeOptions):
-    model = None  # type: sqlalchemy.Model
-    registry = None  # type: sqlalchemy.Registry
-    connection = None  # type: sqlalchemy.Type[sqlalchemy.Connection]
-    id = None  # type: str
+    model: Type[DeclarativeMeta] = None
+    registry: Registry = None
+    connection: Type[Connection] = None
+    id: str = None
 
 
 class SQLAlchemyObjectType(ObjectType):
+    _meta: SQLAlchemyObjectTypeOptions
+
     @classmethod
     def __init_subclass_with_meta__(
         cls,
