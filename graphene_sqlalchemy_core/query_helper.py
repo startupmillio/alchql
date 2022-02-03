@@ -189,7 +189,10 @@ class QueryHelper:
 
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
-                if getattr(current_field, "use_label", True):
+                if (
+                    getattr(current_field, "use_label", True)
+                    and field != model_field.key
+                ):
                     select_fields.add(model_field.label(field))
                 else:
                     select_fields.add(model_field)
