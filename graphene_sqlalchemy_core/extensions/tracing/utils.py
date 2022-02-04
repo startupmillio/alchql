@@ -6,7 +6,7 @@ from .generated import reports_pb2 as Trace
 
 
 def hr_timestamp_to_nanos(timestamp):
-    return (timestamp.seconds * (10 ** 9)) + timestamp.nanos
+    return (timestamp.seconds * (10**9)) + timestamp.nanos
 
 
 def response_path_as_string(p=None):
