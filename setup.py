@@ -18,7 +18,7 @@ requirements = [
     "promise>=2.3",
     "SQLAlchemy>=1.4,<2",
     "aiodataloader == 0.2.1",
-    "protobuf"
+    "protobuf",
 ]
 
 tests_require = [
