@@ -31,12 +31,13 @@ example_query = """
 }
 """
 
-
 app.add_route(
     "/graphql",
     SessionQLApp(
         schema=schema,
-        middleware=[LoaderMiddleware(Base.registry.mappers)],
+        middleware=[
+            LoaderMiddleware(Base.registry.mappers),
+        ],
         engine=engine,
     ),
 )
