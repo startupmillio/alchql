@@ -189,6 +189,7 @@ class QueryHelper:
 
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
+                # labled columns could create name conflict
                 if (
                     getattr(current_field, "use_label", True)
                     and field != model_field.key

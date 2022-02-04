@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 from inspect import isawaitable
-from typing import Any, Awaitable, Callable, Dict, Optional, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, Union
 
 from graphene import Context
-from graphql import graphql
+from graphql import ExecutionResult, graphql
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from starlette.background import BackgroundTasks
 from starlette.requests import HTTPConnection, Request
@@ -13,6 +13,8 @@ from starlette_graphene3 import (
     _get_operation_from_request,
     make_graphiql_handler,
 )
+
+from .extensions import Extension, ExtensionManager
 
 DEFAULT_GET = object()
 
@@ -25,6 +27,7 @@ class SessionQLApp(GraphQLApp):
         on_get: Optional[
             Callable[[Request], Union[Response, Awaitable[Response]]]
         ] = DEFAULT_GET,
+        extensions: List[Type[Extension]] = (),
         *args,
         **kwargs,
     ):
@@ -32,6 +35,7 @@ class SessionQLApp(GraphQLApp):
         if on_get == DEFAULT_GET:
             on_get = make_graphiql_handler()
 
+        self.extensions = extensions or ()
         super().__init__(context_value=context_value, on_get=on_get, *args, **kwargs)
 
     async def _handle_http_request(self, request: Request) -> JSONResponse:
@@ -52,16 +56,25 @@ class SessionQLApp(GraphQLApp):
         operation_name = operation.get("operationName")
 
         async with self._get_context_value(request) as context_value:
-            result = await graphql(
-                self.schema.graphql_schema,
-                source=query,
-                context_value=context_value,
-                root_value=self.root_value,
-                middleware=self.middleware,
-                variable_values=variable_values,
-                operation_name=operation_name,
-                execution_context_class=self.execution_context_class,
-            )
+            middleware = self.middleware or ()
+            extension_manager = ExtensionManager(self.extensions, context=context_value)
+
+            with extension_manager.request():
+                result: ExecutionResult = await graphql(
+                    self.schema.graphql_schema,
+                    source=query,
+                    context_value=context_value,
+                    root_value=self.root_value,
+                    middleware=(*middleware, *extension_manager.extensions),
+                    variable_values=variable_values,
+                    operation_name=operation_name,
+                    execution_context_class=self.execution_context_class,
+                )
+
+            extension_results = extension_manager.format()
+            if extension_results:
+                result.extensions = extension_results
+
             background = getattr(context_value, "background", None)
 
         response: Dict[str, Any] = {"data": result.data}
@@ -75,6 +88,8 @@ class SessionQLApp(GraphQLApp):
             response["errors"] = [
                 self.error_formatter(error) for error in result.errors
             ]
+        if result.extensions:
+            response["extensions"] = result.extensions
 
         return JSONResponse(
             response,
