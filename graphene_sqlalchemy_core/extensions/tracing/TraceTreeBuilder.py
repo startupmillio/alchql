@@ -68,11 +68,11 @@ class TraceTreeBuilder:
     def new_node(self, path):
         parent_node = self.ensure_parent_node(path)
         node = parent_node.child.add()
-        id = path.key
-        if isinstance(id, int):
-            node.index = id
+        id_ = path.key
+        if isinstance(id_, int):
+            node.index = id_
         else:
-            node.response_name = id
+            node.response_name = id_
         response_path = response_path_as_string(path)
         self.nodes[response_path] = node
         return node

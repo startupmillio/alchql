@@ -15,7 +15,7 @@ def response_path_as_string(p=None):
 
     res = p.key
     p = p.prev
-    while p != None:
+    while p is not None:
         res = str(p.key) + "." + str(res)
         p = p.prev
     return res
