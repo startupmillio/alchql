@@ -5,7 +5,10 @@ from typing import Sequence, Type, Union
 import sqlalchemy as sa
 from sqlalchemy.orm import DeclarativeMeta, Mapper
 
-from .loader_fk import generate_loader_by_foreign_key, generate_loader_by_relationship
+from graphene_sqlalchemy_core.loader_fk import (
+    generate_loader_by_foreign_key,
+    generate_loader_by_relationship,
+)
 
 
 class LoaderMiddleware:

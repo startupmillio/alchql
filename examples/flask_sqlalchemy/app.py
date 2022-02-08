@@ -4,7 +4,7 @@ from flask_graphql import GraphQLView
 from graphene import Context
 
 from database import Base, db_session, init_db
-from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from schema import schema
 
 app = Flask(__name__)

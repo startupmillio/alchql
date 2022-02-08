@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from database import Base, db_session, engine, init_db
 from graphene_sqlalchemy_core.app import SessionQLApp
-from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from schema import schema
 
 app = FastAPI()
