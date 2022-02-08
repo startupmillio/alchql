@@ -6,7 +6,7 @@ import pytest
 import sqlalchemy as sa
 from graphene import Context, relay
 
-from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 from .models import Article, HairKind, Pet, Reporter, association_table
 from .utils import to_std_dicts

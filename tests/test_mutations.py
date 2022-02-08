@@ -4,7 +4,7 @@ from graphene import Context
 from graphql_relay import to_global_id
 
 from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
-from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.sql_mutation import (
     SQLAlchemyCreateMutation,

@@ -7,7 +7,7 @@ from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Rep
 from .utils import to_std_dicts
 from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
 from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
-from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.types import ORMField, SQLAlchemyObjectType
 

@@ -5,7 +5,7 @@ from graphene import Context
 
 from .models import Article, HairKind, Pet, Reporter
 from graphene_sqlalchemy_core.fields import BatchSQLAlchemyConnectionField
-from graphene_sqlalchemy_core.loaders_middleware import LoaderMiddleware
+from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
 
