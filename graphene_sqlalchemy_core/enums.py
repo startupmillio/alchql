@@ -175,7 +175,7 @@ def sort_argument_for_object_type(
     get_symbol_name: Optional[Callable] = None,
     has_default: bool = True,
 ):
-    """ Returns Graphene Argument for sorting the given SQLAlchemyObjectType.
+    """Returns Graphene Argument for sorting the given SQLAlchemyObjectType.
 
     Parameters
     - obj_type: The object type for which the sort Argument shall be generated.
