@@ -204,7 +204,6 @@ class QueryHelper:
     def get_current_field(info) -> Optional[QueryField]:
         gql_fields = QueryHelper.parse_query(info)
         field_name = camel_to_snake(info.field_name)
-        current_gql_field = None
 
         while gql_fields:
             next_field = gql_fields.pop()
@@ -213,8 +212,6 @@ class QueryHelper:
 
             if next_field.values:
                 gql_fields.extend(next_field.values)
-
-        return current_gql_field
 
     @staticmethod
     def has_last_arg(info):
