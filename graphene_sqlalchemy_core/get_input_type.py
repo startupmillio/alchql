@@ -9,7 +9,7 @@ from .sqlalchemy_converter import convert_sqlalchemy_type
 
 
 def get_input_fields(
-    model: DeclarativeMeta, only_fields: List = (), exclude_fields: List = ()
+    model: Type[DeclarativeMeta], only_fields: List = (), exclude_fields: List = ()
 ) -> dict:
     if only_fields and exclude_fields:
         raise ValueError(
@@ -39,15 +39,5 @@ def get_input_fields(
     return fields
 
 
-def get_input_type(
-    model: DeclarativeMeta, only_fields: List = (), exclude_fields: List = ()
-) -> Type:
-    return type(
-        f"Input{model.__name__}",
-        (graphene.InputObjectType,),
-        get_input_fields(
-            model=model,
-            only_fields=only_fields,
-            exclude_fields=exclude_fields,
-        ),
-    )
+def get_input_type(model: Type[DeclarativeMeta], input_fields: dict) -> Type:
+    return type(f"Input{model.__name__}", (graphene.InputObjectType,), input_fields)

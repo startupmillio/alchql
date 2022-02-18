@@ -359,7 +359,7 @@ class SQLAlchemyObjectType(ObjectType):
     async def resolve_id(self, info):
         key = "id"
         if isinstance(self, SQLAlchemyObjectType):
-            model = self._meta.model()
+            model = self._meta.model
             key = model.__mapper__.primary_key[0].key
         return getattr(self, key, None)
 
