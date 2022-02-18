@@ -15,7 +15,7 @@ from graphql_relay import from_global_id
 from sqlalchemy.orm import DeclarativeMeta
 
 from . import SQLAlchemyObjectType
-from .get_input_type import get_input_type
+from .get_input_type import get_input_fields, get_input_type
 from .gql_fields import get_fields
 from .utils import get_query
 
@@ -34,13 +34,14 @@ class SQLAlchemyUpdateMutation(ObjectType):
     @classmethod
     def __init_subclass_with_meta__(
         cls,
+        model: Type[DeclarativeMeta],
         interfaces=(),
         resolver=None,
         output=None,
         arguments=None,
-        model: DeclarativeMeta = None,
         only_fields=(),
         exclude_fields=(),
+        input_fields: dict = None,
         _meta=None,
         **options,
     ):
@@ -68,9 +69,11 @@ class SQLAlchemyUpdateMutation(ObjectType):
             if input_class:
                 arguments = props(input_class)
             else:
-                input_type = get_input_type(
-                    model, only_fields=only_fields, exclude_fields=exclude_fields
-                )
+                if not input_fields:
+                    input_fields = get_input_fields(
+                        model, only_fields=only_fields, exclude_fields=exclude_fields
+                    )
+                input_type = get_input_type(model, input_fields=input_fields)
                 arguments = {
                     "id": graphene.ID(required=True),
                     "value": graphene.Argument(input_type, required=True),
@@ -161,13 +164,14 @@ class SQLAlchemyCreateMutation(ObjectType):
     @classmethod
     def __init_subclass_with_meta__(
         cls,
+        model: Type[DeclarativeMeta],
         interfaces=(),
         resolver=None,
         output=None,
         arguments=None,
-        model: DeclarativeMeta = None,
         only_fields=(),
         exclude_fields=(),
+        input_fields: dict = None,
         _meta=None,
         **options,
     ):
@@ -195,9 +199,11 @@ class SQLAlchemyCreateMutation(ObjectType):
             if input_class:
                 arguments = props(input_class)
             else:
-                input_type = get_input_type(
-                    model, only_fields=only_fields, exclude_fields=exclude_fields
-                )
+                if not input_fields:
+                    input_fields = get_input_fields(
+                        model, only_fields=only_fields, exclude_fields=exclude_fields
+                    )
+                input_type = get_input_type(model, input_fields=input_fields)
                 arguments = {
                     "value": graphene.Argument(input_type, required=True),
                 }
