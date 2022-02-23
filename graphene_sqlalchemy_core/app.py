@@ -98,7 +98,7 @@ class SessionQLApp(GraphQLApp):
         )
 
     @asynccontextmanager
-    async def _get_context_value(self, request: HTTPConnection) -> Any:
+    async def _get_context_value(self, request: HTTPConnection) -> Context:
         async with AsyncSession(self.engine) as session:
             async with session.begin():
                 if callable(self.context_value):
