@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 from inspect import isawaitable
 from typing import Callable, Dict, Iterable, Type
@@ -121,6 +122,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
         pk = table.primary_key.columns[0]
 
         type_name, id_ = from_global_id(id)
+        id_ = json.loads(id_)
 
         try:
             field_set = get_fields(model, info, type_name)
@@ -130,7 +132,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
         if not value:
             raise Exception("No value provided")
 
-        q = sa.update(model).values(value).where(pk == int(id_))
+        q = sa.update(model).values(value).where(pk == id_)
 
         if field_set and getattr(session.bind, "name", "") != "sqlite":
             row = (await session.execute(q.returning(*field_set))).first()
