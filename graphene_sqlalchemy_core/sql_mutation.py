@@ -12,6 +12,7 @@ from graphene.types.objecttype import ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.get_unbound_function import get_unbound_function
 from graphene.utils.props import props
+from graphql import GraphQLResolveInfo
 from graphql_relay import from_global_id
 from sqlalchemy.orm import DeclarativeMeta
 
@@ -30,7 +31,7 @@ class SQLMutationOptions(ObjectTypeOptions):
 
 
 class SQLAlchemyUpdateMutation(ObjectType):
-    _meta: Type[SQLMutationOptions]
+    _meta: SQLMutationOptions
 
     @classmethod
     def __init_subclass_with_meta__(
@@ -113,7 +114,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
         )
 
     @classmethod
-    async def mutate(cls, root, info, id, value):
+    async def mutate(cls, root, info: GraphQLResolveInfo, id: int, value: dict):
         session = info.context.session
         model = cls._meta.model
         output = cls._meta.output
@@ -147,11 +148,11 @@ class SQLAlchemyUpdateMutation(ObjectType):
         return result
 
     @classmethod
-    async def get_query(cls, info):
+    async def get_query(cls, info: GraphQLResolveInfo):
         return get_query(cls._meta.model, info, cls.__name__)
 
     @classmethod
-    async def get_node(cls, info, id):
+    async def get_node(cls, info: GraphQLResolveInfo, id):
         session = info.context.session
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
@@ -161,7 +162,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
 
 
 class SQLAlchemyCreateMutation(ObjectType):
-    _meta: Type[SQLMutationOptions]
+    _meta: SQLMutationOptions
 
     @classmethod
     def __init_subclass_with_meta__(
@@ -243,7 +244,7 @@ class SQLAlchemyCreateMutation(ObjectType):
         )
 
     @classmethod
-    async def mutate(cls, root, info, value):
+    async def mutate(cls, root, info: GraphQLResolveInfo, value: dict):
         session = info.context.session
         model = cls._meta.model
         output = cls._meta.output
@@ -273,11 +274,11 @@ class SQLAlchemyCreateMutation(ObjectType):
         return result
 
     @classmethod
-    async def get_query(cls, info):
+    async def get_query(cls, info: GraphQLResolveInfo):
         return get_query(cls._meta.model, info, cls.__name__)
 
     @classmethod
-    async def get_node(cls, info, id):
+    async def get_node(cls, info: GraphQLResolveInfo, id):
         session = info.context.session
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]

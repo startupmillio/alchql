@@ -8,6 +8,7 @@ from graphene.relay import Connection, Node
 from graphene.types.objecttype import ObjectType, ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.orderedtype import OrderedType
+from graphql import GraphQLResolveInfo
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     ColumnProperty,
@@ -336,7 +337,7 @@ class SQLAlchemyObjectType(ObjectType):
             registry.register(cls)
 
     @classmethod
-    def is_type_of(cls, root, info):
+    def is_type_of(cls, root, info: GraphQLResolveInfo):
         if isinstance(root, cls):
             return True
         if not is_mapped_instance(root):
@@ -344,11 +345,11 @@ class SQLAlchemyObjectType(ObjectType):
         return isinstance(root, cls._meta.model)
 
     @classmethod
-    async def get_query(cls, info):
+    async def get_query(cls, info: GraphQLResolveInfo):
         return get_query(cls._meta.model, info, cls.__name__)
 
     @classmethod
-    async def get_node(cls, info, id):
+    async def get_node(cls, info: GraphQLResolveInfo, id):
         session = info.context.session
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
@@ -356,7 +357,7 @@ class SQLAlchemyObjectType(ObjectType):
         result = cls(**(await session.execute(q)).first())
         return result
 
-    async def resolve_id(self, info):
+    async def resolve_id(self, info: GraphQLResolveInfo):
         key = "id"
         if isinstance(self, SQLAlchemyObjectType):
             model = self._meta.model

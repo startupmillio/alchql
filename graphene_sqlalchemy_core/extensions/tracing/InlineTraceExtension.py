@@ -2,6 +2,7 @@ from base64 import b64encode
 from inspect import isawaitable
 
 from graphene import Context
+from graphql import GraphQLResolveInfo
 
 from .TraceTreeBuilder import TraceTreeBuilder
 from ..extension import Extension
@@ -12,7 +13,7 @@ class InlineTraceExtension(Extension):
         self.should_trace = True
         self.tree_builder = TraceTreeBuilder()
 
-    async def resolve(self, next_, parent, info, **kwargs):
+    async def resolve(self, next_, parent, info: GraphQLResolveInfo, **kwargs):
         ftv1_header = not info.context.request.headers.get(
             "apollo-federation-include-trace", None
         )

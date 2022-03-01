@@ -3,7 +3,9 @@ from collections import defaultdict
 
 import sqlalchemy as sa
 from aiodataloader import DataLoader
+from graphql import GraphQLResolveInfo
 from sqlalchemy import ForeignKey, Table
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import RelationshipProperty
 
 from .query_helper import QueryHelper
@@ -12,7 +14,13 @@ from .utils import EnumValue, filter_requested_fields_for_object, table_to_class
 
 def generate_loader_by_relationship(relation: RelationshipProperty):
     class Loader(DataLoader):
-        def __init__(self, session, info=None, *args, **kwargs):
+        def __init__(
+            self,
+            session: AsyncSession,
+            info: GraphQLResolveInfo = None,
+            *args,
+            **kwargs,
+        ):
             self.session = session
             self.info = info
             self.fields = set()
@@ -104,7 +112,13 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
 
 def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
     class Loader(DataLoader):
-        def __init__(self, session, info=None, *args, **kwargs):
+        def __init__(
+            self,
+            session: AsyncSession,
+            info: GraphQLResolveInfo = None,
+            *args,
+            **kwargs,
+        ):
             self.session = session
             self.info = info
             self.fields = set()

@@ -7,6 +7,7 @@ import graphene
 import sqlalchemy as sa
 from graphene import Field, Scalar
 from graphene.types.objecttype import ObjectTypeMeta
+from graphql import GraphQLResolveInfo
 from sqlalchemy import Table
 from sqlalchemy.exc import ArgumentError
 from sqlalchemy.orm import DeclarativeMeta, class_mapper, mapperlib, object_mapper
@@ -28,7 +29,7 @@ class GlobalFilters:
     ID__IN = "id__in"
 
 
-def get_query(model, info, cls_name=None):
+def get_query(model: Type[DeclarativeMeta], info: GraphQLResolveInfo, cls_name=None):
     try:
         if info:
             fields = get_fields(model, info, cls_name)
