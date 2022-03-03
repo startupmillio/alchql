@@ -50,12 +50,19 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         return get_nullable_type(self.type)._meta.node._meta.model
 
     @classmethod
-    async def get_query(cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, **args):
+    async def get_query(
+        cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, **args
+    ):
         return get_query(model, info)
 
     @classmethod
     async def resolve_connection(
-        cls, connection_type, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, args, resolved
+        cls,
+        connection_type,
+        model: Type[DeclarativeMeta],
+        info: GraphQLResolveInfo,
+        args,
+        resolved,
     ):
         query = await cls.get_query(model, info, **args)
         session = info.context.session
@@ -104,7 +111,13 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
     @classmethod
     async def connection_resolver(
-        cls, resolver, connection_type, model: Type[DeclarativeMeta], root, info: GraphQLResolveInfo, **args
+        cls,
+        resolver,
+        connection_type,
+        model: Type[DeclarativeMeta],
+        root,
+        info: GraphQLResolveInfo,
+        **args,
     ):
         types = getattr(info.context, "object_types", {})
         types[info.field_name] = connection_type.Edge.node.type
@@ -244,7 +257,9 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         setattr(type_, "parsed_filters", filters)
 
     @classmethod
-    async def get_query(cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, sort=None, **args):
+    async def get_query(
+        cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, sort=None, **args
+    ):
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
 
