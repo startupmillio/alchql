@@ -110,7 +110,7 @@ def get_tree(info: GraphQLResolveInfo, cls_name: str = None):
     return collect_fields(node, fragments, cls_name)
 
 
-def get_fields(model, info, cls_name=None):
+def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
     tree = get_tree(info, cls_name)
 
     if "edges" in tree:

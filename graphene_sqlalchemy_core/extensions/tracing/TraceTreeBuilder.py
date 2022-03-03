@@ -1,5 +1,7 @@
 import time
 
+from graphql import GraphQLResolveInfo
+
 from .generated.reports_pb2 import Trace
 from .utils import (
     error_to_protobuf_error,
@@ -36,7 +38,7 @@ class TraceTreeBuilder:
         ) - hr_timestamp_to_nanos(self.trace.start_time)
         self.stopped = True
 
-    def will_resolve_field(self, info):
+    def will_resolve_field(self, info: GraphQLResolveInfo):
         if not self.start_hr_time:
             raise Exception("will_resolve_field called before start_timing!")
         if self.stopped:
