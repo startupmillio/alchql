@@ -195,8 +195,7 @@ def sort_argument_for_object_type(
     - Enum
         A Graphene Argument that accepts a list of sorting directions for the model.
     """
-    enum = sort_enum_for_object_type(
-        obj_type,
+    enum = obj_type.sort_enum(
         enum_name,
         only_fields=only_fields,
         only_indexed=only_indexed,
