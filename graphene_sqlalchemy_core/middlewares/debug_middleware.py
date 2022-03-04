@@ -1,28 +1,57 @@
 import json
-from inspect import isawaitable
 import logging
+from inspect import isawaitable
+from typing import Callable
 
 from graphql import GraphQLResolveInfo
 
 
-class DebugMiddleware:
-    def __init__(self, logger: logging.Logger, level: int = logging.INFO):
+class BaseDebugMiddleware:
+    def __init__(self, logger, level):
         self.logger = logger
         self.level = level
 
     async def resolve(self, next_, root, info: GraphQLResolveInfo, **args):
         if root is None:
             try:
-                full_query = json.loads(info.context.request._body)
-                if full_query.get("operationName") != "IntrospectionQuery":
-                    self.logger.log(
-                        self.level,
-                        json.dumps(full_query, ensure_ascii=False, sort_keys=True),
-                    )
+                self.log(info)
             except Exception as e:
                 ...
 
         result = next_(root, info, **args)
         if isawaitable(result):
             return await result
+
         return result
+
+    def log(self, info: GraphQLResolveInfo):
+        raise NotImplementedError()
+
+
+class LogMiddleware(BaseDebugMiddleware):
+    def __init__(self, logger: logging.Logger, level: int = logging.INFO):
+        super().__init__(logger, level)
+
+    def log(self, info):
+        full_query = json.loads(info.context.request._body)
+        if full_query.get("operationName") != "IntrospectionQuery":
+            text = json.dumps(full_query, ensure_ascii=False, sort_keys=True)
+            self.logger.log(self.level, text)
+
+
+class BreadcrumbMiddleware:
+    logger: Callable
+
+    def __init__(self, level: str = "info"):
+        from sentry_sdk import add_breadcrumb
+
+        super().__init__(add_breadcrumb, level)
+
+    def log(self, info):
+        full_query = json.loads(info.context.request._body)
+        if full_query.get("operationName") != "IntrospectionQuery":
+            text = json.dumps(full_query, ensure_ascii=False, sort_keys=True)
+            self.logger(category="graphql", message=text, level="info")
+
+
+DebugMiddleware = LogMiddleware
