@@ -43,7 +43,7 @@ class LogMiddleware(BaseDebugMiddleware):
             self.logger.log(self.level, text)
 
 
-class BreadcrumbMiddleware:
+class BreadcrumbMiddleware(BaseDebugMiddleware):
     logger: Callable
 
     def __init__(self, level: str = "info"):
