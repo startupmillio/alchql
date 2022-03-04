@@ -29,7 +29,11 @@ class BaseDebugMiddleware:
 
 
 class LogMiddleware(BaseDebugMiddleware):
-    def __init__(self, logger: logging.Logger, level: int = logging.INFO):
+    def __init__(
+        self,
+        logger: logging.Logger = logging.getLogger("gsc"),
+        level: int = logging.INFO,
+    ):
         super().__init__(logger, level)
 
     def log(self, info):
