@@ -218,7 +218,13 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         for field, operators in getattr(type_._meta, "filter_fields", {}).items():
             if isinstance(field, str) and isinstance(operators, FilterItem):
-                kwargs[field] = Argument(type_=operators.field_type)
+                kwargs[field] = Argument(
+                    type_=operators.field_type,
+                    default_value=operators.default_value,
+                    description=operators.description,
+                    name=operators.name,
+                    required=operators.required,
+                )
                 filters[field] = operators
 
             if not isinstance(field, InstrumentedAttribute):

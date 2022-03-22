@@ -1,7 +1,7 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Optional, Type, Union
+from typing import Any, Optional, Type, Union
 
 import graphene
 import sqlalchemy as sa
@@ -21,6 +21,11 @@ class FilterItem:
     field_type: Type[graphene.Field]
     filter_func: callable
     value_func: Optional[callable] = lambda x: x
+
+    default_value: Any = None
+    description: Optional[str] = None
+    name: Optional[str] = None
+    required: bool = False
 
 
 @dataclass
