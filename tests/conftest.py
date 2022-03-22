@@ -1,3 +1,4 @@
+import asyncio
 from unittest.mock import patch
 
 import graphene
@@ -5,12 +6,16 @@ import pytest
 from graphql import ASTValidationRule, GraphQLError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from .models import Base, CompositeFullName
 from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
 from graphene_sqlalchemy_core.registry import reset_global_registry
+from .models import Base, CompositeFullName
 
-test_db_url = "sqlite+aiosqlite:///:memory:"  # use in-memory database for tests
-engine = create_async_engine(test_db_url, convert_unicode=True, echo=False)
+
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(autouse=True)
@@ -25,22 +30,25 @@ def reset_registry():
 
 
 @pytest.fixture(scope="function")
-async def session_factory():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
+async def engine():
+    e = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        convert_unicode=True,
+        echo=False,
+    )
 
-    async with AsyncSession(engine) as s:
-        yield s
+    async with e.begin() as con:
+        await con.run_sync(Base.metadata.create_all)
 
-    # SQLite in-memory db is deleted when its connection is closed.
-    # https://www.sqlite.org/inmemorydb.html
-    engine.dispose()
+    yield e
+
+    e.dispose()
 
 
 @pytest.fixture(scope="function")
-def session(session_factory):
-    return session_factory
+async def session(engine):
+    async with AsyncSession(engine) as s:
+        yield s
 
 
 @pytest.fixture
