@@ -54,8 +54,10 @@ class BreadcrumbMiddleware(BaseDebugMiddleware):
     def log(self, info):
         full_query = json.loads(info.context.request._body)
         if full_query.get("operationName") != "IntrospectionQuery":
-            text = json.dumps(full_query, ensure_ascii=False, sort_keys=True)
-            self.logger(category="graphql", message=text, level="info")
+            if full_query.get("query"):
+                self.logger(
+                    category="graphql", message=full_query["query"], level="info"
+                )
 
 
 DebugMiddleware = LogMiddleware
