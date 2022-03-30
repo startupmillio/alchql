@@ -176,20 +176,19 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
             if not selected_fields:
                 selected_fields = self.fields or target.columns
 
-            q = (
-                sa.select(
-                    *selected_fields,
-                    source_field.label("_batch_key"),
-                )
-                .select_from(
+            q = sa.select(
+                *selected_fields,
+                target_field.label("_batch_key"),
+            ).where(target_field.in_(keys))
+
+            if target != source:
+                q = q.select_from(
                     sa.outerjoin(
                         target,
                         source,
                         target_field == source_field,
                     )
                 )
-                .where(source_field.in_(keys))
-            )
 
             if object_type and hasattr(object_type, "set_select_from"):
                 setattr(self.info.context, "keys", keys)
