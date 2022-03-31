@@ -43,6 +43,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
         arguments=None,
         only_fields=(),
         exclude_fields=(),
+        required_fields=(),
         input_fields: dict = None,
         _meta=None,
         **options,
@@ -73,7 +74,10 @@ class SQLAlchemyUpdateMutation(ObjectType):
             else:
                 if not input_fields:
                     input_fields = get_input_fields(
-                        model, only_fields=only_fields, exclude_fields=exclude_fields
+                        model,
+                        only_fields=only_fields,
+                        exclude_fields=exclude_fields,
+                        required_fields=required_fields,
                     )
                 input_type = get_input_type(model, input_fields=input_fields)
                 arguments = {
@@ -174,6 +178,7 @@ class SQLAlchemyCreateMutation(ObjectType):
         arguments=None,
         only_fields=(),
         exclude_fields=(),
+        required_fields=(),
         input_fields: dict = None,
         _meta=None,
         **options,
@@ -204,7 +209,10 @@ class SQLAlchemyCreateMutation(ObjectType):
             else:
                 if not input_fields:
                     input_fields = get_input_fields(
-                        model, only_fields=only_fields, exclude_fields=exclude_fields
+                        model,
+                        only_fields=only_fields,
+                        exclude_fields=exclude_fields,
+                        required_fields=required_fields,
                     )
                 input_type = get_input_type(model, input_fields=input_fields)
                 arguments = {

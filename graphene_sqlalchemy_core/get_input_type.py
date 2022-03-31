@@ -9,7 +9,10 @@ from .sqlalchemy_converter import convert_sqlalchemy_type
 
 
 def get_input_fields(
-    model: Type[DeclarativeMeta], only_fields: List = (), exclude_fields: List = ()
+    model: Type[DeclarativeMeta],
+    only_fields: List = (),
+    exclude_fields: List = (),
+    required_fields: List = (),
 ) -> dict:
     if only_fields and exclude_fields:
         raise ValueError(
@@ -33,6 +36,9 @@ def get_input_fields(
             field = field()
         if isinstance(field, EnumMeta):
             field = field()
+
+        if name in required_fields:
+            getattr(field, "kwargs", {})["required"] = True
 
         fields[name] = field
 
