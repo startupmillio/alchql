@@ -39,5 +39,11 @@ def get_input_fields(
     return fields
 
 
-def get_input_type(model: Type[DeclarativeMeta], input_fields: dict) -> Type:
-    return type(f"Input{model.__name__}", (graphene.InputObjectType,), input_fields)
+def get_input_type(
+    model: Type[DeclarativeMeta], input_fields: dict, method: str = ""
+) -> Type:
+    return type(
+        f"Input{method.capitalize()}{model.__name__}",
+        (graphene.InputObjectType,),
+        input_fields,
+    )
