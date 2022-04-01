@@ -16,9 +16,9 @@ from graphql import GraphQLResolveInfo
 from graphql_relay import from_global_id
 from sqlalchemy.orm import DeclarativeMeta
 
-from . import SQLAlchemyObjectType
 from .get_input_type import get_input_fields, get_input_type
 from .gql_fields import get_fields
+from .types import SQLAlchemyObjectType
 from .utils import get_query
 
 
