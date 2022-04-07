@@ -8,6 +8,28 @@ from sqlalchemy.orm import DeclarativeMeta
 from .sqlalchemy_converter import convert_sqlalchemy_type
 
 
+# There we contain unique type names
+initialized_types = {}
+
+
+def get_unique_input_type_name(model_name: str, method: str, input_fields: dict) -> str:
+    input_type_name = f"Input{model_name}"
+    model_hash = hash(
+        str(
+            {
+                key: f"{type(value)}({getattr(value, 'kwargs', '')})"
+                for key, value in sorted(input_fields.items(), key=lambda item: item[0])
+            }
+        )
+    )
+    if initialized_types.setdefault(input_type_name, model_hash) == model_hash:
+        return input_type_name
+
+    input_type_name = f"Input{method.capitalize()}{model_name}"
+    initialized_types[input_type_name] = model_hash
+    return input_type_name
+
+
 def get_input_fields(
     model: Type[DeclarativeMeta],
     only_fields: List = (),
@@ -49,7 +71,9 @@ def get_input_type(
     model: Type[DeclarativeMeta], input_fields: dict, method: str = ""
 ) -> Type:
     return type(
-        f"Input{method.capitalize()}{model.__name__}",
+        get_unique_input_type_name(
+            model_name=model.__name__, method=method, input_fields=input_fields
+        ),
         (graphene.InputObjectType,),
         input_fields,
     )
