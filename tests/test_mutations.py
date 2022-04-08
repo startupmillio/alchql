@@ -476,7 +476,7 @@ async def test_multiple_mutations(session):
     )
 
     query = """
-        mutation UpdatePet($value: InputPetb7585!) {
+        mutation UpdatePet($value: InputPet_8!) {
             createPet(value: $value) {
                 id
                 name
@@ -529,7 +529,7 @@ async def test_multiple_mutations(session):
     assert result.data["updatePet"]["name"] == "dsa"
 
     query = """
-        mutation UpdatePet($value: InputPetd05aa!, $updatePetId: ID!) {
+        mutation UpdatePet($value: InputPet_2!, $updatePetId: ID!) {
             updatePetName(value: $value, id: $updatePetId) {
                 id
                 name
