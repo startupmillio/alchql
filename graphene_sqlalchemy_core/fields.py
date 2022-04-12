@@ -304,7 +304,7 @@ class ModelField(graphene.Field):
         self.use_label = use_label
 
 
-class SQLAlchemyObjectModelField(ModelField):
+class RelationModelField(ModelField):
     @staticmethod
     def get_default_resolver(gql_type, model_field, key_field=None):
         def resolver(self, info, *args, **kwargs):
