@@ -304,6 +304,31 @@ class ModelField(graphene.Field):
         self.use_label = use_label
 
 
+class SQLAlchemyObjectModelField(ModelField):
+    @staticmethod
+    def get_default_resolver(gql_type, model_field, key_field=None):
+        def resolver(self, info, *args, **kwargs):
+            target_value = getattr(self, model_field.key)
+            if target_value is None:
+                return
+            if key_field is not None:
+                assert key_field in gql_type._keys[0]
+                target_key_field = key_field
+            else:
+                target_key_field = gql_type._keys[0]
+            return gql_type(**{target_key_field: target_value})
+
+        return resolver
+
+    def __init__(self, type_, *args, model_field, key_field=None, **kwargs):
+        if not "resolver" in kwargs:
+            kwargs["resolver"] = self.get_default_resolver(
+                type_, model_field, key_field
+            )
+        kwargs["use_label"] = False
+        super().__init__(type_, *args, model_field=model_field, **kwargs)
+
+
 class BatchSQLAlchemyConnectionField(FilterConnectionField, ModelField):
     """
     This is currently experimental.
