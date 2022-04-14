@@ -135,7 +135,10 @@ class SQLAlchemyUpdateMutation(ObjectType):
             field_set = []
 
         if not value:
-            raise Exception("No value provided")
+            result = output.get_node(info, id_)
+            if isawaitable(result):
+                result = await result
+            return result
 
         q = sa.update(model).values(value).where(pk == id_)
 
