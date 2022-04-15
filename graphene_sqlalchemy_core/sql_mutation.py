@@ -1,4 +1,3 @@
-import json
 from enum import Enum
 from inspect import isawaitable
 from typing import Callable, Dict, Iterable, Type
@@ -15,9 +14,9 @@ from graphene.utils.props import props
 from graphql import GraphQLResolveInfo
 from sqlalchemy.orm import DeclarativeMeta
 
-from .gql_id import from_global_id
 from .get_input_type import get_input_fields, get_input_type
 from .gql_fields import get_fields
+from .gql_id import ResolvedGlobalId
 from .types import SQLAlchemyObjectType
 from .utils import get_query
 
@@ -126,7 +125,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
         table = sa.inspect(model).mapped_table
         pk = table.primary_key.columns[0]
 
-        type_name, id_ = from_global_id(id)
+        type_name, id_ = ResolvedGlobalId.decode(id)
 
         try:
             field_set = get_fields(model, info, type_name)

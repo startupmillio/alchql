@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import Tuple, Union, NamedTuple
+from typing import NamedTuple, Tuple, Union
 
 
 def decode_gql_id(encoded_id: str) -> Tuple[str, Union[str, int]]:
@@ -17,10 +17,9 @@ class ResolvedGlobalId(NamedTuple):
     type: str
     id: Union[str, int]
 
+    def encode(self) -> str:
+        return encode_gql_id(*self)
 
-def to_global_id(type_: str, id_: Union[str, int]) -> str:
-    return encode_gql_id(type_, id_)
-
-
-def from_global_id(global_id: str) -> ResolvedGlobalId:
-    return ResolvedGlobalId(*decode_gql_id(global_id))
+    @classmethod
+    def decode(cls, global_id: str) -> "ResolvedGlobalId":
+        return cls(*decode_gql_id(global_id))

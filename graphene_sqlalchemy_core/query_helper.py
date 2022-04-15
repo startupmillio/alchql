@@ -12,7 +12,7 @@ from sqlalchemy import PrimaryKeyConstraint, Table
 from sqlalchemy.orm import DeclarativeMeta
 
 from .gql_fields import camel_to_snake
-from .gql_id import from_global_id
+from .gql_id import ResolvedGlobalId
 from .utils import EnumValue, FilterItem, filter_value_to_python
 
 RESERVED_NAMES = ["edges", "node"]
@@ -67,7 +67,7 @@ class QueryHelper:
                     value = filter_item.field_type.parse_value(value)
 
                 if filter_item.field_type == graphene.ID:
-                    global_id = from_global_id(value)
+                    global_id = ResolvedGlobalId.decode(value)
                     value = global_id.id
 
                 if (
@@ -76,7 +76,7 @@ class QueryHelper:
                 ):
                     new_value = []
                     for item in value:
-                        global_id = from_global_id(item)
+                        global_id = ResolvedGlobalId.decode(item)
                         new_value.append(global_id.id)
                     value = new_value
 
