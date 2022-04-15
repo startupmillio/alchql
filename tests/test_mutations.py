@@ -1,9 +1,9 @@
 import graphene
 import pytest
 from graphene import Context
-from graphql_relay import to_global_id
 
 from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.gql_id import ResolvedGlobalId
 from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.sql_mutation import (
@@ -202,7 +202,7 @@ async def test_get_update_mutation_case3(session):
         name = graphene.String()
 
         def resolve_id(self, info):
-            return to_global_id(self.__class__.__name__, self.id)
+            return ResolvedGlobalId(self.__class__.__name__, self.id).encode()
 
     class Query(graphene.ObjectType):
         node = AsyncNode.Field()
