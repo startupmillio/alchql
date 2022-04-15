@@ -8,11 +8,11 @@ import graphene
 import sqlalchemy as sa
 from graphene import Dynamic, Field, Scalar
 from graphql import FieldNode, ListValueNode, VariableNode
-from graphql_relay import from_global_id
 from sqlalchemy import PrimaryKeyConstraint, Table
 from sqlalchemy.orm import DeclarativeMeta
 
 from .gql_fields import camel_to_snake
+from .gql_id import from_global_id
 from .utils import EnumValue, FilterItem, filter_value_to_python
 
 RESERVED_NAMES = ["edges", "node"]
@@ -68,7 +68,7 @@ class QueryHelper:
 
                 if filter_item.field_type == graphene.ID:
                     global_id = from_global_id(value)
-                    value = int(global_id.id)
+                    value = global_id.id
 
                 if (
                     filter_item.field_type == graphene.List(of_type=graphene.ID)
@@ -77,7 +77,7 @@ class QueryHelper:
                     new_value = []
                     for item in value:
                         global_id = from_global_id(item)
-                        new_value.append(int(global_id.id))
+                        new_value.append(global_id.id)
                     value = new_value
 
                 value = parsed_filters[name].value_func(value)

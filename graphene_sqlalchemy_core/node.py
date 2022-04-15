@@ -4,7 +4,7 @@ from inspect import isawaitable
 from graphene.types import Field, ID, Interface
 from graphene.types.interface import InterfaceOptions
 from graphene.types.utils import get_type
-from graphql_relay import from_global_id, to_global_id
+from .gql_id import from_global_id, to_global_id
 
 
 class AsyncGlobalID(Field):

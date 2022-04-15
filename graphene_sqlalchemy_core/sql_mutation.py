@@ -13,9 +13,9 @@ from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.get_unbound_function import get_unbound_function
 from graphene.utils.props import props
 from graphql import GraphQLResolveInfo
-from graphql_relay import from_global_id
 from sqlalchemy.orm import DeclarativeMeta
 
+from .gql_id import from_global_id
 from .get_input_type import get_input_fields, get_input_type
 from .gql_fields import get_fields
 from .types import SQLAlchemyObjectType
@@ -118,7 +118,7 @@ class SQLAlchemyUpdateMutation(ObjectType):
         )
 
     @classmethod
-    async def mutate(cls, root, info: GraphQLResolveInfo, id: int, value: dict):
+    async def mutate(cls, root, info: GraphQLResolveInfo, id: str, value: dict):
         session = info.context.session
         model = cls._meta.model
         output = cls._meta.output
@@ -127,7 +127,6 @@ class SQLAlchemyUpdateMutation(ObjectType):
         pk = table.primary_key.columns[0]
 
         type_name, id_ = from_global_id(id)
-        id_ = json.loads(id_)
 
         try:
             field_set = get_fields(model, info, type_name)
