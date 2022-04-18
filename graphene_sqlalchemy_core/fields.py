@@ -23,6 +23,9 @@ from .sqlalchemy_converter import convert_sqlalchemy_type
 from .utils import EnumValue, FilterItem, GlobalFilters, get_query
 
 
+DEFAULT_LIMIT = 10000
+
+
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
     @property
     def type(self):
@@ -64,22 +67,18 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         args,
         resolved,
     ):
+        await cls._set_default_limit(args)
         query = await cls.get_query(model, info, **args)
         session = info.context.session
-
         if resolved is None:
             only_q = query.with_only_columns(*sa.inspect(model).primary_key)
-            if QueryHelper.get_filters(info):
-                q = sa.select([sa.func.count()]).select_from(only_q.alias())
-                q_res = await session.execute(q)
-                _len = q_res.scalar()
-            elif QueryHelper.has_last_arg(info):
+            if not QueryHelper.get_filters(info) and QueryHelper.has_last_arg(info):
                 raise TypeError('Cannot set "last" without filters applied')
-            else:
-                limited_q = only_q.limit(10000).cte("limited_q")
-                q = sa.select([sa.func.count()]).select_from(limited_q)
-                q_res = await session.execute(q)
-                _len = q_res.scalar()
+
+            # get max count
+            q = sa.select([sa.func.count()]).select_from(only_q.alias())
+            q_res = await session.execute(q)
+            _len = q_res.scalar()
 
             connection = await connection_from_query(
                 query,
@@ -138,6 +137,11 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             get_nullable_type(self.type),
             self.model,
         )
+
+    @classmethod
+    async def _set_default_limit(cls, args):
+        if args.get("first") is None and args.get("last") is None:
+            args["first"] = DEFAULT_LIMIT
 
 
 class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
