@@ -4,7 +4,8 @@ from inspect import isawaitable
 from graphene.types import Field, ID, Interface
 from graphene.types.interface import InterfaceOptions
 from graphene.types.utils import get_type
-from graphql_relay import from_global_id, to_global_id
+
+from .gql_id import ResolvedGlobalId
 
 
 class AsyncGlobalID(Field):
@@ -107,9 +108,9 @@ class AsyncNode(AbstractAsyncNode):
             return get_node(info, _id)
 
     @classmethod
-    def from_global_id(cls, global_id):
-        return from_global_id(global_id)
+    def from_global_id(cls, global_id) -> ResolvedGlobalId:
+        return ResolvedGlobalId.decode(global_id)
 
     @classmethod
     def to_global_id(cls, type_, id):
-        return to_global_id(type_, id)
+        return ResolvedGlobalId(type_, id).encode()
