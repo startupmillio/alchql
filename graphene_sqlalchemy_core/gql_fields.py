@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import re
+import sqlalchemy
 from typing import Union
 
 from graphql import FieldNode, FragmentDefinitionNode, GraphQLResolveInfo
@@ -132,5 +133,9 @@ def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
                 fields.append(ex.right)
         else:
             fields.append(ex)
+
+    for pk in sqlalchemy.inspect(model).primary_key:
+        fields.append(pk)
+    fields = list(set(fields))
 
     return fields

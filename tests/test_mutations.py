@@ -1,9 +1,10 @@
 import graphene
 import pytest
+import sqlalchemy as sa
 from graphene import Context
 
 from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
-from graphene_sqlalchemy_core.gql_id import ResolvedGlobalId
+from graphene_sqlalchemy_core.gql_id import ResolvedGlobalId, encode_gql_id
 from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.sql_mutation import (
@@ -356,6 +357,68 @@ async def test_get_update_mutation_empty_value(session):
 
 
 @pytest.mark.asyncio
+async def test_update_mutation_always_queries_primary_keys(session):
+    await add_test_data(session)
+
+    global id_to_update
+
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = Pet
+            interfaces = (AsyncNode,)
+            batching = True
+
+    class MutationUpdatePet(SQLAlchemyUpdateMutation):
+        class Meta:
+            model = Pet
+            output = PetType
+
+        @classmethod
+        async def mutate(cls, *args, **kwargs):
+            result = await super().mutate(*args, **kwargs)
+            assert result.id == id_to_update
+            return result
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        update_pet = MutationUpdatePet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    query = """
+        mutation UpdatePet($value: InputPet!, $updatePetId: ID!) {
+            updatePet(value: $value, id: $updatePetId) {
+                name
+            }
+        }
+    """
+
+    id_to_update = (await session.execute(sa.select(Pet.id))).scalars().first()
+    gql_id_to_update = encode_gql_id(PetType.__name__, id_to_update)
+    new_name = "New name"
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {"name": new_name},
+            "updatePetId": gql_id_to_update,
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Pet]),
+        ],
+    )
+    assert not result.errors
+    assert result.data["updatePet"]["name"] == new_name
+
+
+@pytest.mark.asyncio
 async def test_get_create_mutation(session):
     await add_test_data(session)
 
@@ -412,6 +475,65 @@ async def test_get_create_mutation(session):
 
     query = """
         mutation UpdatePet($value: InputPet!) {
+            insertPet(value: $value) {
+                name
+            }
+        }
+    """
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {
+                "name": "asd",
+                "petKind": "CAT",
+                "hairKind": "SHORT",
+            },
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Pet]),
+        ],
+    )
+
+    assert not result.errors
+
+
+@pytest.mark.asyncio
+async def test_create_mutation_always_queries_primary_keys(session):
+    await add_test_data(session)
+
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = Pet
+            interfaces = (AsyncNode,)
+            batching = True
+
+    class MutationCreatePet(SQLAlchemyCreateMutation):
+        class Meta:
+            model = Pet
+            output = PetType
+
+        @classmethod
+        async def mutate(cls, *args, **kwargs):
+            result = await super().mutate(*args, **kwargs)
+            assert result.id is not None
+            return result
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        insert_pet = MutationCreatePet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    query = """
+        mutation InsertPet($value: InputPet!) {
             insertPet(value: $value) {
                 name
             }
