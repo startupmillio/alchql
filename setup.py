@@ -38,7 +38,7 @@ setup(
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://gitlab.com/live-art-project/graphene-sqlalchemy-core",
-    author="Syorsh sergey",
+    author="Yorsh Sergey",
     author_email="myrik260138@gmail.com",
     license="MIT",
     classifiers=[
