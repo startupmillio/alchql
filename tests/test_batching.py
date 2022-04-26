@@ -208,8 +208,6 @@ async def test_one_to_one(session):
         )
     )
 
-    await session.commit()
-
     schema = get_schema()
 
     with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
