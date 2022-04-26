@@ -757,4 +757,4 @@ async def test_delete_mutation(session):
 
     assert not result.errors
     # TODO: problems with sqlite
-    assert result.data["deletePet"] == None
+    assert result.data["deletePet"] is None
