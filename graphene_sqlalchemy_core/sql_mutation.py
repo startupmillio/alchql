@@ -29,9 +29,39 @@ class SQLMutationOptions(ObjectTypeOptions):
     interfaces: Iterable[Type[Interface]] = ()
 
 
-class SQLAlchemyUpdateMutation(ObjectType):
+class _BaseMutation(ObjectType):
     _meta: SQLMutationOptions
 
+    @classmethod
+    def Field(
+        cls, name=None, description=None, deprecation_reason=None, required=False
+    ):
+        """Mount instance of mutation Field."""
+        return graphene.Field(
+            cls._meta.output,
+            args=cls._meta.arguments,
+            resolver=cls._meta.resolver,
+            name=name,
+            description=description or cls._meta.description,
+            deprecation_reason=deprecation_reason,
+            required=required,
+        )
+
+    @classmethod
+    async def get_query(cls, info: GraphQLResolveInfo):
+        return get_query(cls._meta.model, info, cls.__name__)
+
+    @classmethod
+    async def get_node(cls, info: GraphQLResolveInfo, id: int):
+        session = info.context.session
+
+        pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
+        q = (await cls.get_query(info)).where(pk == id)
+        result = cls(**(await session.execute(q)).first())
+        return result
+
+
+class SQLAlchemyUpdateMutation(_BaseMutation):
     @classmethod
     def __init_subclass_with_meta__(
         cls,
@@ -102,21 +132,6 @@ class SQLAlchemyUpdateMutation(ObjectType):
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     @classmethod
-    def Field(
-        cls, name=None, description=None, deprecation_reason=None, required=False
-    ):
-        """Mount instance of mutation Field."""
-        return graphene.Field(
-            cls._meta.output,
-            args=cls._meta.arguments,
-            resolver=cls._meta.resolver,
-            name=name,
-            description=description or cls._meta.description,
-            deprecation_reason=deprecation_reason,
-            required=required,
-        )
-
-    @classmethod
     async def mutate(cls, root, info: GraphQLResolveInfo, id: str, value: dict):
         session = info.context.session
         model = cls._meta.model
@@ -149,23 +164,8 @@ class SQLAlchemyUpdateMutation(ObjectType):
 
         return result
 
-    @classmethod
-    async def get_query(cls, info: GraphQLResolveInfo):
-        return get_query(cls._meta.model, info, cls.__name__)
 
-    @classmethod
-    async def get_node(cls, info: GraphQLResolveInfo, id):
-        session = info.context.session
-
-        pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
-        q = (await cls.get_query(info)).where(pk == id)
-        result = cls(**(await session.execute(q)).first())
-        return result
-
-
-class SQLAlchemyCreateMutation(ObjectType):
-    _meta: SQLMutationOptions
-
+class SQLAlchemyCreateMutation(_BaseMutation):
     @classmethod
     def __init_subclass_with_meta__(
         cls,
@@ -235,21 +235,6 @@ class SQLAlchemyCreateMutation(ObjectType):
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     @classmethod
-    def Field(
-        cls, name=None, description=None, deprecation_reason=None, required=False
-    ):
-        """Mount instance of mutation Field."""
-        return graphene.Field(
-            cls._meta.output,
-            args=cls._meta.arguments,
-            resolver=cls._meta.resolver,
-            name=name,
-            description=description or cls._meta.description,
-            deprecation_reason=deprecation_reason,
-            required=required,
-        )
-
-    @classmethod
     async def mutate(cls, root, info: GraphQLResolveInfo, value: dict):
         session = info.context.session
         model = cls._meta.model
@@ -279,15 +264,93 @@ class SQLAlchemyCreateMutation(ObjectType):
 
         return result
 
+
+class SQLAlchemyDeleteMutation(_BaseMutation):
     @classmethod
-    async def get_query(cls, info: GraphQLResolveInfo):
-        return get_query(cls._meta.model, info, cls.__name__)
+    def __init_subclass_with_meta__(
+        cls,
+        model: Type[DeclarativeMeta],
+        interfaces=(),
+        resolver=None,
+        output=None,
+        arguments=None,
+        only_fields=(),
+        exclude_fields=(),
+        required_fields=(),
+        _meta=None,
+        **options,
+    ):
+        if not _meta:
+            _meta = MutationOptions(cls)
+
+        output = output or getattr(cls, "Output", None)
+        fields = {}
+
+        for interface in interfaces:
+            assert issubclass(
+                interface, Interface
+            ), f'All interfaces of {cls.__name__} must be a subclass of Interface. Received "{interface}".'
+            fields.update(interface._meta.fields)
+
+        if not output:
+            # If output is defined, we don't need to get the fields
+            fields = {}
+            for base in reversed(cls.__mro__):
+                fields.update(yank_fields_from_attrs(base.__dict__, _as=Field))
+            output = cls
+
+        if not arguments:
+            input_class = getattr(cls, "Arguments", None)
+            if input_class:
+                arguments = props(input_class)
+            else:
+                arguments = {
+                    "id": graphene.ID(required=True),
+                }
+
+        if not resolver:
+            mutate = getattr(cls, "mutate", None)
+            assert mutate, "All mutations must define a mutate method in it"
+            resolver = get_unbound_function(mutate)
+
+        if _meta.fields:
+            _meta.fields.update(fields)
+        else:
+            _meta.fields = fields
+        _meta.interfaces = interfaces
+        _meta.output = output
+        _meta.resolver = resolver
+        _meta.arguments = arguments
+        _meta.model = model
+
+        super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     @classmethod
-    async def get_node(cls, info: GraphQLResolveInfo, id):
+    async def mutate(cls, root, info: GraphQLResolveInfo, id: str):
         session = info.context.session
+        model = cls._meta.model
+        output = cls._meta.output
 
-        pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
-        q = (await cls.get_query(info)).where(pk == id)
-        result = cls(**(await session.execute(q)).first())
+        table = sa.inspect(model).mapped_table
+        pk = table.primary_key.columns[0]
+
+        type_name, id_ = ResolvedGlobalId.decode(id)
+
+        try:
+            field_set = get_fields(model, info, type_name)
+        except Exception as e:
+            field_set = []
+
+        q = sa.delete(model).where(pk == id_)
+
+        if field_set and getattr(session.bind, "name", "") != "sqlite":
+            row = (await session.execute(q.returning(*field_set))).first()
+            result = output(**row)
+        else:
+            await session.execute(q)
+            result = output.get_node(info, id_)
+
+            if isawaitable(result):
+                result = await result
+
         return result
