@@ -10,7 +10,7 @@ from sqlalchemy.orm import column_property, composite
 try:
     from sqlalchemy_utils import ChoiceType, JSONType, ScalarListType, TSVectorType
 except ImportError:
-    ChoiceType = JSONType = ScalarListType = object
+    ChoiceType = JSONType = ScalarListType = TSVectorType = object
 
 import graphene
 from graphene.relay import Node
@@ -55,7 +55,6 @@ def get_field_from_column(column_):
     return convert_sqlalchemy_column(column_prop, get_global_registry(), mock_resolver)
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_unknown_sqlalchemy_field_raise_exception():
     re_err = "Don't know how to convert the SQLAlchemy field"
 
@@ -152,7 +151,6 @@ def test_should_numeric_convert_float():
     assert get_field(types.Numeric()).type == graphene.Float
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_choice_convert_enum():
     field = get_field(ChoiceType([("es", "Spanish"), ("en", "English")]))
     graphene_type = field.type
@@ -162,7 +160,6 @@ def test_should_choice_convert_enum():
     assert graphene_type._meta.enum.__members__["en"].value == "English"
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_enum_choice_convert_enum():
     class TestEnum(enum.Enum):
         es = "Spanish"
@@ -176,7 +173,6 @@ def test_should_enum_choice_convert_enum():
     assert graphene_type._meta.enum.__members__["en"].value == "English"
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_intenum_choice_convert_enum():
     class TestEnum(enum.IntEnum):
         one = 1
@@ -198,19 +194,16 @@ def test_should_columproperty_convert():
     assert field.type == graphene.Int
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_scalar_list_convert_list():
     field = get_field(ScalarListType())
     assert isinstance(field.type, graphene.List)
     assert field.type.of_type == graphene.String
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_jsontype_convert_jsonstring():
     assert get_field(JSONType()).type == JSONString
 
 
-@pytest.mark.skip("sqlalchemy_utils with sa 1.4")
 def test_should_tsvector_convert_string():
     assert get_field(TSVectorType).type == graphene.String
 
