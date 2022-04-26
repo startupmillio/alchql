@@ -3,7 +3,11 @@ import pkg_resources
 from .fields import SQLAlchemyConnectionField
 from .types import SQLAlchemyObjectType
 from .utils import get_query
-from .sql_mutation import SQLAlchemyUpdateMutation, SQLAlchemyCreateMutation
+from .sql_mutation import (
+    SQLAlchemyUpdateMutation,
+    SQLAlchemyCreateMutation,
+    SQLAlchemyDeleteMutation,
+)
 
 __version__ = "3.0.8"
 
@@ -13,6 +17,7 @@ __all__ = [
     "SQLAlchemyConnectionField",
     "SQLAlchemyUpdateMutation",
     "SQLAlchemyCreateMutation",
+    "SQLAlchemyDeleteMutation",
     "get_query",
 ]
 
