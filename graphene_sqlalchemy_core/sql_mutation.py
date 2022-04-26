@@ -347,7 +347,7 @@ class SQLAlchemyDeleteMutation(_BaseMutation):
             row = (await session.execute(q.returning(*field_set))).first()
             result = output(**row)
         else:
-            await session.execute(q)
+            id_ = (await session.execute(q)).lastrowid
             result = output.get_node(info, id_)
 
             if isawaitable(result):

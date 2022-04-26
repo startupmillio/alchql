@@ -354,8 +354,10 @@ class SQLAlchemyObjectType(ObjectType):
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
         q = (await cls.get_query(info)).where(pk == id)
-        result = cls(**(await session.execute(q)).first())
-        return result
+        obj = (await session.execute(q)).first()
+        if obj:
+            result = cls(**obj)
+            return result
 
     async def resolve_id(self, info: GraphQLResolveInfo):
         key = "id"
