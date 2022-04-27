@@ -35,6 +35,17 @@ def get_unique_input_type_name(model_name: str, input_fields: dict) -> str:
             return input_type_name
 
 
+def convert_sqlalchemy_type_mutation(column):
+    field = convert_sqlalchemy_type(
+        getattr(column, "type", None),
+        column,
+    )
+    if field == graphene.Int and column.foreign_keys:
+        field = graphene.ID
+
+    return field
+
+
 def get_input_fields(
     model: Type[DeclarativeMeta],
     only_fields: List = (),
@@ -55,10 +66,8 @@ def get_input_fields(
         if exclude_fields and name in exclude_fields:
             continue
 
-        field = convert_sqlalchemy_type(
-            getattr(column, "type", None),
-            column,
-        )
+        field = convert_sqlalchemy_type_mutation(column)
+
         if callable(field):
             field = field()
         if isinstance(field, EnumMeta):
