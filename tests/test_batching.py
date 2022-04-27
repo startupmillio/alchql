@@ -44,19 +44,16 @@ def get_schema():
         class Meta:
             model = Reporter
             interfaces = (relay.Node,)
-            batching = True
 
     class ArticleType(SQLAlchemyObjectType):
         class Meta:
             model = Article
             interfaces = (relay.Node,)
-            batching = True
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
             model = Pet
             interfaces = (relay.Node,)
-            batching = True
 
     class Query(graphene.ObjectType):
         articles = graphene.Field(graphene.List(ArticleType))
