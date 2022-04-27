@@ -13,8 +13,10 @@ from .sqlalchemy_converter import convert_sqlalchemy_type
 initialized_types = {}
 
 
-def get_unique_input_type_name(model_name: str, input_fields: dict) -> str:
-    input_type_name = f"Input{model_name}"
+def get_unique_input_type_name(
+    model_name: str, input_fields: dict, operation: str
+) -> str:
+    input_type_name = f"Input{operation}{model_name}"
     model_hash = hashlib.md5(
         json.dumps(
             {
@@ -81,10 +83,12 @@ def get_input_fields(
     return fields
 
 
-def get_input_type(model: Type[DeclarativeMeta], input_fields: dict) -> Type:
+def get_input_type(
+    model: Type[DeclarativeMeta], input_fields: dict, operation: str
+) -> Type:
     return type(
         get_unique_input_type_name(
-            model_name=model.__name__, input_fields=input_fields
+            model_name=model.__name__, input_fields=input_fields, operation=operation
         ),
         (graphene.InputObjectType,),
         input_fields,
