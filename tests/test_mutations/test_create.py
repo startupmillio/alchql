@@ -69,7 +69,7 @@ async def test_get_create_mutation(session):
     ]
 
     query = """
-        mutation UpdatePet($value: InputPet!) {
+        mutation UpdatePet($value: InputCreatePet_0!) {
             insertPet(value: $value) {
                 name
             }
@@ -128,7 +128,7 @@ async def test_create_mutation_always_queries_primary_keys(session):
     )
 
     query = """
-        mutation InsertPet($value: InputPet!) {
+        mutation InsertPet($value: InputCreatePet_0!) {
             insertPet(value: $value) {
                 name
             }
