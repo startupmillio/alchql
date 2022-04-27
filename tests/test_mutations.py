@@ -599,7 +599,7 @@ async def test_multiple_mutations(session):
     )
 
     query = """
-        mutation UpdatePet($value: InputCreatePet_b!) {
+        mutation UpdatePet($value: InputCreatePet_8!) {
             createPet(value: $value) {
                 id
                 name
