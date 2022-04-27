@@ -5,8 +5,11 @@ from typing import List, Type
 import graphene
 import sqlalchemy as sa
 from graphene.types.enum import EnumMeta
+from graphql import StringValueNode
 from sqlalchemy.orm import DeclarativeMeta
 
+from .gql_id import ResolvedGlobalId
+from .registry import get_global_registry
 from .sqlalchemy_converter import convert_sqlalchemy_type
 
 # There we contain unique type names
@@ -37,6 +40,46 @@ def get_unique_input_type_name(
             return input_type_name
 
 
+def create_arg(column):
+    fk = next(iter(column.foreign_keys))
+    table = fk.constraint.referred_table
+
+    class ArgID(graphene.Scalar):
+        @staticmethod
+        def coerce_id(value):
+            registry = get_global_registry()
+            global_id = ResolvedGlobalId.decode(value)
+
+            type_ = registry.get_type_for_model(table)
+            if type_ and type_.__name__ != global_id.type:
+                raise Exception(
+                    f"Invalid GlobalID type: {global_id.type} != {type_.__name__}"
+                )
+
+            return global_id.id
+
+        serialize = coerce_id
+        parse_value = coerce_id
+
+        @staticmethod
+        def parse_literal(ast):
+            if isinstance(ast, StringValueNode):
+                return ast.value
+
+    return ArgID
+
+
+def convert_sqlalchemy_type_mutation(column):
+    field = convert_sqlalchemy_type(
+        getattr(column, "type", None),
+        column,
+    )
+    if field == graphene.Int and column.foreign_keys:
+        field = create_arg(column)
+
+    return field
+
+
 def get_input_fields(
     model: Type[DeclarativeMeta],
     only_fields: List = (),
@@ -57,10 +100,8 @@ def get_input_fields(
         if exclude_fields and name in exclude_fields:
             continue
 
-        field = convert_sqlalchemy_type(
-            getattr(column, "type", None),
-            column,
-        )
+        field = convert_sqlalchemy_type_mutation(column)
+
         if callable(field):
             field = field()
         if isinstance(field, EnumMeta):

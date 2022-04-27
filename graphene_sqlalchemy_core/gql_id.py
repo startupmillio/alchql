@@ -6,7 +6,12 @@ _T = TypeVar("_T")
 
 
 def decode_gql_id(encoded_id: str) -> Tuple[str, Union[str, int]]:
-    type_name, id_text = base64.b64decode(encoded_id).decode().split(":")
+    try:
+        text = base64.b64decode(encoded_id).decode()
+    except Exception as e:
+        raise ValueError("Invalid base64")
+
+    type_name, id_text = text.split(":")
     return type_name, json.loads(id_text)
 
 
