@@ -21,7 +21,6 @@ async def test_delete_mutation(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationDeletePet(SQLAlchemyDeleteMutation):
         class Meta:

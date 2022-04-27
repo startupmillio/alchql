@@ -1,16 +1,44 @@
 import graphene
 import pytest
+import sqlalchemy as sa
 from graphene import Context
 
 from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
+from graphene_sqlalchemy_core.gql_id import ResolvedGlobalId
 from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
 from graphene_sqlalchemy_core.node import AsyncNode
 from graphene_sqlalchemy_core.sql_mutation import (
     SQLAlchemyCreateMutation,
 )
 from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
-from tests.models import Pet
+from tests import models as m
 from tests.test_query import add_test_data
+
+
+async def get_all_pets(session, schema):
+    result = await schema.execute_async(
+        """
+            query {
+                allPets {
+                    edges {
+                        node {
+                            id
+                            name
+                        }
+                    }
+                }
+            }
+        """,
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([m.Pet]),
+        ],
+    )
+    assert not result.errors
+
+    all_pets = [i["node"] for i in result.data["allPets"]["edges"]]
+
+    return all_pets
 
 
 @pytest.mark.asyncio
@@ -19,13 +47,12 @@ async def test_get_create_mutation(session):
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
-            model = Pet
+            model = m.Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationInsertPet(SQLAlchemyCreateMutation):
         class Meta:
-            model = Pet
+            model = m.Pet
             output = PetType
 
     class Query(graphene.ObjectType):
@@ -35,78 +62,60 @@ async def test_get_create_mutation(session):
     class Mutation(graphene.ObjectType):
         insert_pet = MutationInsertPet.Field()
 
-    query = """
-        query {
-            allPets {
-                edges {
-                    node {
-                        id
-                        name
-                    }
-                }
-            }
-        }
-    """
-
     schema = graphene.Schema(
         query=Query,
         mutation=Mutation,
     )
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Pet]),
-        ],
-    )
-    assert not result.errors
 
-    all_pets = [i["node"] for i in result.data["allPets"]["edges"]]
+    all_pets = await get_all_pets(session, schema)
 
-    assert [i["name"] for i in all_pets] == [
+    assert {i["name"] for i in all_pets} == {
         "Garfield",
         "Lassie",
-    ]
-
-    query = """
-        mutation UpdatePet($value: InputCreatePet_0!) {
-            insertPet(value: $value) {
-                name
-            }
-        }
-    """
+    }
 
     result = await schema.execute_async(
-        query,
+        """
+            mutation UpdatePet($value: InputCreatePet_c!) {
+                insertPet(value: $value) {
+                    name
+                }
+            }
+        """,
         variables={
             "value": {
-                "name": "asd",
+                "name": "Odin",
                 "petKind": "CAT",
                 "hairKind": "SHORT",
             },
         },
         context_value=Context(session=session),
         middleware=[
-            LoaderMiddleware([Pet]),
+            LoaderMiddleware([m.Pet]),
         ],
     )
 
     assert not result.errors
 
+    all_pets = await get_all_pets(session, schema)
+
+    assert {i["name"] for i in all_pets} == {
+        "Garfield",
+        "Lassie",
+        "Odin",
+    }
+
 
 @pytest.mark.asyncio
 async def test_create_mutation_always_queries_primary_keys(session):
-    await add_test_data(session)
-
     class PetType(SQLAlchemyObjectType):
         class Meta:
-            model = Pet
+            model = m.Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationCreatePet(SQLAlchemyCreateMutation):
         class Meta:
-            model = Pet
+            model = m.Pet
             output = PetType
 
         @classmethod
@@ -128,7 +137,7 @@ async def test_create_mutation_always_queries_primary_keys(session):
     )
 
     query = """
-        mutation InsertPet($value: InputCreatePet_0!) {
+        mutation InsertPet($value: InputCreatePet_c!) {
             insertPet(value: $value) {
                 name
             }
@@ -146,7 +155,153 @@ async def test_create_mutation_always_queries_primary_keys(session):
         },
         context_value=Context(session=session),
         middleware=[
-            LoaderMiddleware([Pet]),
+            LoaderMiddleware([m.Pet]),
+        ],
+    )
+
+    assert not result.errors
+
+
+@pytest.mark.asyncio
+async def test_create_mutation_fk_with_relation(session):
+    reporter_id = (await session.execute(sa.insert(m.Reporter))).lastrowid
+
+    class ReporterType(SQLAlchemyObjectType):
+        class Meta:
+            model = m.Reporter
+            interfaces = (AsyncNode,)
+
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = m.Pet
+            interfaces = (AsyncNode,)
+
+    class MutationCreatePet(SQLAlchemyCreateMutation):
+        class Meta:
+            model = m.Pet
+            output = PetType
+
+        @classmethod
+        async def mutate(cls, *args, **kwargs):
+            result = await super().mutate(*args, **kwargs)
+            assert result.id is not None
+            return result
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        insert_pet = MutationCreatePet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    query = """
+        mutation InsertPet($value: InputCreatePet_c!) {
+            insertPet(value: $value) {
+                name
+                reporterId
+                reporter{
+                    id
+                }
+            }
+        }
+    """
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {
+                "name": "valid",
+                "petKind": "CAT",
+                "hairKind": "SHORT",
+                "reporterId": ResolvedGlobalId(
+                    ReporterType.__name__, reporter_id
+                ).encode(),
+            },
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([m.Pet, m.Reporter]),
+        ],
+    )
+
+    assert not result.errors
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {
+                "name": "invalid",
+                "petKind": "CAT",
+                "hairKind": "SHORT",
+                "reporterId": ResolvedGlobalId(PetType.__name__, reporter_id).encode(),
+            },
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([m.Pet, m.Reporter]),
+        ],
+    )
+
+    assert result.errors
+
+
+@pytest.mark.asyncio
+async def test_create_mutation_fk_without_relation(session, raise_graphql):
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = m.Pet
+            interfaces = (AsyncNode,)
+
+    class MutationCreatePet(SQLAlchemyCreateMutation):
+        class Meta:
+            model = m.Pet
+            output = PetType
+
+        @classmethod
+        async def mutate(cls, *args, **kwargs):
+            result = await super().mutate(*args, **kwargs)
+            assert result.id is not None
+            return result
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        insert_pet = MutationCreatePet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    query = """
+        mutation InsertPet($value: InputCreatePet_c!) {
+            insertPet(value: $value) {
+                name
+                reporterId
+            }
+        }
+    """
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {
+                "name": "asd",
+                "petKind": "CAT",
+                "hairKind": "SHORT",
+                "reporterId": "YWRzOjQ=",
+            },
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([m.Pet]),
         ],
     )
 

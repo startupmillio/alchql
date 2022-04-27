@@ -19,7 +19,6 @@ async def test_multiple_mutations(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationCreatePet(SQLAlchemyCreateMutation):
         class Meta:

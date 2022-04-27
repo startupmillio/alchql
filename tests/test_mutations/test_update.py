@@ -21,7 +21,6 @@ async def test_get_update_mutation_case1(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationUpdatePet(SQLAlchemyUpdateMutation):
         class Meta:
@@ -105,7 +104,6 @@ async def test_get_update_mutation_case2(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationUpdatePet(SQLAlchemyUpdateMutation):
         class Meta:
@@ -190,7 +188,6 @@ async def test_get_update_mutation_case3(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationUpdatePet(SQLAlchemyUpdateMutation):
         class Meta:
@@ -279,7 +276,6 @@ async def test_get_update_mutation_empty_value(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationUpdatePet(SQLAlchemyUpdateMutation):
         class Meta:
@@ -363,7 +359,6 @@ async def test_update_mutation_always_queries_primary_keys(session):
         class Meta:
             model = Pet
             interfaces = (AsyncNode,)
-            batching = True
 
     class MutationUpdatePet(SQLAlchemyUpdateMutation):
         class Meta:

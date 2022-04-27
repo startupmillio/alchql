@@ -20,7 +20,7 @@ from sqlalchemy.orm import column_property, composite, mapper, relationship
 PetKind = Enum("cat", "dog", name="pet_kind")
 
 
-class HairKind(enum.Enum):
+class HairKind(str, enum.Enum):
     LONG = "long"
     SHORT = "short"
 
