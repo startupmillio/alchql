@@ -71,7 +71,9 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         query = await cls.get_query(model, info, **args)
         session = info.context.session
         if resolved is None:
-            only_q = query.with_only_columns(*sa.inspect(model).primary_key)
+            only_q = query.with_only_columns(
+                *sa.inspect(model).primary_key,
+            ).order_by(None)
             if not QueryHelper.get_filters(info) and QueryHelper.has_last_arg(info):
                 raise TypeError('Cannot set "last" without filters applied')
 
