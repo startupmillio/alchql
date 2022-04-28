@@ -231,24 +231,6 @@ async def test_create_mutation_fk_with_relation(session):
 
     assert not result.errors
 
-    result = await schema.execute_async(
-        query,
-        variables={
-            "value": {
-                "name": "invalid",
-                "petKind": "CAT",
-                "hairKind": "SHORT",
-                "reporterId": ResolvedGlobalId(PetType.__name__, reporter_id).encode(),
-            },
-        },
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([m.Pet, m.Reporter]),
-        ],
-    )
-
-    assert result.errors
-
 
 @pytest.mark.asyncio
 async def test_create_mutation_fk_without_relation(session, raise_graphql):
