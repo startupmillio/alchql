@@ -327,7 +327,7 @@ class RelationModelField(ModelField):
         return resolver
 
     def __init__(self, type_, *args, model_field, key_field=None, **kwargs):
-        if not "resolver" in kwargs:
+        if "resolver" not in kwargs:
             kwargs["resolver"] = self.get_default_resolver(
                 type_, model_field, key_field
             )

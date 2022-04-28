@@ -40,33 +40,27 @@ def get_unique_input_type_name(
             return input_type_name
 
 
-def create_arg(column):
-    fk = next(iter(column.foreign_keys))
-    table = fk.constraint.referred_table
+class ArgID(graphene.Scalar):
+    @staticmethod
+    def coerce_id(value):
+        global_id = ResolvedGlobalId.decode(value)
 
-    class ArgID(graphene.Scalar):
-        @staticmethod
-        def coerce_id(value):
-            registry = get_global_registry()
-            global_id = ResolvedGlobalId.decode(value)
+        # registry = get_global_registry()
+        # type_ = registry.get_type_for_model(table)
+        # if type_ and type_.__name__ != global_id.type:
+        #     raise Exception(
+        #         f"Invalid GlobalID type: {global_id.type} != {type_.__name__}"
+        #     )
 
-            type_ = registry.get_type_for_model(table)
-            if type_ and type_.__name__ != global_id.type:
-                raise Exception(
-                    f"Invalid GlobalID type: {global_id.type} != {type_.__name__}"
-                )
+        return global_id.id
 
-            return global_id.id
+    serialize = coerce_id
+    parse_value = coerce_id
 
-        serialize = coerce_id
-        parse_value = coerce_id
-
-        @staticmethod
-        def parse_literal(ast):
-            if isinstance(ast, StringValueNode):
-                return ast.value
-
-    return ArgID
+    @staticmethod
+    def parse_literal(ast):
+        if isinstance(ast, StringValueNode):
+            return ast.value
 
 
 def convert_sqlalchemy_type_mutation(column):
@@ -75,7 +69,7 @@ def convert_sqlalchemy_type_mutation(column):
         column,
     )
     if field == graphene.Int and column.foreign_keys:
-        field = create_arg(column)
+        field = ArgID()
 
     return field
 
