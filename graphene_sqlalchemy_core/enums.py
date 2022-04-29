@@ -1,7 +1,8 @@
-from typing import Callable, Optional, Sequence, TYPE_CHECKING, Type
+from typing import Callable, Dict, Optional, Sequence, TYPE_CHECKING, Type
 
 from graphene import Argument, Enum, List
 from sqlalchemy.orm import ColumnProperty
+from sqlalchemy.sql.elements import UnaryExpression
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
 from .registry import Registry
@@ -96,6 +97,7 @@ def sort_enum_for_object_type(
     only_fields: Optional[Sequence[str]] = None,
     only_indexed: Optional[bool] = None,
     get_symbol_name: Optional[Callable] = None,
+    extra_members: Optional[Dict[str, UnaryExpression]] = None,
 ):
     """Return Graphene Enum for sorting the given SQLAlchemyObjectType.
 
@@ -129,6 +131,7 @@ def sort_enum_for_object_type(
     else:
         members = {}
         default = []
+        processed_columns = set()
         fields = obj_type._meta.fields
         get_name = get_symbol_name or _default_sort_enum_symbol_name
         for field_name in fields:
@@ -138,6 +141,12 @@ def sort_enum_for_object_type(
             if not isinstance(orm_field, ColumnProperty):
                 continue
             column = orm_field.columns[0]
+
+            if column in processed_columns:
+                continue
+            else:
+                processed_columns.add(column)
+
             if only_indexed and not (column.primary_key or column.index):
                 continue
             asc_name = get_name(field_name, True)
@@ -153,6 +162,11 @@ def sort_enum_for_object_type(
             if hasattr(attr, "model_field"):
                 column = getattr(attr, "model_field", None)
                 if column is not None:
+                    if column in processed_columns:
+                        continue
+                    else:
+                        processed_columns.add(column)
+
                     asc_name = get_name(field_name, True)
                     asc_value = column.asc()
                     desc_name = get_name(field_name, False)
@@ -160,6 +174,10 @@ def sort_enum_for_object_type(
                     if column.primary_key:
                         default.append(asc_value)
                     members.update({asc_name: asc_value, desc_name: desc_value})
+
+        if extra_members:
+            members.update(extra_members)
+
         enum = Enum(name, members.items())
         enum.default = default  # store default as attribute
         enum.custom_options = custom_options
