@@ -131,7 +131,6 @@ def sort_enum_for_object_type(
     else:
         members = {}
         default = []
-        processed_columns = set()
         fields = obj_type._meta.fields
         get_name = get_symbol_name or _default_sort_enum_symbol_name
         for field_name in fields:
@@ -141,12 +140,6 @@ def sort_enum_for_object_type(
             if not isinstance(orm_field, ColumnProperty):
                 continue
             column = orm_field.columns[0]
-
-            if column in processed_columns:
-                continue
-            else:
-                processed_columns.add(column)
-
             if only_indexed and not (column.primary_key or column.index):
                 continue
             asc_name = get_name(field_name, True)
@@ -162,11 +155,6 @@ def sort_enum_for_object_type(
             if hasattr(attr, "model_field"):
                 column = getattr(attr, "model_field", None)
                 if column is not None:
-                    if column in processed_columns:
-                        continue
-                    else:
-                        processed_columns.add(column)
-
                     asc_name = get_name(field_name, True)
                     asc_value = column.asc()
                     desc_name = get_name(field_name, False)
