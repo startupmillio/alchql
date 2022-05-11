@@ -13,8 +13,8 @@ whole Graphene-SQLAlchemy repository:
 
 ```bash
 # Get the example project code
-git clone https://github.com/graphql-python/graphene-sqlalchemy.git
-cd graphene-sqlalchemy/examples/flask_sqlalchemy
+git clone git@github.com:startupmillio/alchql.git
+cd alchql/examples/flask_sqlalchemy
 ```
 
 It is good idea (but not required) to create a virtual environment
@@ -34,7 +34,7 @@ source env/bin/activate
 Now we can install our dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install .[test]
 ```
 
 Now the following command will setup the database, and start the server:
