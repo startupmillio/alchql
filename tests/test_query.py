@@ -5,11 +5,11 @@ from graphene import Context
 
 from .models import Article, Base, CompositeFullName, Editor, HairKind, Pet, Reporter
 from .utils import to_std_dicts
-from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
-from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
-from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
-from graphene_sqlalchemy_core.node import AsyncNode
-from graphene_sqlalchemy_core.types import ORMField, SQLAlchemyObjectType
+from alchql.converter import convert_sqlalchemy_composite
+from alchql.fields import SQLAlchemyConnectionField
+from alchql.middlewares import LoaderMiddleware
+from alchql.node import AsyncNode
+from alchql.types import ORMField, SQLAlchemyObjectType
 
 
 async def add_test_data(session):

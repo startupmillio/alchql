@@ -6,7 +6,7 @@ from setuptools import find_packages, setup
 
 _version_re = re.compile(r"__version__\s+=\s+(.*)")
 
-with open("graphene_sqlalchemy_core/__init__.py", "rb") as f:
+with open("alchql/__init__.py", "rb") as f:
     version = str(
         ast.literal_eval(_version_re.search(f.read().decode("utf-8")).group(1))
     )
@@ -32,12 +32,12 @@ tests_require = [
 ]
 
 setup(
-    name="graphene-sqlalchemy-core",
+    name="alchql",
     version=version,
     description="Graphene SQLAlchemy core integration",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://gitlab.com/live-art-project/graphene-sqlalchemy-core",
+    url="https://github.com/startupmillio/alchql",
     author="Yorsh Sergey",
     author_email="myrik260138@gmail.com",
     license="MIT",
