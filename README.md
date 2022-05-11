@@ -5,6 +5,10 @@ to learn how to upgrade to Graphene `2.0`.
 
 # AlchQL
 
+[![Lint](https://github.com/startupmillio/alchql/actions/workflows/python-black.yml/badge.svg)](https://github.com/startupmillio/alchql/actions/workflows/python-black.yml)
+[![PyTest](https://github.com/startupmillio/alchql/actions/workflows/python-pytest.yml/badge.svg)](https://github.com/startupmillio/alchql/actions/workflows/python-pytest.yml)
+[![Upload Python Package](https://github.com/startupmillio/alchql/actions/workflows/python-publish.yml/badge.svg)](https://github.com/startupmillio/alchql/actions/workflows/python-publish.yml)
+
 A [SQLAlchemy](http://www.sqlalchemy.org/) integration for [Graphene](http://graphene-python.org/).
 
 ## Installation
