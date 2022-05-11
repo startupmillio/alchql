@@ -2,6 +2,6 @@
 
 # Install the required scripts with
 # pip install autoflake autopep8 isort
-autoflake ./examples/ ./graphene_sqlalchemy_core/ -r --remove-unused-variables --remove-all-unused-imports --in-place
-autopep8 ./examples/ ./graphene_sqlalchemy_core/ -r --in-place --experimental --aggressive --max-line-length 120
-isort -rc ./examples/ ./graphene_sqlalchemy_core/
+autoflake ./examples/ ./alchql/ -r --remove-unused-variables --remove-all-unused-imports --in-place
+autopep8 ./examples/ ./alchql/ -r --in-place --experimental --aggressive --max-line-length 120
+isort -rc ./examples/ ./alchql/

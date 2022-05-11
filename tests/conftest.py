@@ -6,8 +6,8 @@ import pytest
 from graphql import ASTValidationRule, GraphQLError
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
-from graphene_sqlalchemy_core.registry import reset_global_registry
+from alchql.converter import convert_sqlalchemy_composite
+from alchql.registry import reset_global_registry
 from .models import Base, CompositeFullName
 
 

@@ -16,13 +16,13 @@ from graphene import (
 from graphene.relay import Connection
 from sqlalchemy.orm import relationship
 
-from graphene_sqlalchemy_core import gql_types
-from graphene_sqlalchemy_core.converter import convert_sqlalchemy_composite
-from graphene_sqlalchemy_core.fields import (
+from alchql import gql_types
+from alchql.converter import convert_sqlalchemy_composite
+from alchql.fields import (
     SQLAlchemyConnectionField,
     UnsortedSQLAlchemyConnectionField,
 )
-from graphene_sqlalchemy_core.types import (
+from alchql.types import (
     ORMField,
     SQLAlchemyObjectType,
     SQLAlchemyObjectTypeOptions,

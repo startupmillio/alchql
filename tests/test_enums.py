@@ -5,8 +5,8 @@ from graphene import Enum
 from sqlalchemy.types import Enum as SQLAlchemyEnumType
 
 from .models import HairKind, Pet
-from graphene_sqlalchemy_core.enums import _convert_sa_to_graphene_enum, enum_for_field
-from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
+from alchql.enums import _convert_sa_to_graphene_enum, enum_for_field
+from alchql.types import SQLAlchemyObjectType
 
 
 def test_convert_sa_to_graphene_enum_bad_type():
