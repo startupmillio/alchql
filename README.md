@@ -5,7 +5,6 @@ to learn how to upgrade to Graphene `2.0`.
 
 # AlchQL
 
-
 A [SQLAlchemy](http://www.sqlalchemy.org/) integration for [Graphene](http://graphene-python.org/).
 
 ## Installation
@@ -13,7 +12,7 @@ A [SQLAlchemy](http://www.sqlalchemy.org/) integration for [Graphene](http://gra
 For instaling graphene, just run this command in your shell
 
 ```bash
-pip install "alchql>=2.0"
+pip install "alchql>=3.0"
 ```
 
 ## Examples
@@ -26,6 +25,7 @@ from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
+
 
 class UserModel(Base):
     __tablename__ = 'user'
@@ -54,7 +54,7 @@ class Query(graphene.ObjectType):
     users = graphene.List(User)
 
     def resolve_users(self, info):
-        query = User.get_query(info)  # SQLAlchemy query
+        query = await User.get_query(info)  # SQLAlchemy query
         return query.all()
 
 
@@ -80,6 +80,8 @@ your subclasses Meta:
 
 ```python
 from alchql import SQLAlchemyObjectType
+import sqlalchemy as sa
+import graphene
 
 
 class ActiveSQLAlchemyObjectType(SQLAlchemyObjectType):
@@ -87,9 +89,9 @@ class ActiveSQLAlchemyObjectType(SQLAlchemyObjectType):
         abstract = True
 
     @classmethod
-    def get_node(cls, info, id):
-        return cls.get_query(info).filter(
-            and_(
+    async def get_node(cls, info, id):
+        return (await cls.get_query(info)).filter(
+            sa.and_(
                 cls._meta.model.deleted_at == None,
                 cls._meta.model.id == id
             )
@@ -105,7 +107,7 @@ class Query(graphene.ObjectType):
     users = graphene.List(User)
 
     def resolve_users(self, info):
-        query = User.get_query(info)  # SQLAlchemy query
+        query = await User.get_query(info)  # SQLAlchemy query
         return query.all()
 
 
@@ -118,7 +120,4 @@ To learn more check out the following [examples](examples/):
 
 - [Flask SQLAlchemy example](examples/flask_sqlalchemy)
 - [Nameko SQLAlchemy example](examples/nameko_sqlalchemy)
-
-## Contributing
-
-See [CONTRIBUTING.md](/CONTRIBUTING.md)
+- [FastAPI SQLAlchemy example](examples/fastapi_sqlalchemy)
