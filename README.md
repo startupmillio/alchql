@@ -3,7 +3,7 @@ to learn how to upgrade to Graphene `2.0`.
 
 ---
 
-# Graphene-SQLAlchemy
+# AlchQL
 
 
 A [SQLAlchemy](http://www.sqlalchemy.org/) integration for [Graphene](http://graphene-python.org/).
