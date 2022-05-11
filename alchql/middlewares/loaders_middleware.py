@@ -6,7 +6,7 @@ import sqlalchemy as sa
 from graphql import GraphQLResolveInfo
 from sqlalchemy.orm import DeclarativeMeta, Mapper
 
-from graphene_sqlalchemy_core.loader_fk import (
+from alchql.loader_fk import (
     generate_loader_by_foreign_key,
     generate_loader_by_relationship,
 )

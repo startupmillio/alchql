@@ -1,4 +1,4 @@
-from graphene_sqlalchemy_core.gql_fields import camel_to_snake
+from alchql.gql_fields import camel_to_snake
 
 
 def test_camel_to_snake():
