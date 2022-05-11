@@ -4,10 +4,10 @@ import sqlalchemy as sa
 from graphene import Context
 
 from .models import Article, HairKind, Pet, Reporter
-from graphene_sqlalchemy_core.fields import BatchSQLAlchemyConnectionField
-from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
-from graphene_sqlalchemy_core.node import AsyncNode
-from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
+from alchql.fields import BatchSQLAlchemyConnectionField
+from alchql.middlewares import LoaderMiddleware
+from alchql.node import AsyncNode
+from alchql.types import SQLAlchemyObjectType
 
 
 def get_schema():

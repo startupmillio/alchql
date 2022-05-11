@@ -6,11 +6,11 @@ from graphene import Context
 from unittest import mock
 
 from .models import Editor
-from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
-from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
-from graphene_sqlalchemy_core.node import AsyncNode
-from graphene_sqlalchemy_core import fields
-from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
+from alchql.types import SQLAlchemyObjectType
+from alchql.fields import SQLAlchemyConnectionField
+from alchql.node import AsyncNode
+from alchql import fields
+from alchql.middlewares import LoaderMiddleware
 
 
 async def add_test_data(session):

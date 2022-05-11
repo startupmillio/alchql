@@ -3,14 +3,14 @@ import pytest
 import sqlalchemy as sa
 from graphene import Context
 
-from graphene_sqlalchemy_core.fields import SQLAlchemyConnectionField
-from graphene_sqlalchemy_core.gql_id import ResolvedGlobalId
-from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
-from graphene_sqlalchemy_core.node import AsyncNode
-from graphene_sqlalchemy_core.sql_mutation import (
+from alchql.fields import SQLAlchemyConnectionField
+from alchql.gql_id import ResolvedGlobalId
+from alchql.middlewares import LoaderMiddleware
+from alchql.node import AsyncNode
+from alchql.sql_mutation import (
     SQLAlchemyCreateMutation,
 )
-from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
+from alchql.types import SQLAlchemyObjectType
 from tests import models as m
 from tests.test_query import add_test_data
 

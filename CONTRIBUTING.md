@@ -24,7 +24,7 @@ tox -e pre-commit
 
 ## Release Process
 
-1. Update the version number in graphene_sqlalchemy_core/__init__.py via a PR.
+1. Update the version number in alchql/__init__.py via a PR.
 
 2. Once the PR is merged, tag the commit on master with the new version (only maintainers of the repo can do this). For example, "v2.1.2". Travis will then automatically build this tag and release it to Pypi.
 

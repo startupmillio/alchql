@@ -1,8 +1,8 @@
 import pytest
 from graphene import Context, ObjectType, Schema, String
 
-from graphene_sqlalchemy_core.gql_fields import camel_to_snake
-from graphene_sqlalchemy_core.utils import (
+from alchql.gql_fields import camel_to_snake
+from alchql.utils import (
     to_enum_value_name,
     to_type_name,
 )

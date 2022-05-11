@@ -5,8 +5,8 @@ from graphene import Context
 
 from .models import HairKind, Pet, Reporter
 from .test_query import add_test_data, to_std_dicts
-from graphene_sqlalchemy_core.middlewares import LoaderMiddleware
-from graphene_sqlalchemy_core.types import SQLAlchemyObjectType
+from alchql.middlewares import LoaderMiddleware
+from alchql.types import SQLAlchemyObjectType
 
 
 @pytest.mark.asyncio
