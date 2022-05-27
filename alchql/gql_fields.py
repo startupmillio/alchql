@@ -121,6 +121,9 @@ def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
 
     fields = []
     for k in tree.keys():
+        if k == "__typename":
+            continue
+
         if hasattr(model, k):
             ex = getattr(model, k).expression
         else:
