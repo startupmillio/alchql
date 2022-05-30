@@ -27,8 +27,10 @@ from typing import Union
 
 from graphql import FieldNode, FragmentDefinitionNode, GraphQLResolveInfo
 
+from alchql.registry import get_global_registry
+
 _camel_to_snake_re = re.compile(
-    r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z0-9]*)([A-Z][0-9]*[a-z]*|\d+)"
+    r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z\d]*)([A-Z]\d*[a-z]*|\d+)"
 )
 
 
@@ -113,6 +115,8 @@ def get_tree(info: GraphQLResolveInfo, cls_name: str = None):
 
 def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
     tree = get_tree(info, cls_name)
+    registry = get_global_registry()
+    type_ = registry.get_type_for_model(model)
 
     if "edges" in tree:
         tree = tree["edges"]
@@ -120,14 +124,22 @@ def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
             tree = tree["node"]
 
     fields = []
-    for k in tree.keys():
-        if k == "__typename":
+    for key in tree.keys():
+        if key == "__typename":
             continue
 
-        if hasattr(model, k):
-            ex = getattr(model, k).expression
+        model_names = {key, camel_to_snake(key)}
+        for model_name in model_names:
+            if hasattr(model, model_name):
+                ex = getattr(model, model_name).expression
+                break
         else:
-            ex = getattr(model, camel_to_snake(k)).expression
+            for k, v in type_._meta.fields.items():
+                if getattr(v, "name", None) in model_names:
+                    ex = getattr(type_, k).model_field.expression.label(k)
+                    break
+            else:
+                raise Exception(f"Field not found: {key}")
 
         if hasattr(ex, "left") and hasattr(ex, "right"):
             if model.__table__ == ex.left.table:
