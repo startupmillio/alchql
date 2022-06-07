@@ -115,8 +115,6 @@ def get_tree(info: GraphQLResolveInfo, cls_name: str = None):
 
 def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
     tree = get_tree(info, cls_name)
-    registry = get_global_registry()
-    type_ = registry.get_type_for_model(model)
 
     if "edges" in tree:
         tree = tree["edges"]
@@ -134,6 +132,8 @@ def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
                 ex = getattr(model, model_name).expression
                 break
         else:
+            registry = get_global_registry()
+            type_ = registry.get_type_for_model(model)
             for k, v in type_._meta.fields.items():
                 if getattr(v, "name", None) in model_names:
                     ex = getattr(type_, k).model_field.expression.label(k)
