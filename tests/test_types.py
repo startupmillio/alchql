@@ -1,7 +1,9 @@
 from unittest import mock
+
 import pytest
 import sqlalchemy as sa
 from graphene import (
+    Context,
     Dynamic,
     Field,
     GlobalID,
@@ -19,9 +21,12 @@ from sqlalchemy.orm import relationship
 from alchql import gql_types
 from alchql.converter import convert_sqlalchemy_composite
 from alchql.fields import (
+    BatchSQLAlchemyConnectionField,
     SQLAlchemyConnectionField,
     UnsortedSQLAlchemyConnectionField,
 )
+from alchql.middlewares import LoaderMiddleware
+from alchql.node import AsyncNode
 from alchql.types import (
     ORMField,
     SQLAlchemyObjectType,
@@ -344,6 +349,52 @@ def test_sqlalchemy_redefine_field2():
     assert isinstance(first_name_field, Field)
     assert first_name_field.type == gql_types.Int
     assert first_name_field.type != Int
+
+
+@pytest.mark.asyncio
+async def test_sqlalchemy_redefine_field3(session):
+    class ReporterType(SQLAlchemyObjectType):
+        class Meta:
+            model = Reporter
+            connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
+            interfaces = (AsyncNode,)
+
+        fname = gql_types.String(model_field=Reporter.first_name, name="nameObj")
+
+    class Query(ObjectType):
+        reporter = SQLAlchemyConnectionField(ReporterType.connection, sort=None)
+
+    reporter = Reporter(
+        first_name="first_name",
+        last_name="last_name",
+        email="email",
+        favorite_pet_kind="cat",
+    )
+    session.add(reporter)
+    await session.commit()
+
+    schema = Schema(query=Query, types=[ReporterType])
+    result = await schema.execute_async(
+        """
+        query {
+            reporter {
+                edges{
+                    node{
+                        id
+                        nameObj
+                    }
+                }
+            }
+        }
+        """,
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Reporter]),
+        ],
+    )
+
+    assert not result.errors
+    assert result.data["reporter"]["edges"][0]["node"]["nameObj"] == "first_name"
 
 
 @pytest.mark.asyncio
