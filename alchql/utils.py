@@ -70,8 +70,8 @@ def to_type_name(name):
     return "".join(part[:1].upper() + part[1:] for part in name.split("_"))
 
 
-_re_enum_value_name_1 = re.compile("(.)([A-Z][a-z]+)")
-_re_enum_value_name_2 = re.compile("([a-z0-9])([A-Z])")
+_re_enum_value_name_1 = re.compile(r"(.)([A-Z][a-z]+)")
+_re_enum_value_name_2 = re.compile(r"([a-z\d])([A-Z])")
 
 
 def to_enum_value_name(name):

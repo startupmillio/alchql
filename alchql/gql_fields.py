@@ -136,7 +136,9 @@ def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
             type_ = registry.get_type_for_model(model)
             for k, v in type_._meta.fields.items():
                 if getattr(v, "name", None) in model_names:
-                    ex = getattr(type_, k).model_field.expression.label(k)
+                    ex = getattr(type_, k).model_field.expression
+                    if k != ex.key:
+                        ex = ex.label(k)
                     break
             else:
                 raise Exception(f"Field not found: {key}")
