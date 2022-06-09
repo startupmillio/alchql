@@ -35,13 +35,15 @@ class GlobalFilters:
 
 
 def get_query(model: Type[DeclarativeMeta], info: GraphQLResolveInfo, cls_name=None):
-    try:
-        if info:
+    fields = None
+
+    if info:
+        try:
             fields = get_fields(model, info, cls_name)
-        else:
-            fields = model.__table__.columns
-    except Exception as e:
-        logging.error(e)
+        except Exception as e:
+            logging.error(e)
+
+    if not fields:
         fields = model.__table__.columns
 
     return sa.select(fields)
