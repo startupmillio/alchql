@@ -5,23 +5,21 @@ from typing import Type
 
 import graphene
 import sqlalchemy as sa
-from graphene import Argument, NonNull
 from graphene.relay import Connection, ConnectionField
-from graphene.relay.connection import connection_adapter, page_info_adapter
+from graphene.relay.connection import PageInfo
+from graphene.types import ResolveInfo
 from graphene.types.utils import get_type
-from graphql import GraphQLResolveInfo
-from graphql_relay import connection_from_array_slice
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeMeta, InstrumentedAttribute, RelationshipProperty
 
 from .batching import get_batch_resolver, get_fk_resolver_reverse
+from .connection.from_array_slice import connection_from_array_slice
+from .connection.from_query import connection_from_query
 from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
 from .query_helper import QueryHelper
 from .registry import Registry, get_global_registry
-from .slice import connection_from_query
 from .sqlalchemy_converter import convert_sqlalchemy_type
 from .utils import EnumValue, FilterItem, GlobalFilters, get_query
-
 
 DEFAULT_LIMIT = 10000
 
@@ -53,9 +51,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         return get_nullable_type(self.type)._meta.node._meta.model
 
     @classmethod
-    async def get_query(
-        cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, **args
-    ):
+    async def get_query(cls, model: Type[DeclarativeMeta], info: ResolveInfo, **args):
         return get_query(model, info)
 
     @classmethod
@@ -63,7 +59,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         cls,
         connection_type,
         model: Type[DeclarativeMeta],
-        info: GraphQLResolveInfo,
+        info: ResolveInfo,
         args,
         resolved,
     ):
@@ -85,13 +81,10 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             connection = await connection_from_query(
                 query,
                 session,
-                args,
-                slice_start=0,
+                args=args,
                 list_length=_len,
-                list_slice_length=_len,
                 connection_type=connection_type,
-                page_info_type=page_info_adapter,
-                edge_type=connection_type.Edge,
+                page_info_type=PageInfo,
             )
 
             if hasattr(connection, "total_count"):
@@ -99,13 +92,14 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         else:
             if isawaitable(resolved):
                 resolved = await resolved
+
             connection = connection_from_array_slice(
                 array_slice=resolved,
                 args=args,
-                connection_type=partial(connection_adapter, cls=connection_type),
-                edge_type=connection_type.Edge,
-                page_info_type=page_info_adapter,
+                connection_type=connection_type,
+                page_info_type=PageInfo,
             )
+
             if hasattr(connection, "total_count"):
                 connection.total_count = len(resolved)
         return connection
@@ -203,7 +197,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         registry = get_global_registry()
 
-        kwargs[GlobalFilters.ID__EQ] = Argument(type_=graphene.ID)
+        kwargs[GlobalFilters.ID__EQ] = graphene.Argument(type_=graphene.ID)
         filters[GlobalFilters.ID__EQ] = FilterItem(
             filter_func=getattr(
                 sa.inspect(type_._meta.model).primary_key[0],
@@ -211,7 +205,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
             ),
             field_type=graphene.ID,
         )
-        kwargs[GlobalFilters.ID__IN] = Argument(
+        kwargs[GlobalFilters.ID__IN] = graphene.Argument(
             type_=graphene.List(of_type=graphene.ID)
         )
         filters[GlobalFilters.ID__IN] = FilterItem(
@@ -224,7 +218,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         for field, operators in getattr(type_._meta, "filter_fields", {}).items():
             if isinstance(field, str) and isinstance(operators, FilterItem):
-                kwargs[field] = Argument(
+                kwargs[field] = graphene.Argument(
                     type_=operators.field_type,
                     default_value=operators.default_value,
                     description=operators.description,
@@ -259,7 +253,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                     operator_field_type = field_type
 
                 filter_name = f"{field_key}__{operator}"
-                kwargs[filter_name] = Argument(type_=operator_field_type)
+                kwargs[filter_name] = graphene.Argument(type_=operator_field_type)
                 filters[filter_name] = FilterItem(
                     field_type=operator_field_type,
                     filter_func=getattr(field, OPERATORS_MAPPING[operator][0]),
@@ -270,7 +264,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
     @classmethod
     async def get_query(
-        cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, sort=None, **args
+        cls, model: Type[DeclarativeMeta], info: ResolveInfo, sort=None, **args
     ):
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
@@ -393,6 +387,6 @@ def default_connection_field_factory(
 
 
 def get_nullable_type(_type):
-    if isinstance(_type, NonNull):
+    if isinstance(_type, graphene.NonNull):
         return _type.of_type
     return _type

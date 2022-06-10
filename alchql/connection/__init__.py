@@ -1,0 +1,2 @@
+from .from_array_slice import connection_from_array_slice
+from .from_query import connection_from_query
