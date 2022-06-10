@@ -33,17 +33,21 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         nullable_type = get_nullable_type(type_)
         if issubclass(nullable_type, Connection):
             return type_
-        assert issubclass(nullable_type, SQLAlchemyObjectType), (
-            f"SQLALchemyConnectionField only accepts SQLAlchemyObjectType types, "
-            f"not {nullable_type.__name__}"
-        )
-        assert (
-            nullable_type.connection
-        ), f"The type {nullable_type.__name__} doesn't have a connection"
-        assert type_ == nullable_type, (
-            "Passing a SQLAlchemyObjectType instance is deprecated. "
-            "Pass the connection type instead accessible via SQLAlchemyObjectType.connection"
-        )
+
+        if not issubclass(nullable_type, SQLAlchemyObjectType):
+            raise AssertionError(
+                f"SQLALchemyConnectionField only accepts SQLAlchemyObjectType types, "
+                f"not {nullable_type.__name__}"
+            )
+        if not nullable_type.connection:
+            raise AssertionError(
+                f"The type {nullable_type.__name__} doesn't have a connection"
+            )
+        if type_ != nullable_type:
+            raise AssertionError(
+                "Passing a SQLAlchemyObjectType instance is deprecated. "
+                "Pass the connection type instead accessible via SQLAlchemyObjectType.connection"
+            )
         return nullable_type.connection
 
     @property
