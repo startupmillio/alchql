@@ -3,7 +3,7 @@ import logging
 from inspect import isawaitable
 from typing import Callable
 
-from graphql import GraphQLResolveInfo
+from graphene import ResolveInfo
 
 
 class BaseDebugMiddleware:
@@ -11,7 +11,7 @@ class BaseDebugMiddleware:
         self.logger = logger
         self.level = level
 
-    async def resolve(self, next_, root, info: GraphQLResolveInfo, **args):
+    async def resolve(self, next_, root, info: ResolveInfo, **args):
         if root is None:
             try:
                 self.log(info)
@@ -24,7 +24,7 @@ class BaseDebugMiddleware:
 
         return result
 
-    def log(self, info: GraphQLResolveInfo):
+    def log(self, info: ResolveInfo):
         raise NotImplementedError()
 
 

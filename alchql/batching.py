@@ -1,15 +1,14 @@
 import re
 
-from graphene import Dynamic, Field
+from graphene import Dynamic, Field, ResolveInfo
 from graphene.types.objecttype import ObjectTypeMeta
-from graphql import GraphQLResolveInfo
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import RelationshipProperty
 
 from .gql_fields import camel_to_snake
 
 
-def set_object_type(root, info: GraphQLResolveInfo):
+def set_object_type(root, info: ResolveInfo):
     field_name = info.field_name
     root_type = type(root)
     if not hasattr(root_type, "_meta"):
@@ -36,7 +35,7 @@ def set_object_type(root, info: GraphQLResolveInfo):
 
 
 def get_batch_resolver(relationship_prop: RelationshipProperty, single=False):
-    async def resolve(root, info: GraphQLResolveInfo, **args):
+    async def resolve(root, info: ResolveInfo, **args):
         key = (
             relationship_prop.parent.entity,
             relationship_prop.mapper.entity,
@@ -62,7 +61,7 @@ def get_batch_resolver(relationship_prop: RelationshipProperty, single=False):
 
 
 def get_fk_resolver(fk: ForeignKey, single=False):
-    async def resolve(root, info: GraphQLResolveInfo, **args):
+    async def resolve(root, info: ResolveInfo, **args):
         key = (
             fk.constraint.table,
             fk.constraint.referred_table,
@@ -88,7 +87,7 @@ def get_fk_resolver(fk: ForeignKey, single=False):
 
 
 def get_fk_resolver_reverse(fk: ForeignKey, single=False):
-    async def resolve(root, info: GraphQLResolveInfo, **args):
+    async def resolve(root, info: ResolveInfo, **args):
         key = (
             fk.constraint.referred_table,
             fk.constraint.table,

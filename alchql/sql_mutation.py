@@ -5,13 +5,12 @@ from typing import Callable, Dict, Iterable, Type
 import graphene
 import sqlalchemy
 import sqlalchemy as sa
-from graphene import Argument, Field, Interface, ObjectType
+from graphene import Argument, Field, Interface, ObjectType, ResolveInfo
 from graphene.types.mutation import MutationOptions
 from graphene.types.objecttype import ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.get_unbound_function import get_unbound_function
 from graphene.utils.props import props
-from graphql import GraphQLResolveInfo
 from sqlalchemy.orm import DeclarativeMeta
 
 from .get_input_type import get_input_fields, get_input_type
@@ -48,11 +47,11 @@ class _BaseMutation(ObjectType):
         )
 
     @classmethod
-    async def get_query(cls, info: GraphQLResolveInfo):
+    async def get_query(cls, info: ResolveInfo):
         return get_query(cls._meta.model, info, cls.__name__)
 
     @classmethod
-    async def get_node(cls, info: GraphQLResolveInfo, id: int):
+    async def get_node(cls, info: ResolveInfo, id: int):
         session = info.context.session
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
@@ -134,7 +133,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     @classmethod
-    async def mutate(cls, root, info: GraphQLResolveInfo, id: str, value: dict):
+    async def mutate(cls, root, info: ResolveInfo, id: str, value: dict):
         session = info.context.session
         model = cls._meta.model
         output = cls._meta.output
@@ -239,7 +238,7 @@ class SQLAlchemyCreateMutation(_BaseMutation):
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     @classmethod
-    async def mutate(cls, root, info: GraphQLResolveInfo, value: dict):
+    async def mutate(cls, root, info: ResolveInfo, value: dict):
         session = info.context.session
         model = cls._meta.model
         output = cls._meta.output
@@ -330,7 +329,7 @@ class SQLAlchemyDeleteMutation(_BaseMutation):
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
     @classmethod
-    async def mutate(cls, root, info: GraphQLResolveInfo, id: str):
+    async def mutate(cls, root, info: ResolveInfo, id: str):
         session = info.context.session
         model = cls._meta.model
         output = cls._meta.output

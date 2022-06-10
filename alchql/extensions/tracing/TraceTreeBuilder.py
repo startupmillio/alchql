@@ -1,6 +1,6 @@
 import time
 
-from graphql import GraphQLResolveInfo
+from graphene import ResolveInfo
 
 from .generated.reports_pb2 import Trace
 from .utils import (
@@ -38,7 +38,7 @@ class TraceTreeBuilder:
         ) - hr_timestamp_to_nanos(self.trace.start_time)
         self.stopped = True
 
-    def will_resolve_field(self, info: GraphQLResolveInfo):
+    def will_resolve_field(self, info: ResolveInfo):
         if not self.start_hr_time:
             raise Exception("will_resolve_field called before start_timing!")
         if self.stopped:
@@ -105,9 +105,8 @@ class TraceTreeBuilder:
                 node = specified_node
             else:
                 print(
-                    "Could not find node with path "
-                    + node_key
-                    + "; defaulting to put errors on root node."
+                    f"Could not find node with path {node_key}; "
+                    f"defaulting to put errors on root node."
                 )
         node.error.append(error)
 

@@ -111,7 +111,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         connection_type,
         model: Type[DeclarativeMeta],
         root,
-        info: GraphQLResolveInfo,
+        info: ResolveInfo,
         **args,
     ):
         types = getattr(info.context, "object_types", {})
@@ -160,7 +160,7 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
 
     @classmethod
     async def get_query(
-        cls, model: Type[DeclarativeMeta], info: GraphQLResolveInfo, sort=None, **args
+        cls, model: Type[DeclarativeMeta], info: ResolveInfo, sort=None, **args
     ):
         query = get_query(model, info)
         if sort is not None:
