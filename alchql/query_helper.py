@@ -33,8 +33,8 @@ class FragmentField:
 
 
 class QueryHelper:
-    @staticmethod
-    def get_filters(info) -> list:
+    @classmethod
+    def get_filters(cls, info) -> list:
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
 
@@ -48,7 +48,7 @@ class QueryHelper:
 
         parsed_filters = object_type.parsed_filters
 
-        gql_field = QueryHelper.get_current_field(info)
+        gql_field = cls.get_current_field(info)
 
         if gql_field and gql_field.arguments:
             for name, value in gql_field.arguments.items():
@@ -85,8 +85,8 @@ class QueryHelper:
                 filters_to_apply.append(field_expr)
         return filters_to_apply
 
-    @staticmethod
-    def parse_query(info) -> List[QueryField]:
+    @classmethod
+    def parse_query(cls, info) -> List[QueryField]:
         # TODO: cache was removed because of bug with two diff. fragments
         #  with the same ObjectType and different fields in each fragment
         # if not hasattr(
@@ -99,24 +99,24 @@ class QueryHelper:
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
         object_type_name = object_type.__name__ if object_type else None
-        result = QueryHelper.__parse_nodes(nodes, variables, object_type_name)
-        fragments = QueryHelper.__parse_fragments(info.fragments, variables)
+        result = cls.__parse_nodes(nodes, variables, object_type_name)
+        fragments = cls.__parse_fragments(info.fragments, variables)
 
-        result = QueryHelper.__set_fragment_fields(result, fragments)
+        result = cls.__set_fragment_fields(result, fragments)
         return result
         # setattr(info.context, "parsed_query", {info.field_name: result})
 
         # return info.context.parsed_query[info.field_name].copy()
 
-    @staticmethod
-    def get_selected_fields(info, model, sort=None):
+    @classmethod
+    def get_selected_fields(cls, info, model, sort=None):
         object_types = getattr(info.context, "object_types", {})
         object_type = object_types.get(info.field_name)
 
         if not object_type:
             return
 
-        gql_field = QueryHelper.get_current_field(info)
+        gql_field = cls.get_current_field(info)
 
         object_type_fields = {}
 
@@ -200,9 +200,9 @@ class QueryHelper:
 
         return select_fields
 
-    @staticmethod
-    def get_current_field(info) -> Optional[QueryField]:
-        gql_fields = QueryHelper.parse_query(info)
+    @classmethod
+    def get_current_field(cls, info) -> Optional[QueryField]:
+        gql_fields = cls.parse_query(info)
         field_name = camel_to_snake(info.field_name)
 
         while gql_fields:
@@ -213,24 +213,28 @@ class QueryHelper:
             if next_field.values:
                 gql_fields.extend(next_field.values)
 
-    @staticmethod
-    def has_last_arg(info):
-        gql_field = QueryHelper.get_current_field(info)
+    @classmethod
+    def has_arg(cls, info, arg: str):
+        gql_field = cls.get_current_field(info)
         if gql_field and gql_field.arguments:
             for name, value in gql_field.arguments.items():
-                if name == "last" and value is not None:
+                if name == arg and value is not None:
                     return True
 
         return False
 
-    @staticmethod
-    def __parse_nodes(nodes, variables, object_type_name=None) -> list:
+    @classmethod
+    def has_last_arg(cls, info):
+        return cls.has_arg(info, "last")
+
+    @classmethod
+    def __parse_nodes(cls, nodes, variables, object_type_name=None) -> list:
         values = []
         node: FieldNode
         for node in nodes:
             if node.kind == INLINE_FRAGMENT:
                 if node.type_condition.name.value == object_type_name:
-                    node_values = QueryHelper.__parse_nodes(
+                    node_values = cls.__parse_nodes(
                         node.selection_set.selections, variables, object_type_name
                     )
                     return node_values
@@ -243,7 +247,7 @@ class QueryHelper:
                 continue
 
             if node.selection_set:
-                node_values = QueryHelper.__parse_nodes(
+                node_values = cls.__parse_nodes(
                     node.selection_set.selections, variables, object_type_name
                 )
 
@@ -273,31 +277,31 @@ class QueryHelper:
 
         return values
 
-    @staticmethod
-    def __parse_fragments(fragments: dict, variables: dict) -> dict:
+    @classmethod
+    def __parse_fragments(cls, fragments: dict, variables: dict) -> dict:
         result = {}
         for name, fragment in fragments.items():
-            result[camel_to_snake(name)] = QueryHelper.__parse_nodes(
+            result[camel_to_snake(name)] = cls.__parse_nodes(
                 fragment.selection_set.selections, variables
             )
 
         return result
 
-    @staticmethod
-    def __set_fragment_fields(parsed_query, fragments) -> list:
+    @classmethod
+    def __set_fragment_fields(cls, parsed_query, fragments) -> list:
         new_values = []
         for field in parsed_query:
             if isinstance(field, FragmentField):
                 extra_fields = fragments.get(field.name)
                 for extra_field in extra_fields:
                     if extra_field.values:
-                        extra_field.values = QueryHelper.__set_fragment_fields(
+                        extra_field.values = cls.__set_fragment_fields(
                             parsed_query=extra_field.values, fragments=fragments
                         )
                 new_values.extend(extra_fields)
             else:
                 if field.values:
-                    field.values = QueryHelper.__set_fragment_fields(
+                    field.values = cls.__set_fragment_fields(
                         parsed_query=field.values, fragments=fragments
                     )
 
