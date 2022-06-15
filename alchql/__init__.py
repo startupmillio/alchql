@@ -9,7 +9,7 @@ from .sql_mutation import (
     SQLAlchemyDeleteMutation,
 )
 
-__version__ = "3.0.12"
+__version__ = "3.0.13"
 
 __all__ = [
     "__version__",
