@@ -3,7 +3,7 @@ from inspect import isawaitable
 from typing import Sequence, Type, Union
 
 import sqlalchemy as sa
-from graphql import GraphQLResolveInfo
+from graphene import ResolveInfo
 from sqlalchemy.orm import DeclarativeMeta, Mapper
 
 from alchql.loader_fk import (
@@ -43,7 +43,7 @@ class LoaderMiddleware:
                 )
                 self.loaders[key] = generate_loader_by_relationship(relationship)
 
-    async def resolve(self, next_, root, info: GraphQLResolveInfo, **args):
+    async def resolve(self, next_, root, info: ResolveInfo, **args):
         if root is None:
             session = info.context.session
 

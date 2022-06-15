@@ -3,7 +3,7 @@ from collections import defaultdict
 
 import sqlalchemy as sa
 from aiodataloader import DataLoader
-from graphql import GraphQLResolveInfo
+from graphene import ResolveInfo
 from sqlalchemy import ForeignKey, Table
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import RelationshipProperty
@@ -17,7 +17,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
         def __init__(
             self,
             session: AsyncSession,
-            info: GraphQLResolveInfo = None,
+            info: ResolveInfo = None,
             *args,
             **kwargs,
         ):
@@ -115,7 +115,7 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
         def __init__(
             self,
             session: AsyncSession,
-            info: GraphQLResolveInfo = None,
+            info: ResolveInfo = None,
             *args,
             **kwargs,
         ):

@@ -22,10 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 import re
-import sqlalchemy
 from typing import Union
 
-from graphql import FieldNode, FragmentDefinitionNode, GraphQLResolveInfo
+import sqlalchemy
+from graphene import ResolveInfo
+from graphql import FieldNode, FragmentDefinitionNode
 
 from alchql.registry import get_global_registry
 
@@ -94,7 +95,7 @@ def ast_to_dict(ast: Union[FieldNode, FragmentDefinitionNode]):
     return result
 
 
-def get_tree(info: GraphQLResolveInfo, cls_name: str = None):
+def get_tree(info: ResolveInfo, cls_name: str = None):
     """A convenience function to call collect_fields with info
 
     Args:
@@ -113,7 +114,7 @@ def get_tree(info: GraphQLResolveInfo, cls_name: str = None):
     return collect_fields(node, fragments, cls_name)
 
 
-def get_fields(model, info: GraphQLResolveInfo, cls_name=None):
+def get_fields(model, info: ResolveInfo, cls_name=None):
     tree = get_tree(info, cls_name)
 
     if "edges" in tree:
