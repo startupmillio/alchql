@@ -15,7 +15,6 @@ async def connection_from_query(
     query: Query,
     session: AsyncSession,
     args: Optional[dict] = None,
-    list_length: int = 0,
     connection_type: Type[Connection] = Connection,
     page_info_type: Type[PageInfo] = PageInfo,
 ) -> Connection:
@@ -35,11 +34,11 @@ async def connection_from_query(
     first = args.get("first")
     last = args.get("last")
 
-    before_offset = get_offset_with_default(before, list_length)
+    before_offset = get_offset_with_default(before)
     after_offset = get_offset_with_default(after, -1)
 
     start_offset = max(after_offset, -1) + 1
-    end_offset = min(before_offset, list_length)
+    end_offset = before_offset
 
     if isinstance(first, int):
         end_offset = min(end_offset, start_offset + first)
@@ -47,13 +46,12 @@ async def connection_from_query(
         start_offset = max(start_offset, end_offset - last)
 
     lower_bound = after_offset + 1 if after else 0
-    upper_bound = before_offset if before else list_length
 
     _slice = query
     # If supplied slice is too large, trim it down before mapping over it.
     limit = first or last or end_offset
     if limit:
-        _slice = _slice.limit(limit)
+        _slice = _slice.limit(limit + 1)
     if start_offset:
         _slice = _slice.offset(start_offset)
 
@@ -68,6 +66,11 @@ async def connection_from_query(
         )
         edges.append(edge)
 
+    has_next_page = False
+    if limit and len(edges) > limit:
+        has_next_page = True
+        edges = edges[:limit]
+
     first_edge_cursor = edges[0].cursor if edges else None
     last_edge_cursor = edges[-1].cursor if edges else None
 
@@ -77,8 +80,6 @@ async def connection_from_query(
             start_cursor=first_edge_cursor,
             end_cursor=last_edge_cursor,
             has_previous_page=isinstance(last, int) and start_offset > lower_bound,
-            has_next_page=isinstance(first, int)
-            and len(edges) == first
-            and end_offset < upper_bound,
+            has_next_page=has_next_page,
         ),
     )
