@@ -15,6 +15,7 @@ async def connection_from_query(
     query: Query,
     session: AsyncSession,
     args: Optional[dict] = None,
+    list_length: int = 0,
     connection_type: Type[Connection] = Connection,
     page_info_type: Type[PageInfo] = PageInfo,
 ) -> Connection:
@@ -34,18 +35,16 @@ async def connection_from_query(
     first = args.get("first")
     last = args.get("last")
 
-    before_offset = get_offset_with_default(before)
+    before_offset = get_offset_with_default(before, list_length)
     after_offset = get_offset_with_default(after, -1)
 
     start_offset = max(after_offset, -1) + 1
-    end_offset = before_offset
+    end_offset = min(before_offset, list_length)
 
     if isinstance(first, int):
         end_offset = min(end_offset, start_offset + first)
     if isinstance(last, int):
         start_offset = max(start_offset, end_offset - last)
-
-    lower_bound = after_offset + 1 if after else 0
 
     _slice = query
     # If supplied slice is too large, trim it down before mapping over it.
@@ -79,7 +78,7 @@ async def connection_from_query(
         page_info=page_info_type(
             start_cursor=first_edge_cursor,
             end_cursor=last_edge_cursor,
-            has_previous_page=isinstance(last, int) and start_offset > lower_bound,
+            has_previous_page=start_offset,
             has_next_page=has_next_page,
         ),
     )
