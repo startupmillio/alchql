@@ -50,7 +50,7 @@ async def get_query():
 async def get_start_end_cursor(first: int, session):
     query = """
             query {
-              editors (first: """ + str(first) + """) {
+              editors (first: %s) {
                 edges {
                   node {
                     id,
@@ -65,7 +65,7 @@ async def get_start_end_cursor(first: int, session):
                 }
               }
             }
-        """
+        """ % first
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -132,9 +132,7 @@ async def test_query_first_specified(session):
     query = (
         """
             query {
-              editors (first: """
-        + str(first)
-        + """) {
+              editors (first: %s) {
                 edges {
                   node {
                     id,
@@ -149,7 +147,7 @@ async def test_query_first_specified(session):
                 }
               }
             }
-        """
+        """ % first
     )
 
     schema = graphene.Schema(query=await get_query())
@@ -177,7 +175,7 @@ async def test_query_first_after_specified(session):
 
     query = """
         query {
-          editors (first: 10, after: \"""" + end_cursor + """\") {
+          editors (first: 10, after: "%s") {
             edges {
               node {
                 id,
@@ -192,7 +190,7 @@ async def test_query_first_after_specified(session):
             }
           }
         }
-    """
+    """ % end_cursor
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -222,7 +220,7 @@ async def test_query_first_before_specified(session):
 
     query = """
             query {
-              editors (first: 10, before: \"""" + end_cursor + """\") {
+              editors (first: 10, before: "%s") {
                 edges {
                   node {
                     id,
@@ -237,7 +235,7 @@ async def test_query_first_before_specified(session):
                 }
               }
             }
-        """
+        """ % end_cursor
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -269,8 +267,8 @@ async def test_query_first_after_before_specified(session):
             query {
               editors (
                 first: 10, 
-                after: \"""" + start_cursor + """\"
-                before: \"""" + end_cursor + """\"
+                after: "%s",
+                before: "%s"
               ) {
                 edges {
                   node {
@@ -286,7 +284,7 @@ async def test_query_first_after_before_specified(session):
                 }
               }
             }
-        """
+        """ % (start_cursor, end_cursor)
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -359,7 +357,11 @@ async def test_query_last_after_specified(session):
 
     query = """
         query {
-          editors (last: 10, name_Ilike: "Editor", after: \"""" + end_cursor + """\") {
+          editors (
+            last: 10, 
+            name_Ilike: "Editor", 
+            after: "%s"
+          ) {
             edges {
               node {
                 id,
@@ -374,7 +376,7 @@ async def test_query_last_after_specified(session):
             }
           }
         }
-    """
+    """ % end_cursor
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -404,7 +406,11 @@ async def test_last_before_specified(session):
 
     query = """
         query {
-          editors (last: 10, name_Ilike: "Editor", before: \"""" + end_cursor + """\") {
+          editors (
+            last: 10, 
+            name_Ilike: "Editor", 
+            before: "%s"
+          ) {
             edges {
               node {
                 id,
@@ -419,7 +425,7 @@ async def test_last_before_specified(session):
             }
           }
         }
-    """
+    """ % end_cursor
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -452,8 +458,8 @@ async def test_last_after_before_specified(session):
           editors (
             last: 10, 
             name_Ilike: "Editor",
-            after: \"""" + start_cursor + """\", 
-            before: \"""" + end_cursor + """\"
+            after: "%s", 
+            before: "%s"
           ) {
             edges {
               node {
@@ -469,7 +475,7 @@ async def test_last_after_before_specified(session):
             }
           }
         }
-    """
+    """ % (start_cursor, end_cursor)
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
