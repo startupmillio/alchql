@@ -75,7 +75,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             if not QueryHelper.get_filters(info) and has_last_arg:
                 raise TypeError('Cannot set "last" without filters applied')
 
-            only_q = only_q = query.with_only_columns(
+            only_q = query.with_only_columns(
                 *sa.inspect(model).primary_key,
             ).order_by(None)
             q = sa.select([sa.func.count()]).select_from(only_q.alias())
