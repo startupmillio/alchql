@@ -1,24 +1,65 @@
-from typing import Optional, Type
+import logging
+from typing import Optional, TYPE_CHECKING, Type
 
+import sqlalchemy as sa
 from graphene import Connection, PageInfo
+from graphene.types import ResolveInfo
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import DeclarativeMeta
 
 from .utils import (
     get_offset_with_default,
     offset_to_cursor,
 )
+from ..query_helper import QueryHelper
 from ..utils import filter_requested_fields_for_object
+
+if TYPE_CHECKING:
+    from ..fields import UnsortedSQLAlchemyConnectionField
+DEFAULT_LIMIT = 1000
+
+
+def get_count_query(query, model):
+    only_q = query.with_only_columns(
+        *sa.inspect(model).primary_key,
+    ).order_by(None)
+    return sa.select([sa.func.count()]).select_from(only_q.alias())
+
+
+def construct_page_info(
+    cls: Type[PageInfo],
+    info: ResolveInfo,
+    edges: list,
+    limit: int,
+    offset: int,
+) -> PageInfo:
+    page_info_kwargs = {}
+
+    page_info_fields = QueryHelper.get_page_info_fields(info)
+
+    if not page_info_fields:
+        return cls()
+
+    for field in page_info_fields:
+        if field == "has_previous_page":
+            page_info_kwargs[field] = offset > 0
+        elif field == "has_next_page":
+            page_info_kwargs[field] = limit and len(edges) > limit
+        elif edges:
+            if field == "start_cursor":
+                page_info_kwargs[field] = edges[0].cursor
+            elif field == "end_cursor":
+                page_info_kwargs[field] = edges[:limit][-1].cursor
+
+    return cls(**page_info_kwargs)
 
 
 async def connection_from_query(
-    query: Query,
-    count_query: Query,
-    session: AsyncSession,
+    cls: Type["UnsortedSQLAlchemyConnectionField"],
+    model: Type[DeclarativeMeta],
+    info: ResolveInfo,
     args: Optional[dict] = None,
-    page_info_fields: Optional[list] = None,
     connection_type: Type[Connection] = Connection,
-    page_info_type: Type[PageInfo] = PageInfo,
 ) -> Connection:
     """
     Given a slice (subset) of an array, returns a connection object for use in
@@ -29,22 +70,47 @@ async def connection_from_query(
     total result large enough to cover the range specified in `args`.
     """
     args = args or {}
+    session: AsyncSession = info.context.session
 
-    page_info_fields = page_info_fields or []
-    has_next_page_check = "has_next_page" in page_info_fields
+    # has_last_arg = QueryHelper.has_arg(info, "last")
+    # if not QueryHelper.get_filters(info) and has_last_arg:
+    #     raise TypeError('Cannot set "last" without filters applied')
 
-    list_length = None
     edge_type = connection_type.Edge
+    page_info_type = getattr(connection_type, "PageInfo", PageInfo)
 
     before = args.get("before")
     after = args.get("after")
     first = args.get("first")
     last = args.get("last")
 
+    if (before, after, first, last) == (None, None, None, None):
+        first = DEFAULT_LIMIT
+        logging.warning(f"Query without border, {first=}")
+
+    if last is None and before is None:  # forward
+        if first is None:
+            first = DEFAULT_LIMIT
+            logging.warning(f"Forward pagination without border, {first=}")
+    elif first is None and after is None:  # backward
+        pass
+        # if last is None:
+        #     last = DEFAULT_LIMIT
+        #     logging.warning(f"Backward pagination without border, {last=}")
+    elif first is None and last is None:  # slice
+        if before is None and after is None:
+            logging.warning(f"Slice without border, {first=}")
+            first = DEFAULT_LIMIT
+    else:
+        raise Exception(f"Unknown operation: {before=}, {after=}, {first=}, {last=}")
+
+    query = await cls.get_query(model, info, **args)
+
     total_count = None
-    if last and not before:
-        total_count = (await session.execute(count_query)).scalar()
-        right_offset = total_count
+    # TODO: Move total_count to PageInfo
+    if (last and not before) or QueryHelper.has_arg(info, "total_count"):
+        count_query = get_count_query(query, model)
+        right_offset = total_count = (await session.execute(count_query)).scalar()
     else:
         right_offset = get_offset_with_default(before)
 
@@ -57,10 +123,11 @@ async def connection_from_query(
 
     _slice = query
     # If supplied slice is too large, trim it down before mapping over it.
-    original_limit = first or last
-    if original_limit:
-        limit = original_limit + 1 if has_next_page_check else original_limit
-        _slice = _slice.limit(limit)
+    limit = first or last
+    if limit is None:
+        limit = right_offset - left_offset
+    if limit:
+        _slice = _slice.limit(limit + 1)
     if left_offset:
         _slice = _slice.offset(left_offset)
 
@@ -75,33 +142,18 @@ async def connection_from_query(
         )
         edges.append(edge)
 
-    has_next_page_check = original_limit and len(edges) > original_limit
-    edges = edges[:original_limit]
+    connection = connection_type(
+        edges=edges[:limit],
+        page_info=construct_page_info(
+            cls=page_info_type,
+            info=info,
+            edges=edges,
+            limit=limit,
+            offset=left_offset,
+        ),
+    )
 
-    connection_init_kwargs = {"edges": edges}
-    if page_info_fields:
-        page_info_kwargs = {}
-
-        for field in page_info_fields:
-            if field == "start_cursor":
-                page_info_kwargs[field] = edges[0].cursor if edges else None
-            elif field == "end_cursor":
-                page_info_kwargs[field] = edges[-1].cursor if edges else None
-            elif field == "has_previous_page":
-                page_info_kwargs[field] = left_offset > 0
-            elif field == "has_next_page":
-                page_info_kwargs[field] = has_next_page_check
-
-        connection_init_kwargs["page_info"] = page_info_type(**page_info_kwargs)
-
-    connection = connection_type(**connection_init_kwargs)
-
-    if hasattr(connection, "total_count"):
-
-        # get max count
-        if total_count is None:
-            list_length = (await session.execute(count_query)).scalar()
-
-        connection.total_count = list_length
+    if QueryHelper.has_arg(info, "total_count"):
+        connection.total_count = total_count
 
     return connection

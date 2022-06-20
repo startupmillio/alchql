@@ -6,7 +6,6 @@ from typing import Type
 import graphene
 import sqlalchemy as sa
 from graphene.relay import Connection, ConnectionField
-from graphene.relay.connection import PageInfo
 from graphene.types import ResolveInfo
 from graphene.types.utils import get_type
 from sqlalchemy import ForeignKey
@@ -20,8 +19,6 @@ from .query_helper import QueryHelper
 from .registry import Registry, get_global_registry
 from .sqlalchemy_converter import convert_sqlalchemy_type
 from .utils import EnumValue, FilterItem, GlobalFilters, get_query
-
-DEFAULT_LIMIT = 10000
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -67,29 +64,13 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         args,
         resolved,
     ):
-        await cls._set_default_limit(args)
-        query = await cls.get_query(model, info, **args)
-        session = info.context.session
         if resolved is None:
-            has_last_arg = QueryHelper.has_last_arg(info)
-            if not QueryHelper.get_filters(info) and has_last_arg:
-                raise TypeError('Cannot set "last" without filters applied')
-
-            page_info_fields = QueryHelper.get_page_info_fields(info)
-
-            only_q = query.with_only_columns(
-                *sa.inspect(model).primary_key,
-            ).order_by(None)
-            count_query = sa.select([sa.func.count()]).select_from(only_q.alias())
-
             connection = await connection_from_query(
-                query,
-                count_query,
-                session,
+                cls,
+                info=info,
+                model=model,
                 args=args,
-                page_info_fields=page_info_fields,
                 connection_type=connection_type,
-                page_info_type=PageInfo,
             )
         else:
             if isawaitable(resolved):
@@ -99,7 +80,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
                 array_slice=resolved,
                 args=args,
                 connection_type=connection_type,
-                page_info_type=PageInfo,
             )
 
             if hasattr(connection, "total_count"):
@@ -135,11 +115,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
             get_nullable_type(self.type),
             self.model,
         )
-
-    @classmethod
-    async def _set_default_limit(cls, args):
-        if args.get("first") is None and args.get("last") is None:
-            args["first"] = DEFAULT_LIMIT
 
 
 class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
@@ -274,7 +249,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         filters = QueryHelper.get_filters(info)
         select_fields = QueryHelper.get_selected_fields(info, model, sort)
         gql_field = QueryHelper.get_current_field(info)
-        query = sa.select(*select_fields)
+        query = sa.select(*select_fields).select_from(model)
 
         if object_type and hasattr(object_type, "set_select_from"):
             query = await object_type.set_select_from(info, query, gql_field.values)

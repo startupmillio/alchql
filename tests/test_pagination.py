@@ -10,23 +10,21 @@ from alchql.consts import OP_ILIKE
 from alchql.types import SQLAlchemyObjectType
 from alchql.fields import FilterConnectionField
 from alchql.node import AsyncNode
-from alchql import fields
+from alchql.connection import from_query
 from alchql.middlewares import LoaderMiddleware
 
 
 async def add_test_data(session):
-    editors = [f"Editor#{num}" for num in range(100)]
-
-    async def create_editor(name):
-        await session.execute(
-            sa.insert(Editor).values(
+    await session.execute(
+        sa.insert(Editor).values(
+            [
                 {
-                    Editor.name: name,
+                    Editor.name: f"Editor#{num}",
                 }
-            )
+                for num in range(100)
+            ]
         )
-
-    await asyncio.gather(*[create_editor(name) for name in editors])
+    )
 
 
 async def get_query():
@@ -40,20 +38,19 @@ async def get_query():
 
     class Query(graphene.ObjectType):
         node = graphene.relay.Node.Field()
-        editors = FilterConnectionField(
-            EditorType, sort=EditorType.sort_argument()
-        )
+        editors = FilterConnectionField(EditorType, sort=EditorType.sort_argument())
 
     return Query
 
 
 async def get_start_end_cursor(first: int, session):
-    query = """
+    query = (
+        """
             query {
               editors (first: %s) {
                 edges {
                   node {
-                    id,
+                    id
                     name
                   }
                 }
@@ -65,7 +62,9 @@ async def get_start_end_cursor(first: int, session):
                 }
               }
             }
-        """ % first
+        """
+        % first
+    )
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -90,7 +89,7 @@ async def test_query_no_filters(session):
               editors {
                 edges {
                   node {
-                    id,
+                    id
                     name
                   }
                 }
@@ -106,7 +105,7 @@ async def test_query_no_filters(session):
 
     limit = 10
     schema = graphene.Schema(query=await get_query())
-    with mock.patch.object(fields, "DEFAULT_LIMIT", limit):
+    with mock.patch.object(from_query, "DEFAULT_LIMIT", limit):
         result = await schema.execute_async(
             query,
             context_value=Context(session=session),
@@ -114,6 +113,7 @@ async def test_query_no_filters(session):
                 LoaderMiddleware([Editor]),
             ],
         )
+        assert not result.errors
         assert len(result.data["editors"]["edges"]) == limit
 
         page_info = result.data["editors"]["pageInfo"]
@@ -135,7 +135,7 @@ async def test_query_first_specified(session):
               editors (first: %s) {
                 edges {
                   node {
-                    id,
+                    id
                     name
                   }
                 }
@@ -147,7 +147,8 @@ async def test_query_first_specified(session):
                 }
               }
             }
-        """ % first
+        """
+        % first
     )
 
     schema = graphene.Schema(query=await get_query())
@@ -173,12 +174,13 @@ async def test_query_first_after_specified(session):
 
     _, end_cursor = await get_start_end_cursor(10, session)
 
-    query = """
+    query = (
+        """
         query {
           editors (first: 10, after: "%s") {
             edges {
               node {
-                id,
+                id
                 name
               }
             }
@@ -190,7 +192,9 @@ async def test_query_first_after_specified(session):
             }
           }
         }
-    """ % end_cursor
+    """
+        % end_cursor
+    )
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -213,110 +217,23 @@ async def test_query_first_after_specified(session):
 
 
 @pytest.mark.asyncio
-async def test_query_first_before_specified(session):
+async def test_last_before_specified(session):
     await add_test_data(session)
 
     _, end_cursor = await get_start_end_cursor(20, session)
 
-    query = """
-            query {
-              editors (first: 10, before: "%s") {
-                edges {
-                  node {
-                    id,
-                    name
-                  }
-                }
-                pageInfo {
-                  startCursor
-                  endCursor
-                  hasPreviousPage
-                  hasNextPage
-                }
-              }
-            }
-        """ % end_cursor
-
-    schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
-
-    editors = result.data["editors"]["edges"]
-    assert len(editors) == 10
-    assert editors[0]["node"]["name"] == "Editor#0"
-
-    page_info = result.data["editors"]["pageInfo"]
-    assert page_info["startCursor"]
-    assert page_info["endCursor"]
-    assert not page_info["hasPreviousPage"]
-    assert page_info["hasNextPage"]
-
-
-@pytest.mark.asyncio
-async def test_query_first_after_before_specified(session):
-    await add_test_data(session)
-
-    start_cursor, end_cursor = await get_start_end_cursor(20, session)
-
-    query = """
-            query {
-              editors (
-                first: 10, 
-                after: "%s",
-                before: "%s"
-              ) {
-                edges {
-                  node {
-                    id,
-                    name
-                  }
-                }
-                pageInfo {
-                  startCursor
-                  endCursor
-                  hasPreviousPage
-                  hasNextPage
-                }
-              }
-            }
-        """ % (start_cursor, end_cursor)
-
-    schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
-
-    editors = result.data["editors"]["edges"]
-    assert len(editors) == 10
-    assert editors[0]["node"]["name"] == "Editor#1"
-
-    page_info = result.data["editors"]["pageInfo"]
-    assert page_info["startCursor"]
-    assert page_info["endCursor"]
-    assert page_info["hasPreviousPage"]
-    assert page_info["hasNextPage"]
-
-
-@pytest.mark.asyncio
-async def test_query_last_specified(session):
-    await add_test_data(session)
-
-    query = """
+    query = (
+        """
         query {
-          editors (last: 10, name_Ilike: "Editor") {
+          editors (
+            last: 10, 
+            name_Ilike: "Editor", 
+            before: "%s"
+          ) {
             edges {
               node {
-                id,
-                name,
+                id
+                name
               }
             }
             pageInfo {
@@ -328,104 +245,8 @@ async def test_query_last_specified(session):
           }
         }
     """
-
-    schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
+        % end_cursor
     )
-
-    editors = result.data["editors"]["edges"]
-    assert len(editors) == 10
-    assert editors[0]["node"]["name"] == "Editor#90"
-
-    page_info = result.data["editors"]["pageInfo"]
-    assert page_info["startCursor"]
-    assert page_info["endCursor"]
-    assert page_info["hasPreviousPage"]
-    assert not page_info["hasNextPage"]
-
-
-@pytest.mark.asyncio
-async def test_query_last_after_specified(session):
-    await add_test_data(session)
-
-    _, end_cursor = await get_start_end_cursor(10, session)
-
-    query = """
-        query {
-          editors (
-            last: 10, 
-            name_Ilike: "Editor", 
-            after: "%s"
-          ) {
-            edges {
-              node {
-                id,
-                name,
-              }
-            }
-            pageInfo {
-              startCursor
-              endCursor
-              hasPreviousPage
-              hasNextPage
-            }
-          }
-        }
-    """ % end_cursor
-
-    schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
-
-    editors = result.data["editors"]["edges"]
-    assert len(editors) == 10
-    assert editors[0]["node"]["name"] == "Editor#90"
-
-    page_info = result.data["editors"]["pageInfo"]
-    assert page_info["startCursor"]
-    assert page_info["endCursor"]
-    assert page_info["hasPreviousPage"]
-    assert not page_info["hasNextPage"]
-
-
-@pytest.mark.asyncio
-async def test_last_before_specified(session):
-    await add_test_data(session)
-
-    _, end_cursor = await get_start_end_cursor(20, session)
-
-    query = """
-        query {
-          editors (
-            last: 10, 
-            name_Ilike: "Editor", 
-            before: "%s"
-          ) {
-            edges {
-              node {
-                id,
-                name,
-              }
-            }
-            pageInfo {
-              startCursor
-              endCursor
-              hasPreviousPage
-              hasNextPage
-            }
-          }
-        }
-    """ % end_cursor
 
     schema = graphene.Schema(query=await get_query())
     result = await schema.execute_async(
@@ -445,81 +266,3 @@ async def test_last_before_specified(session):
     assert page_info["endCursor"]
     assert page_info["hasPreviousPage"]
     assert page_info["hasNextPage"]
-
-
-@pytest.mark.asyncio
-async def test_last_after_before_specified(session):
-    await add_test_data(session)
-
-    start_cursor, end_cursor = await get_start_end_cursor(20, session)
-
-    query = """
-        query {
-          editors (
-            last: 10, 
-            name_Ilike: "Editor",
-            after: "%s", 
-            before: "%s"
-          ) {
-            edges {
-              node {
-                id,
-                name,
-              }
-            }
-            pageInfo {
-              startCursor
-              endCursor
-              hasPreviousPage
-              hasNextPage
-            }
-          }
-        }
-    """ % (start_cursor, end_cursor)
-
-    schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
-
-    editors = result.data["editors"]["edges"]
-    assert len(editors) == 10
-    assert editors[0]["node"]["name"] == "Editor#9"
-
-    page_info = result.data["editors"]["pageInfo"]
-    assert page_info["startCursor"]
-    assert page_info["endCursor"]
-    assert page_info["hasPreviousPage"]
-    assert page_info["hasNextPage"]
-
-
-@pytest.mark.asyncio
-async def test_query_only_last_specified(session):
-    await add_test_data(session)
-
-    query = """
-            query {
-              editors (last: 1) {
-                edges {
-                  node {
-                    id,
-                    name
-                  }
-                }
-              }
-            }
-        """
-
-    schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
-    assert result.errors
