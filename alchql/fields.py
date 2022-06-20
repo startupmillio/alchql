@@ -71,28 +71,26 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         query = await cls.get_query(model, info, **args)
         session = info.context.session
         if resolved is None:
+            has_last_arg = QueryHelper.has_last_arg(info)
+            if not QueryHelper.get_filters(info) and has_last_arg:
+                raise TypeError('Cannot set "last" without filters applied')
+
+            page_info_fields = QueryHelper.get_page_info_fields(info)
+
             only_q = query.with_only_columns(
                 *sa.inspect(model).primary_key,
             ).order_by(None)
-            if not QueryHelper.get_filters(info) and QueryHelper.has_last_arg(info):
-                raise TypeError('Cannot set "last" without filters applied')
-
-            # get max count
-            q = sa.select([sa.func.count()]).select_from(only_q.alias())
-            q_res = await session.execute(q)
-            _len = q_res.scalar()
+            count_query = sa.select([sa.func.count()]).select_from(only_q.alias())
 
             connection = await connection_from_query(
                 query,
+                count_query,
                 session,
                 args=args,
-                list_length=_len,
+                page_info_fields=page_info_fields,
                 connection_type=connection_type,
                 page_info_type=PageInfo,
             )
-
-            if hasattr(connection, "total_count"):
-                connection.total_count = _len
         else:
             if isawaitable(resolved):
                 resolved = await resolved

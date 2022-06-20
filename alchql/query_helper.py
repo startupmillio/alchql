@@ -224,6 +224,14 @@ class QueryHelper:
         return False
 
     @classmethod
+    def get_page_info_fields(cls, info):
+        page_info_fields = set()
+        for field in cls.parse_query(info):
+            page_info_fields.update(cls.__get_query_field_page_info_fields(field))
+
+        return list(page_info_fields)
+
+    @classmethod
     def has_last_arg(cls, info):
         return cls.has_arg(info, "last")
 
@@ -307,3 +315,18 @@ class QueryHelper:
 
                 new_values.append(field)
         return new_values
+
+    @classmethod
+    def __get_query_field_page_info_fields(cls, field):
+        page_info_fields = set()
+
+        if field.name == "page_info":
+            return {_field.name for _field in field.values}
+
+        if field.values:
+            for internal_field in field.values:
+                page_info_fields.update(
+                    cls.__get_query_field_page_info_fields(internal_field)
+                )
+
+        return page_info_fields
