@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 import graphene
 import pytest
 import sqlalchemy as sa
 from graphene import Context
 
+from alchql.connection import from_query
 from alchql.connection.utils import offset_to_cursor
 from alchql.consts import OP_ILIKE
 from alchql.fields import FilterConnectionField
@@ -67,13 +70,18 @@ async def test_query_forward(session, raise_graphql):
     )
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_not_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {
@@ -118,13 +126,18 @@ async def test_query_backward(session, raise_graphql):
     )
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_not_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {
@@ -171,13 +184,18 @@ async def test_query_slice(session, raise_graphql):
     )
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_not_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {

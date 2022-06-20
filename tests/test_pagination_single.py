@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import graphene
 import pytest
 import sqlalchemy as sa
@@ -10,6 +12,7 @@ from alchql.middlewares import LoaderMiddleware
 from alchql.node import AsyncNode
 from alchql.types import SQLAlchemyObjectType
 from .models import Editor
+from alchql.connection import from_query
 
 
 async def add_test_data(session):
@@ -64,13 +67,18 @@ async def test_query_first(session, raise_graphql):
     """
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_not_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {
@@ -112,13 +120,18 @@ async def test_query_last(session, raise_graphql):
     """
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {
@@ -163,13 +176,18 @@ async def test_query_after(session, raise_graphql):
     )
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {
@@ -214,13 +232,18 @@ async def test_query_before(session, raise_graphql):
     )
 
     schema = graphene.Schema(query=await get_query())
-    result = await schema.execute_async(
-        query,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Editor]),
-        ],
-    )
+    with patch.object(
+        from_query, "get_count_query", side_effect=from_query.get_count_query
+    ) as f:
+        result = await schema.execute_async(
+            query,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Editor]),
+            ],
+        )
+        f.assert_not_called()
+
     assert not result.errors
     assert result.data == {
         "editors": {

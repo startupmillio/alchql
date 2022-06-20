@@ -88,27 +88,15 @@ async def connection_from_query(
         first = DEFAULT_LIMIT
         logging.warning(f"Query without border, {first=}")
 
-    if last is None and before is None:  # forward
-        if first is None:
-            first = DEFAULT_LIMIT
-            logging.warning(f"Forward pagination without border, {first=}")
-    elif first is None and after is None:  # backward
-        pass
-        # if last is None:
-        #     last = DEFAULT_LIMIT
-        #     logging.warning(f"Backward pagination without border, {last=}")
-    elif first is None and last is None:  # slice
-        if before is None and after is None:
-            logging.warning(f"Slice without border, {first=}")
-            first = DEFAULT_LIMIT
-    else:
-        raise Exception(f"Unknown operation: {before=}, {after=}, {first=}, {last=}")
-
     query = await cls.get_query(model, info, **args)
 
     total_count = None
     # TODO: Move total_count to PageInfo
-    if (last and not before) or QueryHelper.has_arg(info, "total_count"):
+    if (
+        (last and not before)
+        or (after and not first and not before)
+        or QueryHelper.has_arg(info, "total_count")
+    ):
         count_query = get_count_query(query, model)
         right_offset = total_count = (await session.execute(count_query)).scalar()
     else:
@@ -123,9 +111,8 @@ async def connection_from_query(
 
     _slice = query
     # If supplied slice is too large, trim it down before mapping over it.
-    limit = first or last
-    if limit is None:
-        limit = right_offset - left_offset
+    limit = first or last or (right_offset - left_offset)
+
     if limit:
         _slice = _slice.limit(limit + 1)
     if left_offset:
