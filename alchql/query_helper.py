@@ -2,7 +2,7 @@ import enum
 import logging
 import re
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Set
 
 import graphene
 import sqlalchemy as sa
@@ -215,17 +215,25 @@ class QueryHelper:
 
     @classmethod
     def has_arg(cls, info, arg: str):
-        gql_field = cls.get_current_field(info)
-        if gql_field and gql_field.arguments:
-            for name, value in gql_field.arguments.items():
+        current_field = cls.get_current_field(info)
+
+        if current_field and current_field.arguments:
+            for name, value in current_field.arguments.items():
                 if name == arg and value is not None:
                     return True
 
         return False
 
     @classmethod
-    def has_last_arg(cls, info):
-        return cls.has_arg(info, "last")
+    def get_page_info_fields(cls, info) -> Set[str]:
+        current_field = cls.get_current_field(info)
+
+        if current_field and current_field.values:
+            for internal_field in current_field.values:
+                if internal_field.name == "page_info":
+                    return {_field.name for _field in internal_field.values}
+
+        return set()
 
     @classmethod
     def __parse_nodes(cls, nodes, variables, object_type_name=None) -> list:
@@ -307,3 +315,12 @@ class QueryHelper:
 
                 new_values.append(field)
         return new_values
+
+    @classmethod
+    def __get_query_field_page_info_fields(cls, field) -> Set[str]:
+        if field.values:
+            for internal_field in field.values:
+                if internal_field.name == "page_info":
+                    return {_field.name for _field in internal_field.values}
+
+        return set()

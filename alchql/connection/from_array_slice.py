@@ -15,7 +15,6 @@ def connection_from_array_slice(
     array_length: Optional[int] = None,
     array_slice_length: Optional[int] = None,
     connection_type: Type[Connection] = Connection,
-    page_info_type: Type[PageInfo] = PageInfo,
 ) -> Connection:
     """Create a connection object from a slice of the result set.
 
@@ -37,6 +36,7 @@ def connection_from_array_slice(
     """
     args = args or {}
     edge_type = connection_type.Edge
+    page_info_type = getattr(connection_type, "PageInfo", PageInfo)
 
     before = args.get("before")
     after = args.get("after")
