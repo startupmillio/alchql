@@ -29,6 +29,7 @@ tests_require = [
     "pytest-benchmark>=3.4.0,<4.0",
     "pytest-asyncio>=0.17.2,<0.18",
     "aiosqlite>=0.17.0,<0.18",
+    "pytest-cov",
 ]
 
 setup(
