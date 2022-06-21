@@ -45,7 +45,7 @@ def get_query(model: Type[DeclarativeMeta], info: ResolveInfo, cls_name=None):
     if not fields:
         fields = model.__table__.columns
 
-    return sa.select(fields)
+    return sa.select(fields).select_from(model)
 
 
 def is_mapped_class(cls):
