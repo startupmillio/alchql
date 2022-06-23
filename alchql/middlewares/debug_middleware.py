@@ -58,6 +58,3 @@ class BreadcrumbMiddleware(BaseDebugMiddleware):
                 self.logger(
                     category="graphql", message=full_query["query"], level="info"
                 )
-
-
-DebugMiddleware = LogMiddleware

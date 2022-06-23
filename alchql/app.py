@@ -7,11 +7,10 @@ from graphql import ExecutionResult, graphql
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from starlette.background import BackgroundTasks
 from starlette.requests import HTTPConnection, Request
-from starlette.responses import JSONResponse, Response
+from starlette.responses import HTMLResponse, JSONResponse, Response
 from starlette_graphene3 import (
     GraphQLApp,
     _get_operation_from_request,
-    make_graphiql_handler,
 )
 
 from .extensions import Extension, ExtensionManager
@@ -33,7 +32,27 @@ class SessionQLApp(GraphQLApp):
     ):
         self.engine = engine
         if on_get == DEFAULT_GET:
-            on_get = make_graphiql_handler()
+            on_get = lambda request: HTMLResponse(
+                f"""
+                <html>
+                <head>
+                    <script 
+                        type="application/javascript" 
+                        src="https://embeddable-sandbox.cdn.apollographql.com/_latest/embeddable-sandbox.umd.production.min.js"
+                    ></script>
+                </head>
+                <body style="margin:0">
+                    <div style="width: 100%; height: 100%;" id='embedded-sandbox'></div>
+                    <script>
+                      new window.EmbeddedSandbox({{
+                        target: '#embedded-sandbox',
+                        initialEndpoint: '{request.url}'
+                      }});
+                    </script>
+                </body>
+                </html>
+                """
+            )
 
         self.extensions = extensions or ()
         super().__init__(context_value=context_value, on_get=on_get, *args, **kwargs)
