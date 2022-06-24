@@ -84,6 +84,11 @@ async def connection_from_query(
     first = args.get("first")
     last = args.get("last")
 
+    current_field = QueryHelper.get_current_field(info)
+    has_total_count = current_field and "total_count" in {
+        i.name for i in current_field.values
+    }
+
     if (before, after, first, last) == (None, None, None, None):
         first = DEFAULT_LIMIT
         logging.warning(f"Query without border, {first=}")
@@ -92,11 +97,7 @@ async def connection_from_query(
 
     total_count = None
     # TODO: Move total_count to PageInfo
-    if (
-        (last and not before)
-        or (after and not first and not before)
-        or QueryHelper.has_arg(info, "total_count")
-    ):
+    if (last and not before) or (after and not first and not before) or has_total_count:
         count_query = get_count_query(query, model)
         right_offset = total_count = (await session.execute(count_query)).scalar()
     else:
@@ -140,7 +141,7 @@ async def connection_from_query(
         ),
     )
 
-    if QueryHelper.has_arg(info, "total_count"):
+    if has_total_count:
         connection.total_count = total_count
 
     return connection
