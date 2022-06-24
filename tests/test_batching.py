@@ -8,6 +8,7 @@ from graphene import Context, relay
 
 from alchql.middlewares import LoaderMiddleware
 from alchql.types import SQLAlchemyObjectType
+
 from .models import Article, HairKind, Pet, Reporter, association_table
 from .utils import to_std_dicts
 
@@ -414,6 +415,171 @@ async def test_one_to_many(session, raise_graphql):
             },
         ],
     }
+
+
+@pytest.mark.asyncio
+async def test_one_to_many_sorted(session, raise_graphql):
+    await session.execute(
+        sa.insert(Reporter),
+        [
+            {Reporter.first_name.key: "Reporter_1"},
+            {Reporter.first_name.key: "Reporter_2"},
+            {Reporter.first_name.key: "Reporter_3"},
+        ],
+    )
+
+    await session.execute(
+        sa.insert(Article).values(
+            {
+                Article.headline: "Article_1",
+                Article.reporter_id: sa.select(Reporter.id).where(
+                    Reporter.first_name == "Reporter_1"
+                ),
+            }
+        )
+    )
+    await session.execute(
+        sa.insert(Article).values(
+            {
+                Article.headline: "Article_2",
+                Article.reporter_id: sa.select(Reporter.id).where(
+                    Reporter.first_name == "Reporter_1"
+                ),
+            }
+        )
+    )
+
+    await session.execute(
+        sa.insert(Article).values(
+            {
+                Article.headline: "Article_3",
+                Article.reporter_id: sa.select(Reporter.id).where(
+                    Reporter.first_name == "Reporter_2"
+                ),
+            }
+        )
+    )
+
+    await session.execute(
+        sa.insert(Article).values(
+            {
+                Article.headline: "Article_4",
+                Article.reporter_id: sa.select(Reporter.id).where(
+                    Reporter.first_name == "Reporter_2"
+                ),
+            }
+        )
+    )
+ 
+    expected_result = {
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "articles": {
+                    "edges": [
+                        {
+                            "node": {
+                                "headline": "Article_2",
+                            },
+                        },
+                        {
+                            "node": {
+                                "headline": "Article_1",
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                "firstName": "Reporter_2",
+                "articles": {
+                    "edges": [
+                        {
+                            "node": {
+                                "headline": "Article_4",
+                            },
+                        },
+                        {
+                            "node": {
+                                "headline": "Article_3",
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                "firstName": "Reporter_3",
+                "articles": {
+                    "edges": [],
+                },
+            },
+        ],
+    }
+
+    schema = get_schema()
+
+    # Passing sort inside the query
+    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+            query {
+                reporters {
+                    firstName
+                    articles(first: 2, sort: HEADLINE_DESC) {
+                        edges {
+                            node {
+                                headline
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter]),
+            ],
+        )
+
+    assert not result.errors, result.errors
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert expected_result == result
+
+    # Passing sort in variables
+    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+            query($sort: [ArticleTypeSortEnum]) {
+                reporters {
+                    firstName
+                    articles(first: 2, sort: $sort) {
+                        edges {
+                            node {
+                                headline
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter]),
+            ],
+            variables={
+                "sort": "HEADLINE_DESC"
+            }
+        )
+
+    assert not result.errors, result.errors
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert expected_result == result
 
 
 @pytest.mark.asyncio

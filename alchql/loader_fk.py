@@ -156,7 +156,10 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
                     sort_type = object_type.sort_argument().type.of_type
                     new_sort = []
                     for s in sort:
-                        new_sort.append(getattr(sort_type, s).value)
+                        if isinstance(s, (EnumValue, enum.Enum)):
+                            new_sort.append(s.value)
+                        else:
+                            new_sort.append(getattr(sort_type, s).value)
 
                     sort = new_sort
 
