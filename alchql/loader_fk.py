@@ -50,18 +50,15 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                     sort_type = object_type.sort_argument().type.of_type
                     new_sort = []
                     for s in sort:
-                        new_sort.append(getattr(sort_type, s).value)
+                        if isinstance(s, (EnumValue, enum.Enum)):
+                            new_sort.append(s.value)
+                        else:
+                            new_sort.append(getattr(sort_type, s).value)
 
                     sort = new_sort
 
-                sort_args = []
-                # ensure consistent handling of graphene Enums, enum values and
-                # plain strings
                 for item in sort:
-                    if isinstance(item, (EnumValue, enum.Enum)):
-                        sort_args.append(item.value.nullslast())
-                    else:
-                        sort_args.append(item.nullslast())
+                    sort_args.append(item.nullslast())
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort
@@ -163,14 +160,8 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
 
                     sort = new_sort
 
-                sort_args = []
-                # ensure consistent handling of graphene Enums, enum values and
-                # plain strings
                 for item in sort:
-                    if isinstance(item, (EnumValue, enum.Enum)):
-                        sort_args.append(item.value.nullslast())
-                    else:
-                        sort_args.append(item.nullslast())
+                    sort_args.append(item.nullslast())
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort
