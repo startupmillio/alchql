@@ -1,5 +1,3 @@
-import hashlib
-import json
 from typing import List, Type
 
 import graphene
@@ -9,35 +7,7 @@ from graphql import StringValueNode
 from sqlalchemy.orm import DeclarativeMeta
 
 from .gql_id import ResolvedGlobalId
-from .registry import get_global_registry
 from .sqlalchemy_converter import convert_sqlalchemy_type
-
-# There we contain unique type names
-initialized_types = {}
-
-
-def get_unique_input_type_name(
-    model_name: str, input_fields: dict, operation: str
-) -> str:
-    input_type_name = f"Input{operation}{model_name}"
-    model_hash = hashlib.md5(
-        json.dumps(
-            {
-                key: f"{type(value)}{getattr(value, 'kwargs', '') or ''}"
-                for key, value in input_fields.items()
-            },
-            sort_keys=True,
-        ).encode("utf-8")
-    ).hexdigest()
-
-    if initialized_types.setdefault(input_type_name, model_hash) == model_hash:
-        return input_type_name
-
-    input_type_name = input_type_name + "_"
-    for i in model_hash:
-        input_type_name += i
-        if initialized_types.setdefault(input_type_name, model_hash) == model_hash:
-            return input_type_name
 
 
 class ArgID(graphene.Scalar):
@@ -109,13 +79,5 @@ def get_input_fields(
     return fields
 
 
-def get_input_type(
-    model: Type[DeclarativeMeta], input_fields: dict, operation: str
-) -> Type:
-    return type(
-        get_unique_input_type_name(
-            model_name=model.__name__, input_fields=input_fields, operation=operation
-        ),
-        (graphene.InputObjectType,),
-        input_fields,
-    )
+def get_input_type(name: str, input_fields: dict) -> Type:
+    return type(name, (graphene.InputObjectType,), input_fields)

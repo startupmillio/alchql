@@ -68,13 +68,13 @@ async def test_get_update_mutation_case1(session):
     ]
 
     query = """
-            mutation UpdatePet($value: InputUpdatePet!, $updatePetId: ID!) {
-                updatePet(value: $value, id: $updatePetId) {
-                    id
-                    name
-                }
+        mutation UpdatePet($value: MutationUpdatePetInputType!, $updatePetId: ID!) {
+            updatePet(value: $value, id: $updatePetId) {
+                id
+                name
             }
-        """
+        }
+    """
 
     id_to_update = all_pets[0]["id"]
     new_name = "bear"
@@ -152,7 +152,7 @@ async def test_get_update_mutation_case2(session):
     ]
 
     query = """
-            mutation UpdatePet($value: InputUpdatePet!, $updatePetId: ID!) {
+            mutation UpdatePet($value: MutationUpdatePetInputType!, $updatePetId: ID!) {
                 updatePet(value: $value, id: $updatePetId) {
                     id
                     name
@@ -240,7 +240,7 @@ async def test_get_update_mutation_case3(session):
     ]
 
     query = """
-        mutation UpdatePet($value: InputUpdatePet!, $updatePetId: ID!) {
+        mutation UpdatePet($value: MutationUpdatePetInputType!, $updatePetId: ID!) {
             updatePet(value: $value, id: $updatePetId) {
                 id
                 name
@@ -384,7 +384,7 @@ async def test_update_mutation_always_queries_primary_keys(session):
     )
 
     query = """
-        mutation UpdatePet($value: InputUpdatePet!, $updatePetId: ID!) {
+        mutation UpdatePet($value: MutationUpdatePetInputType!, $updatePetId: ID!) {
             updatePet(value: $value, id: $updatePetId) {
                 name
             }
