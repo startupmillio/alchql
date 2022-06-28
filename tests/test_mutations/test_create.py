@@ -76,7 +76,7 @@ async def test_get_create_mutation(session):
 
     result = await schema.execute_async(
         """
-            mutation UpdatePet($value: InputCreatePet_c!) {
+            mutation UpdatePet($value: MutationInsertPetInputType!) {
                 insertPet(value: $value) {
                     name
                 }
@@ -137,7 +137,7 @@ async def test_create_mutation_always_queries_primary_keys(session):
     )
 
     query = """
-        mutation InsertPet($value: InputCreatePet_c!) {
+        mutation InsertPet($value: MutationCreatePetInputType!) {
             insertPet(value: $value) {
                 name
             }
@@ -200,7 +200,7 @@ async def test_create_mutation_fk_with_relation(session):
     )
 
     query = """
-        mutation InsertPet($value: InputCreatePet_c!) {
+        mutation InsertPet($value: MutationCreatePetInputType!) {
             insertPet(value: $value) {
                 name
                 reporterId
@@ -263,7 +263,7 @@ async def test_create_mutation_fk_without_relation(session, raise_graphql):
     )
 
     query = """
-        mutation InsertPet($value: InputCreatePet_c!) {
+        mutation InsertPet($value: MutationCreatePetInputType!) {
             insertPet(value: $value) {
                 name
                 reporterId

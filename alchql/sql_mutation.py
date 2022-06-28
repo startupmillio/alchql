@@ -108,7 +108,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
                         required_fields=required_fields,
                     )
                 input_type = get_input_type(
-                    model, input_fields=input_fields, operation="Update"
+                    cls.__name__ + "InputType", input_fields=input_fields
                 )
                 arguments = {
                     "id": graphene.ID(required=True),
@@ -214,7 +214,7 @@ class SQLAlchemyCreateMutation(_BaseMutation):
                         required_fields=required_fields,
                     )
                 input_type = get_input_type(
-                    model, input_fields=input_fields, operation="Create"
+                    cls.__name__ + "InputType", input_fields=input_fields
                 )
                 arguments = {
                     "value": graphene.Argument(input_type, required=True),
