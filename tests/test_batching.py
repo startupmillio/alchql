@@ -428,65 +428,36 @@ async def test_one_to_many_sorted(session, raise_graphql):
         ],
     )
 
-    await session.execute(
-        sa.insert(Article).values(
-            {
-                Article.headline: "Article_1",
-                Article.reporter_id: sa.select(Reporter.id).where(
-                    Reporter.first_name == "Reporter_1"
-                ),
-            }
+    reporter_1_id = (
+        await session.execute(
+            sa.select(Reporter.id).where(Reporter.first_name == "Reporter_1")
         )
-    )
-    await session.execute(
-        sa.insert(Article).values(
-            {
-                Article.headline: "Article_2",
-                Article.reporter_id: sa.select(Reporter.id).where(
-                    Reporter.first_name == "Reporter_1"
-                ),
-            }
+    ).scalar()
+    reporter_2_id = (
+        await session.execute(
+            sa.select(Reporter.id).where(Reporter.first_name == "Reporter_2")
         )
-    )
+    ).scalar()
 
     await session.execute(
         sa.insert(Article).values(
-            {
-                Article.headline: "Article_3",
-                Article.reporter_id: sa.select(Reporter.id).where(
-                    Reporter.first_name == "Reporter_2"
-                ),
-            }
+            [
+                {Article.headline: "Article_1", Article.reporter_id: reporter_1_id},
+                {Article.headline: "Article_2", Article.reporter_id: reporter_1_id},
+                {Article.headline: "Article_3", Article.reporter_id: reporter_2_id},
+                {Article.headline: "Article_4", Article.reporter_id: reporter_2_id},
+            ]
         )
     )
 
-    await session.execute(
-        sa.insert(Article).values(
-            {
-                Article.headline: "Article_4",
-                Article.reporter_id: sa.select(Reporter.id).where(
-                    Reporter.first_name == "Reporter_2"
-                ),
-            }
-        )
-    )
- 
     expected_result = {
         "reporters": [
             {
                 "firstName": "Reporter_1",
                 "articles": {
                     "edges": [
-                        {
-                            "node": {
-                                "headline": "Article_2",
-                            },
-                        },
-                        {
-                            "node": {
-                                "headline": "Article_1",
-                            },
-                        },
+                        {"node": {"headline": "Article_2"}},
+                        {"node": {"headline": "Article_1"}},
                     ],
                 },
             },
@@ -494,16 +465,8 @@ async def test_one_to_many_sorted(session, raise_graphql):
                 "firstName": "Reporter_2",
                 "articles": {
                     "edges": [
-                        {
-                            "node": {
-                                "headline": "Article_4",
-                            },
-                        },
-                        {
-                            "node": {
-                                "headline": "Article_3",
-                            },
-                        },
+                        {"node": {"headline": "Article_4"}},
+                        {"node": {"headline": "Article_3"}},
                     ],
                 },
             },
@@ -570,9 +533,7 @@ async def test_one_to_many_sorted(session, raise_graphql):
             middleware=[
                 LoaderMiddleware([Article, Reporter]),
             ],
-            variables={
-                "sort": "HEADLINE_DESC"
-            }
+            variables={"sort": "HEADLINE_DESC"},
         )
 
     assert not result.errors, result.errors
@@ -753,29 +714,22 @@ async def test_many_to_many_sorted(session):
         (await session.execute(sa.select(Reporter.first_name, Reporter.id))).fetchall()
     )
 
+    pet_reporter = {
+        "Pet_1": "Reporter_1",
+        "Pet_2": "Reporter_1",
+        "Pet_3": "Reporter_2",
+        "Pet_4": "Reporter_2",
+    }
+
     await session.execute(
         sa.insert(Pet),
         [
             {
-                Pet.name.key: "Pet_1",
+                Pet.name.key: pet_name,
                 Pet.pet_kind.key: "cat",
                 Pet.hair_kind.key: HairKind.LONG,
-            },
-            {
-                Pet.name.key: "Pet_2",
-                Pet.pet_kind.key: "cat",
-                Pet.hair_kind.key: HairKind.LONG,
-            },
-            {
-                Pet.name.key: "Pet_3",
-                Pet.pet_kind.key: "cat",
-                Pet.hair_kind.key: HairKind.LONG,
-            },
-            {
-                Pet.name.key: "Pet_4",
-                Pet.pet_kind.key: "cat",
-                Pet.hair_kind.key: HairKind.LONG,
-            },
+            }
+            for pet_name in pet_reporter
         ],
     )
     pets = dict((await session.execute(sa.select(Pet.name, Pet.id))).fetchall())
@@ -784,21 +738,10 @@ async def test_many_to_many_sorted(session):
         sa.insert(association_table),
         [
             {
-                association_table.c.pet_id.key: pets["Pet_1"],
-                association_table.c.reporter_id.key: reporters["Reporter_1"],
-            },
-            {
-                association_table.c.pet_id.key: pets["Pet_2"],
-                association_table.c.reporter_id.key: reporters["Reporter_1"],
-            },
-            {
-                association_table.c.pet_id.key: pets["Pet_3"],
-                association_table.c.reporter_id.key: reporters["Reporter_2"],
-            },
-            {
-                association_table.c.pet_id.key: pets["Pet_4"],
-                association_table.c.reporter_id.key: reporters["Reporter_2"],
-            },
+                association_table.c.pet_id.key: pets[pet_name],
+                association_table.c.reporter_id.key: reporters[reporter_name],
+            }
+            for pet_name, reporter_name in pet_reporter.items()
         ],
     )
 
@@ -808,34 +751,18 @@ async def test_many_to_many_sorted(session):
                 "firstName": "Reporter_1",
                 "pets": {
                     "edges": [
-                        {
-                            "node": {
-                                "name": "Pet_2",
-                            },
-                        },
-                        {
-                            "node": {
-                                "name": "Pet_1",
-                            },
-                        },
-                    ],
+                        {"node": {"name": "Pet_2"}},
+                        {"node": {"name": "Pet_1"}},
+                    ]
                 },
             },
             {
                 "firstName": "Reporter_2",
                 "pets": {
                     "edges": [
-                        {
-                            "node": {
-                                "name": "Pet_4",
-                            },
-                        },
-                        {
-                            "node": {
-                                "name": "Pet_3",
-                            },
-                        },
-                    ],
+                        {"node": {"name": "Pet_4"}},
+                        {"node": {"name": "Pet_3"}},
+                    ]
                 },
             },
         ],
@@ -863,7 +790,7 @@ async def test_many_to_many_sorted(session):
             context_value=Context(session=session),
             middleware=[
                 LoaderMiddleware([Article, Reporter, Pet]),
-            ]
+            ],
         )
 
     assert not result.errors
@@ -892,9 +819,7 @@ async def test_many_to_many_sorted(session):
             middleware=[
                 LoaderMiddleware([Article, Reporter, Pet]),
             ],
-            variables={
-                "sort": "NAME_DESC"
-            }
+            variables={"sort": "NAME_DESC"},
         )
 
     assert not result.errors

@@ -76,10 +76,6 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
             if relation.secondaryjoin is not None:
                 q = q.where(relation.secondaryjoin)
 
-            if relation.order_by:
-                for ob in relation.order_by:
-                    q = q.order_by(ob.nullslast())
-
             q = q.where(f.in_(keys))
 
             if object_type and hasattr(object_type, "set_select_from"):
@@ -92,6 +88,10 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                 q = q.where(sa.and_(*filters))
 
             q = q.order_by(*sort_args)
+
+            if relation.order_by:
+                for ob in relation.order_by:
+                    q = q.order_by(ob.nullslast())
 
             results_by_ids = defaultdict(list)
 
