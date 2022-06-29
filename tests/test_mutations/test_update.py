@@ -408,3 +408,65 @@ async def test_update_mutation_always_queries_primary_keys(session):
     )
     assert not result.errors
     assert result.data["updatePet"]["name"] == new_name
+
+
+@pytest.mark.asyncio
+async def test_update_mutation_rename_value(session):
+    await add_test_data(session)
+
+    global id_to_update
+
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = Pet
+            interfaces = (AsyncNode,)
+
+    class MutationUpdatePet(SQLAlchemyUpdateMutation):
+        class Meta:
+            model = Pet
+            output = PetType
+            input_type_name = "UpdatePetValue"
+
+        @classmethod
+        async def mutate(cls, *args, **kwargs):
+            result = await super().mutate(*args, **kwargs)
+            assert result.id == id_to_update
+            return result
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        update_pet = MutationUpdatePet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    query = """
+        mutation UpdatePet($value: UpdatePetValue!, $updatePetId: ID!) {
+            updatePet(value: $value, id: $updatePetId) {
+                name
+            }
+        }
+    """
+
+    id_to_update = (await session.execute(sa.select(Pet.id))).scalars().first()
+    gql_id_to_update = encode_gql_id(PetType.__name__, id_to_update)
+    new_name = "New name"
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {"name": new_name},
+            "updatePetId": gql_id_to_update,
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Pet]),
+        ],
+    )
+    assert not result.errors
+    assert result.data["updatePet"]["name"] == new_name

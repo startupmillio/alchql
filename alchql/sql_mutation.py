@@ -73,11 +73,12 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
         exclude_fields=(),
         required_fields=(),
         input_fields: dict = None,
+        input_type_name: str = None,
         _meta=None,
         **options,
     ):
         if not _meta:
-            _meta = MutationOptions(cls)
+            _meta = SQLMutationOptions(cls)
 
         output = output or getattr(cls, "Output", None)
         fields = {}
@@ -108,7 +109,8 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
                         required_fields=required_fields,
                     )
                 input_type = get_input_type(
-                    cls.__name__ + "InputType", input_fields=input_fields
+                    input_type_name or cls.__name__ + "InputType",
+                    input_fields=input_fields,
                 )
                 arguments = {
                     "id": graphene.ID(required=True),
@@ -179,11 +181,12 @@ class SQLAlchemyCreateMutation(_BaseMutation):
         exclude_fields=(),
         required_fields=(),
         input_fields: dict = None,
+        input_type_name: str = None,
         _meta=None,
         **options,
     ):
         if not _meta:
-            _meta = MutationOptions(cls)
+            _meta = SQLMutationOptions(cls)
 
         output = output or getattr(cls, "Output", None)
         fields = {}
@@ -214,7 +217,8 @@ class SQLAlchemyCreateMutation(_BaseMutation):
                         required_fields=required_fields,
                     )
                 input_type = get_input_type(
-                    cls.__name__ + "InputType", input_fields=input_fields
+                    input_type_name or cls.__name__ + "InputType",
+                    input_fields=input_fields,
                 )
                 arguments = {
                     "value": graphene.Argument(input_type, required=True),
@@ -284,7 +288,7 @@ class SQLAlchemyDeleteMutation(_BaseMutation):
         **options,
     ):
         if not _meta:
-            _meta = MutationOptions(cls)
+            _meta = SQLMutationOptions(cls)
 
         output = output or getattr(cls, "Output", None)
         fields = {}

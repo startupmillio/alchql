@@ -288,3 +288,62 @@ async def test_create_mutation_fk_without_relation(session, raise_graphql):
     )
 
     assert not result.errors
+
+
+@pytest.mark.asyncio
+async def test_create_mutation_rename_value(session, raise_graphql):
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = m.Pet
+            interfaces = (AsyncNode,)
+
+    class MutationCreatePet(SQLAlchemyCreateMutation):
+        class Meta:
+            model = m.Pet
+            output = PetType
+            input_type_name = "CreatePetType"
+
+        @classmethod
+        async def mutate(cls, *args, **kwargs):
+            result = await super().mutate(*args, **kwargs)
+            assert result.id is not None
+            return result
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        insert_pet = MutationCreatePet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    query = """
+        mutation InsertPet($value: CreatePetType!) {
+            insertPet(value: $value) {
+                name
+                reporterId
+            }
+        }
+    """
+
+    result = await schema.execute_async(
+        query,
+        variables={
+            "value": {
+                "name": "asd",
+                "petKind": "CAT",
+                "hairKind": "SHORT",
+                "reporterId": "YWRzOjQ=",
+            },
+        },
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([m.Pet]),
+        ],
+    )
+
+    assert not result.errors
