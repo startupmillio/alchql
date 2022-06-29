@@ -50,18 +50,15 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                     sort_type = object_type.sort_argument().type.of_type
                     new_sort = []
                     for s in sort:
-                        new_sort.append(getattr(sort_type, s).value)
+                        if isinstance(s, (EnumValue, enum.Enum)):
+                            new_sort.append(s.value)
+                        else:
+                            new_sort.append(getattr(sort_type, s).value)
 
                     sort = new_sort
 
-                sort_args = []
-                # ensure consistent handling of graphene Enums, enum values and
-                # plain strings
                 for item in sort:
-                    if isinstance(item, (EnumValue, enum.Enum)):
-                        sort_args.append(item.value.nullslast())
-                    else:
-                        sort_args.append(item.nullslast())
+                    sort_args.append(item.nullslast())
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort
@@ -79,10 +76,6 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
             if relation.secondaryjoin is not None:
                 q = q.where(relation.secondaryjoin)
 
-            if relation.order_by:
-                for ob in relation.order_by:
-                    q = q.order_by(ob.nullslast())
-
             q = q.where(f.in_(keys))
 
             if object_type and hasattr(object_type, "set_select_from"):
@@ -95,6 +88,10 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                 q = q.where(sa.and_(*filters))
 
             q = q.order_by(*sort_args)
+
+            if relation.order_by:
+                for ob in relation.order_by:
+                    q = q.order_by(ob.nullslast())
 
             results_by_ids = defaultdict(list)
 
@@ -156,18 +153,15 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
                     sort_type = object_type.sort_argument().type.of_type
                     new_sort = []
                     for s in sort:
-                        new_sort.append(getattr(sort_type, s).value)
+                        if isinstance(s, (EnumValue, enum.Enum)):
+                            new_sort.append(s.value)
+                        else:
+                            new_sort.append(getattr(sort_type, s).value)
 
                     sort = new_sort
 
-                sort_args = []
-                # ensure consistent handling of graphene Enums, enum values and
-                # plain strings
                 for item in sort:
-                    if isinstance(item, (EnumValue, enum.Enum)):
-                        sort_args.append(item.value.nullslast())
-                    else:
-                        sort_args.append(item.nullslast())
+                    sort_args.append(item.nullslast())
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort

@@ -8,6 +8,7 @@ from graphene import Context, relay
 
 from alchql.middlewares import LoaderMiddleware
 from alchql.types import SQLAlchemyObjectType
+
 from .models import Article, HairKind, Pet, Reporter, association_table
 from .utils import to_std_dicts
 
@@ -417,6 +418,132 @@ async def test_one_to_many(session, raise_graphql):
 
 
 @pytest.mark.asyncio
+async def test_one_to_many_sorted(session, raise_graphql):
+    await session.execute(
+        sa.insert(Reporter),
+        [
+            {Reporter.first_name.key: "Reporter_1"},
+            {Reporter.first_name.key: "Reporter_2"},
+            {Reporter.first_name.key: "Reporter_3"},
+        ],
+    )
+
+    reporter_1_id = (
+        await session.execute(
+            sa.select(Reporter.id).where(Reporter.first_name == "Reporter_1")
+        )
+    ).scalar()
+    reporter_2_id = (
+        await session.execute(
+            sa.select(Reporter.id).where(Reporter.first_name == "Reporter_2")
+        )
+    ).scalar()
+
+    await session.execute(
+        sa.insert(Article).values(
+            [
+                {Article.headline: "Article_1", Article.reporter_id: reporter_1_id},
+                {Article.headline: "Article_2", Article.reporter_id: reporter_1_id},
+                {Article.headline: "Article_3", Article.reporter_id: reporter_2_id},
+                {Article.headline: "Article_4", Article.reporter_id: reporter_2_id},
+            ]
+        )
+    )
+
+    expected_result = {
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "articles": {
+                    "edges": [
+                        {"node": {"headline": "Article_2"}},
+                        {"node": {"headline": "Article_1"}},
+                    ],
+                },
+            },
+            {
+                "firstName": "Reporter_2",
+                "articles": {
+                    "edges": [
+                        {"node": {"headline": "Article_4"}},
+                        {"node": {"headline": "Article_3"}},
+                    ],
+                },
+            },
+            {
+                "firstName": "Reporter_3",
+                "articles": {
+                    "edges": [],
+                },
+            },
+        ],
+    }
+
+    schema = get_schema()
+
+    # Passing sort inside the query
+    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+            query {
+                reporters {
+                    firstName
+                    articles(first: 2, sort: HEADLINE_DESC) {
+                        edges {
+                            node {
+                                headline
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter]),
+            ],
+        )
+
+    assert not result.errors, result.errors
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert expected_result == result
+
+    # Passing sort in variables
+    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+            query($sort: [ArticleTypeSortEnum]) {
+                reporters {
+                    firstName
+                    articles(first: 2, sort: $sort) {
+                        edges {
+                            node {
+                                headline
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter]),
+            ],
+            variables={"sort": "HEADLINE_DESC"},
+        )
+
+    assert not result.errors, result.errors
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert expected_result == result
+
+
+@pytest.mark.asyncio
 async def test_many_to_many(session):
     await session.execute(
         sa.insert(Reporter),
@@ -572,3 +699,129 @@ async def test_many_to_many(session):
             },
         ],
     }
+
+
+@pytest.mark.asyncio
+async def test_many_to_many_sorted(session):
+    await session.execute(
+        sa.insert(Reporter),
+        [
+            {Reporter.first_name.key: "Reporter_1"},
+            {Reporter.first_name.key: "Reporter_2"},
+        ],
+    )
+    reporters = dict(
+        (await session.execute(sa.select(Reporter.first_name, Reporter.id))).fetchall()
+    )
+
+    pet_reporter = {
+        "Pet_1": "Reporter_1",
+        "Pet_2": "Reporter_1",
+        "Pet_3": "Reporter_2",
+        "Pet_4": "Reporter_2",
+    }
+
+    await session.execute(
+        sa.insert(Pet),
+        [
+            {
+                Pet.name.key: pet_name,
+                Pet.pet_kind.key: "cat",
+                Pet.hair_kind.key: HairKind.LONG,
+            }
+            for pet_name in pet_reporter
+        ],
+    )
+    pets = dict((await session.execute(sa.select(Pet.name, Pet.id))).fetchall())
+
+    await session.execute(
+        sa.insert(association_table),
+        [
+            {
+                association_table.c.pet_id.key: pets[pet_name],
+                association_table.c.reporter_id.key: reporters[reporter_name],
+            }
+            for pet_name, reporter_name in pet_reporter.items()
+        ],
+    )
+
+    expected_result = {
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "pets": {
+                    "edges": [
+                        {"node": {"name": "Pet_2"}},
+                        {"node": {"name": "Pet_1"}},
+                    ]
+                },
+            },
+            {
+                "firstName": "Reporter_2",
+                "pets": {
+                    "edges": [
+                        {"node": {"name": "Pet_4"}},
+                        {"node": {"name": "Pet_3"}},
+                    ]
+                },
+            },
+        ],
+    }
+    schema = get_schema()
+
+    # Passing sort inside the query
+    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+              query {
+                reporters {
+                  firstName
+                  pets(first: 2, sort: NAME_DESC) {
+                    edges {
+                      node {
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter, Pet]),
+            ],
+        )
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert result == expected_result
+
+    # Passing sort in variables
+    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+              query($sort: [PetTypeSortEnum]) {
+                reporters {
+                  firstName
+                  pets(first: 2, sort: $sort) {
+                    edges {
+                      node {
+                        name
+                      }
+                    }
+                  }
+                }
+              }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter, Pet]),
+            ],
+            variables={"sort": "NAME_DESC"},
+        )
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert result == expected_result
