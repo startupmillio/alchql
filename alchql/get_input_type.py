@@ -55,7 +55,7 @@ def get_input_fields(
             "The options 'only_fields' and 'exclude_fields' cannot be both set on the same type."
         )
 
-    table = sa.inspect(model).mapped_table
+    table = sa.inspect(model).persist_selectable
 
     fields = {}
     for name, column in dict(table.columns).items():

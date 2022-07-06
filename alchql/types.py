@@ -181,7 +181,7 @@ def construct_fields(
                     fk, obj_type
                 )
 
-    for fk in inspected_model.mapped_table.foreign_keys:
+    for fk in inspected_model.persist_selectable.foreign_keys:
         orm_field_name = re.sub(r"_(?:id|pk)$", "", fk.parent.key)
         if (only_fields and orm_field_name not in only_fields) or (
             orm_field_name in exclude_fields
