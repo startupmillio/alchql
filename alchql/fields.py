@@ -169,6 +169,11 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
     @staticmethod
     def set_filter_fields(type_, kwargs):
+        filters = FilterConnectionField.get_filter_fields(type_, kwargs)
+        setattr(type_, "parsed_filters", filters)
+
+    @staticmethod
+    def get_filter_fields(type_, kwargs):
         filters = {}
         tablename = type_._meta.model.__tablename__
 
@@ -237,7 +242,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                     value_func=OPERATORS_MAPPING[operator][1],
                 )
 
-        setattr(type_, "parsed_filters", filters)
+        return filters
 
     @classmethod
     async def get_query(

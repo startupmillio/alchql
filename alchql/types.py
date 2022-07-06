@@ -13,6 +13,7 @@ from sqlalchemy.orm import (
     ColumnProperty,
     CompositeProperty,
     DeclarativeMeta,
+    Query,
     RelationshipProperty,
 )
 
@@ -29,7 +30,9 @@ from .enums import (
     sort_argument_for_object_type,
     sort_enum_for_object_type,
 )
+from .fields import FilterConnectionField
 from .node import AsyncNode
+from .query_helper import QueryHelper
 from .registry import Registry, get_global_registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, is_mapped_class, is_mapped_instance
@@ -379,6 +382,21 @@ class SQLAlchemyObjectType(ObjectType):
                     and field_type_name[:-10] == info.context.representation
                 ):
                     return await field.resolve(model_instance, info)
+
+    @classmethod
+    def apply_filters(cls, info: ResolveInfo, q: Query, filters = None):
+        """Apply class methods like filter_{filter_name}"""
+        parsed_filters = getattr(cls, "parsed_filters", FilterConnectionField.get_filter_fields(cls, {}))
+        filters = filters or parsed_filters
+
+        arguments = QueryHelper.get_current_field(info).arguments
+        for filter_field in filters:
+            func_name = f"filter_{filter_field}"
+            value = arguments.get(filter_field)
+            if hasattr(cls, func_name):
+                q = getattr(cls, func_name)(info, q, value)
+
+        return q
 
     sort_enum = classmethod(sort_enum_for_object_type)
 
