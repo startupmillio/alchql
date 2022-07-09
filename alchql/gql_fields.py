@@ -136,7 +136,7 @@ def get_fields(model, info: ResolveInfo, cls_name=None):
             registry = get_global_registry()
             type_ = registry.get_type_for_model(model)
             for k, v in type_._meta.fields.items():
-                if getattr(v, "name", None) in model_names:
+                if getattr(v, "name", None) in model_names or k in model_names:
                     ex = getattr(type_, k).model_field.expression
                     if k != ex.key:
                         ex = ex.label(k)

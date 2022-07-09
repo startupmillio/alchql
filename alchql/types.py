@@ -353,9 +353,10 @@ class SQLAlchemyObjectType(ObjectType):
 
         pk = sqlalchemy.inspect(cls._meta.model).primary_key[0]
         q = (await cls.get_query(info)).where(pk == id)
-        obj = (await session.execute(q)).first()
+        obj = (await session.execute(q)).fetchone()
         if obj:
-            result = cls(**obj)
+            args = set(cls.__init__.__code__.co_varnames)
+            result = cls(**{k: v for k, v in dict(obj).items() if k in args})
             return result
 
     async def resolve_id(self, info: ResolveInfo):
