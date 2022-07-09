@@ -76,9 +76,34 @@ async def test_sqlalchemy_node(session):
     assert reporter.last_name == reporter_node.last_name
     assert reporter.email == reporter_node.email
     assert reporter.favorite_pet_kind == reporter_node.favorite_pet_kind
-    # assert reporter.pets == reporter_node.pets
-    # assert reporter.articles == reporter_node.articles
-    # assert reporter.favorite_article == reporter_node.favorite_article
+
+
+@pytest.mark.asyncio
+async def test_sqlalchemy_node_with_exclude(session):
+    class ReporterType(SQLAlchemyObjectType):
+        class Meta:
+            model = Reporter
+            interfaces = (Node,)
+            exclude_fields = ["first_name", "last_name"]
+
+        other = gql_types.String()
+
+    reporter_id_field = ReporterType._meta.fields["id"]
+    assert isinstance(reporter_id_field, GlobalID)
+
+    reporter_id = (await session.execute(sa.insert(Reporter))).lastrowid
+    reporter: Reporter = (
+        await session.execute(
+            sa.select(Reporter.__table__.c).where(Reporter.id == reporter_id)
+        )
+    ).first()
+
+    info = mock.Mock(context=type("Context", (), {"session": session}))
+    reporter_node = await ReporterType.get_node(info, reporter.id)
+    assert reporter.id == reporter_node.id
+    assert reporter.email == reporter_node.email
+    assert reporter.favorite_pet_kind == reporter_node.favorite_pet_kind
+    assert reporter_node.other is None
 
 
 def test_connection():
@@ -395,6 +420,52 @@ async def test_sqlalchemy_redefine_field3(session):
 
     assert not result.errors
     assert result.data["reporter"]["edges"][0]["node"]["nameObj"] == "first_name"
+
+
+@pytest.mark.asyncio
+async def test_sqlalchemy_redefine_field4(session):
+    class ReporterType(SQLAlchemyObjectType):
+        class Meta:
+            model = Reporter
+            connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
+            interfaces = (AsyncNode,)
+
+        fname = gql_types.String(model_field=Reporter.first_name)
+
+    class Query(ObjectType):
+        reporter = SQLAlchemyConnectionField(ReporterType.connection, sort=None)
+
+    reporter = Reporter(
+        first_name="first_name",
+        last_name="last_name",
+        email="email",
+        favorite_pet_kind="cat",
+    )
+    session.add(reporter)
+    await session.commit()
+
+    schema = Schema(query=Query, types=[ReporterType])
+    result = await schema.execute_async(
+        """
+        query {
+            reporter {
+                edges{
+                    node{
+                        id
+                        fname
+                    }
+                }
+            }
+        }
+        """,
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Reporter]),
+        ],
+    )
+
+    assert not result.errors
+    assert result.data["reporter"]["edges"][0]["node"]["fname"] == "first_name"
 
 
 @pytest.mark.asyncio
