@@ -20,7 +20,7 @@ class LoaderMiddleware:
                 model = model.entity
 
             inspected_model = sa.inspect(model)
-            for fk in inspected_model.mapped_table.foreign_keys:
+            for fk in inspected_model.persist_selectable.foreign_keys:
                 key = (
                     fk.constraint.table,
                     fk.constraint.referred_table,

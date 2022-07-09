@@ -140,7 +140,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
         model = cls._meta.model
         output = cls._meta.output
 
-        table = sa.inspect(model).mapped_table
+        table = sa.inspect(model).persist_selectable
         pk = table.primary_key.columns[0]
 
         type_name, id_ = ResolvedGlobalId.decode(id)
@@ -338,7 +338,7 @@ class SQLAlchemyDeleteMutation(_BaseMutation):
         model = cls._meta.model
         output = cls._meta.output
 
-        table = sa.inspect(model).mapped_table
+        table = sa.inspect(model).persist_selectable
         pk = table.primary_key.columns[0]
 
         type_name, id_ = ResolvedGlobalId.decode(id)

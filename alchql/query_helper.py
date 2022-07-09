@@ -175,7 +175,7 @@ class QueryHelper:
                     mapped_table = (
                         model
                         if isinstance(model, Table)
-                        else sa.inspect(model).mapped_table
+                        else sa.inspect(model).persist_selectable
                     )
 
                     for fk in mapped_table.foreign_keys:
