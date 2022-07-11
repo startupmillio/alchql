@@ -52,8 +52,10 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         return get_nullable_type(self.type)._meta.node._meta.model
 
     @classmethod
-    async def get_query(cls, model: Type[DeclarativeMeta], info: ResolveInfo, **args):
-        return get_query(model, info)
+    async def get_query(
+        cls, model: Type[DeclarativeMeta], info: ResolveInfo, cls_name=None, **args
+    ):
+        return get_query(model, info, cls_name)
 
     @classmethod
     async def resolve_connection(
@@ -137,9 +139,14 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
 
     @classmethod
     async def get_query(
-        cls, model: Type[DeclarativeMeta], info: ResolveInfo, sort=None, **args
+        cls,
+        model: Type[DeclarativeMeta],
+        info: ResolveInfo,
+        sort=None,
+        cls_name=None,
+        **args,
     ):
-        query = get_query(model, info)
+        query = get_query(model, info, cls_name)
         if sort is not None:
             if not isinstance(sort, list):
                 sort = [sort]

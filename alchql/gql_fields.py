@@ -28,7 +28,7 @@ import sqlalchemy
 from graphene import ResolveInfo
 from graphql import FieldNode, FragmentDefinitionNode
 
-from alchql.registry import get_global_registry
+from .registry import get_global_registry
 
 _camel_to_snake_re = re.compile(
     r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z\d]*)([A-Z]\d*[a-z]*|\d+)"
@@ -134,7 +134,8 @@ def get_fields(model, info: ResolveInfo, cls_name=None):
                 break
         else:
             registry = get_global_registry()
-            type_ = registry.get_type_for_model(model)
+            type_ = registry.get_type_for_model(model, cls_name)
+
             for k, v in type_._meta.fields.items():
                 if getattr(v, "name", None) in model_names or k in model_names:
                     ex = getattr(type_, k).model_field.expression

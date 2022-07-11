@@ -1,11 +1,15 @@
 import pytest
-from graphene import Enum as GrapheneEnum
+from graphene import Context, Enum as GrapheneEnum, ObjectType, Schema
 from sqlalchemy.types import Enum as SQLAlchemyEnum
 
-from .models import Pet
+from alchql import gql_types
+from alchql.fields import BatchSQLAlchemyConnectionField, SQLAlchemyConnectionField
+from alchql.middlewares import LoaderMiddleware
+from alchql.node import AsyncNode
 from alchql.registry import Registry
 from alchql.types import SQLAlchemyObjectType
 from alchql.utils import EnumValue
+from .models import Editor, Pet
 
 
 def test_register_object_type():
@@ -125,3 +129,62 @@ def test_register_sort_enum_incorrect_types():
     re_err = r"Expected Graphene Enum, but got: .*PetType.*"
     with pytest.raises(TypeError, match=re_err):
         reg.register_sort_enum(PetType, PetType)
+
+
+@pytest.mark.asyncio
+async def test_sqlalchemy_redefine_field4(session):
+    class EditorType(SQLAlchemyObjectType):
+        class Meta:
+            model = Editor
+            connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
+            interfaces = (AsyncNode,)
+
+        pname = gql_types.String(model_field=Editor.name)
+
+    class AnotherEditorType(SQLAlchemyObjectType):
+        class Meta:
+            model = Editor
+            connection_field_factory = BatchSQLAlchemyConnectionField.from_relationship
+            interfaces = (AsyncNode,)
+
+        dname = gql_types.String(model_field=Editor.name)
+
+    class Query(ObjectType):
+        editor = SQLAlchemyConnectionField(EditorType.connection, sort=None)
+        another_editor = SQLAlchemyConnectionField(
+            AnotherEditorType.connection, sort=None
+        )
+
+    editor = Editor(name="first_name")
+    session.add(editor)
+    await session.commit()
+
+    schema = Schema(query=Query, types=[EditorType, AnotherEditorType])
+    result = await schema.execute_async(
+        """
+        query {
+            editor {
+                edges {
+                    node {
+                        pname
+                    }
+                }
+            }
+            anotherEditor {
+                edges {
+                    node {
+                        dname
+                    }
+                }
+            }
+        }
+        """,
+        context_value=Context(session=session),
+        middleware=[
+            LoaderMiddleware([Editor]),
+        ],
+    )
+
+    assert not result.errors
+    assert result.data["editor"]["edges"][0]["node"]["pname"] == "first_name"
+    assert result.data["anotherEditor"]["edges"][0]["node"]["dname"] == "first_name"

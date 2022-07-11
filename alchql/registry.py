@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 class Registry:
     def __init__(self):
-        self._registry = {}
+        self._registry = defaultdict(list)
         self._registry_models = {}
         self._registry_orm_fields = defaultdict(dict)
         self._registry_composites = {}
@@ -28,16 +28,16 @@ class Registry:
         ):
             raise TypeError(f"Expected SQLAlchemyObjectType, but got: {obj_type!r}")
         assert obj_type._meta.registry == self, "Registry for a Model have to match."
-        # assert self.get_type_for_model(cls._meta.model) in [None, cls], (
-        #     f'SQLAlchemy model "{cls._meta.model}" already associated with '
-        #     f'another type "{self._registry[cls._meta.model]}".'
-        # )
-        self._registry[sa.inspect(obj_type._meta.model).local_table] = obj_type
+        table = sa.inspect(obj_type._meta.model).local_table
+        self._registry[table].append(obj_type)
 
-    def get_type_for_model(self, model: Union[DeclarativeMeta, Table]):
+    def get_type_for_model(self, model: Union[DeclarativeMeta, Table], cls_name=None):
         if isinstance(model, DeclarativeMeta):
             model = sa.inspect(model).local_table
-        return self._registry.get(model)
+
+        for i in self._registry[model]:
+            if cls_name is None or cls_name == i.__name__:
+                return i
 
     def register_orm_field(
         self,

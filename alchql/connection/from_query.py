@@ -77,6 +77,7 @@ async def connection_from_query(
     #     raise TypeError('Cannot set "last" without filters applied')
 
     edge_type = connection_type.Edge
+    node_type = edge_type.node.type
     page_info_type = getattr(connection_type, "PageInfo", PageInfo)
 
     before = args.get("before")
@@ -93,7 +94,12 @@ async def connection_from_query(
         first = DEFAULT_LIMIT
         logging.warning(f"Query without border, {first=}")
 
-    query = await cls.get_query(model, info, **args)
+    query = await cls.get_query(
+        model=model,
+        info=info,
+        cls_name=node_type.__name__,
+        **args,
+    )
 
     total_count = None
     # TODO: Move total_count to PageInfo
@@ -122,7 +128,6 @@ async def connection_from_query(
     edges = []
 
     for i, v in enumerate(await session.execute(_slice)):
-        node_type = edge_type.node.type
         node_value = filter_requested_fields_for_object(dict(v), node_type)
         edge = edge_type(
             node=node_type(**node_value),
