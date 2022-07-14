@@ -10,6 +10,7 @@ from graphene.types import ResolveInfo
 from graphene.types.utils import get_type
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import DeclarativeMeta, InstrumentedAttribute, RelationshipProperty
+from sqlalchemy.sql.elements import Label
 
 from .batching import get_batch_resolver, get_fk_resolver_reverse
 from .connection.from_array_slice import connection_from_array_slice
@@ -174,13 +175,9 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         super().__init__(type_.connection, *args, **kwargs)
 
-    @staticmethod
-    def set_filter_fields(type_, kwargs):
+    @classmethod
+    def set_filter_fields(cls, type_, kwargs):
         filters = {}
-        tablename = type_._meta.model.__tablename__
-
-        registry = get_global_registry()
-
         kwargs[GlobalFilters.ID__EQ] = graphene.Argument(type_=graphene.ID)
         filters[GlobalFilters.ID__EQ] = FilterItem(
             filter_func=getattr(
@@ -210,25 +207,16 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                     required=operators.required,
                 )
                 filters[field] = operators
-
-            if not isinstance(field, InstrumentedAttribute):
                 continue
 
-            if field.parent.tables[0].name == tablename:
-                gql_field = type_._meta.fields.get(field.key)
-                if gql_field and gql_field.name is not None:
-                    field_key = gql_field.name
-                else:
-                    field_key = field.key
+            if isinstance(field, InstrumentedAttribute):
+                field_key, field_type = cls.process_instrumented_field(field, type_)
+            elif isinstance(field, Label):
+                field_key, field_type = cls.process_label_field(field)
+            elif isinstance(field, sa.Column):
+                field_key, field_type = cls.process_column_field(field, type_)
             else:
-                field_key = f"{field.parent.tables[0].name}_{field.key}"
-
-            field_type = convert_sqlalchemy_type(
-                getattr(field, "type", None), field, registry
-            )
-
-            if field.prop.columns[0].foreign_keys:
-                field_type = graphene.ID
+                continue
 
             for operator in operators:
                 if operator == OP_IN:
@@ -245,6 +233,66 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                 )
 
         setattr(type_, "parsed_filters", filters)
+
+    @staticmethod
+    def process_instrumented_field(field, type_):
+        registry = get_global_registry()
+        tablename = type_._meta.model.__tablename__
+
+        if field.parent.tables[0].name == tablename:
+            gql_field = type_._meta.fields.get(field.key)
+            if gql_field and gql_field.name is not None:
+                field_key = gql_field.name
+            else:
+                field_key = field.key
+        else:
+            field_key = f"{field.parent.tables[0].name}_{field.key}"
+
+        field_type = convert_sqlalchemy_type(
+            getattr(field, "type", None), field, registry
+        )
+
+        if field.prop.columns[0].foreign_keys:
+            field_type = graphene.ID
+
+        return field_key, field_type
+
+    @staticmethod
+    def process_label_field(field):
+        registry = get_global_registry()
+        field_key = field.key
+
+        field_type = convert_sqlalchemy_type(
+            getattr(field, "type", None), field, registry
+        )
+
+        if field.foreign_keys:
+            field_type = graphene.ID
+
+        return field_key, field_type
+
+    @staticmethod
+    def process_column_field(field, type_):
+        registry = get_global_registry()
+        tablename = type_._meta.model.__tablename__
+
+        if field.table.name == tablename:
+            gql_field = type_._meta.fields.get(field.key)
+            if gql_field and gql_field.name is not None:
+                field_key = gql_field.name
+            else:
+                field_key = field.key
+        else:
+            field_key = f"{field.table.name}_{field.key}"
+
+        field_type = convert_sqlalchemy_type(
+            getattr(field, "type", None), field, registry
+        )
+
+        if field.foreign_keys:
+            field_type = graphene.ID
+
+        return field_key, field_type
 
     @classmethod
     async def get_query(
