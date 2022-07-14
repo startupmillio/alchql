@@ -26,6 +26,7 @@ class SQLMutationOptions(ObjectTypeOptions):
     output: Type[SQLAlchemyObjectType] = None
     resolver: Callable = None
     interfaces: Iterable[Type[Interface]] = ()
+    input_type: Type[graphene.InputObjectType] = None
 
 
 class _BaseMutation(ObjectType):
@@ -96,6 +97,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
                 fields.update(yank_fields_from_attrs(base.__dict__, _as=Field))
             output = cls
 
+        input_type = None
         if not arguments:
             input_class = getattr(cls, "Arguments", None)
             if input_class:
@@ -131,6 +133,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
         _meta.resolver = resolver
         _meta.arguments = arguments
         _meta.model = model
+        _meta.input_type = input_type
 
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
@@ -204,6 +207,7 @@ class SQLAlchemyCreateMutation(_BaseMutation):
                 fields.update(yank_fields_from_attrs(base.__dict__, _as=Field))
             output = cls
 
+        input_type = None
         if not arguments:
             input_class = getattr(cls, "Arguments", None)
             if input_class:
@@ -238,6 +242,7 @@ class SQLAlchemyCreateMutation(_BaseMutation):
         _meta.resolver = resolver
         _meta.arguments = arguments
         _meta.model = model
+        _meta.input_type = input_type
 
         super().__init_subclass_with_meta__(_meta=_meta, **options)
 
