@@ -30,3 +30,6 @@ class ResolvedGlobalId(NamedTuple):
     @classmethod
     def decode(cls: Type[_T], global_id: str) -> _T:
         return cls(*decode_gql_id(global_id))
+
+    def __str__(self):
+        return self.encode()
