@@ -1,8 +1,8 @@
 from enum import EnumMeta
+from functools import singledispatch
 
 from graphene import Boolean, Enum, Float, ID, Int, List, String
 from graphene.types.json import JSONString
-from functools import singledispatch
 from sqlalchemy import types
 from sqlalchemy.dialects import postgresql
 
@@ -58,7 +58,6 @@ def convert_column_to_datetime(type_, column, registry=None):
 
 @convert_sqlalchemy_type.register(types.SmallInteger)
 @convert_sqlalchemy_type.register(types.Integer)
-@convert_sqlalchemy_type.register(types.BigInteger)
 def convert_column_to_int_or_id(type_, column, registry=None):
     return ID if column.primary_key else Int
 
@@ -70,6 +69,7 @@ def convert_column_to_boolean(type_, column, registry=None):
 
 @convert_sqlalchemy_type.register(types.Float)
 @convert_sqlalchemy_type.register(types.Numeric)
+@convert_sqlalchemy_type.register(types.BigInteger)  # GRAPHQL_MAX_INT
 def convert_column_to_float(type_, column, registry=None):
     return Float
 

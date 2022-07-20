@@ -125,8 +125,8 @@ def test_should_small_integer_convert_int():
     assert get_field(types.SmallInteger()).type == graphene.Int
 
 
-def test_should_big_integer_convert_int():
-    assert get_field(types.BigInteger()).type == graphene.Int
+def test_should_big_integer_convert_float():
+    assert get_field(types.BigInteger()).type == graphene.Float
 
 
 def test_should_integer_convert_int():
