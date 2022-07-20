@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from graphene import Context
 
 from alchql.fields import SQLAlchemyConnectionField
-from alchql.gql_id import ResolvedGlobalId, encode_gql_id
+from alchql.gql_id import ResolvedGlobalId
 from alchql.middlewares import LoaderMiddleware
 from alchql.node import AsyncNode
 from alchql.sql_mutation import SQLAlchemyUpdateMutation
@@ -392,7 +392,7 @@ async def test_update_mutation_always_queries_primary_keys(session):
     """
 
     id_to_update = (await session.execute(sa.select(Pet.id))).scalars().first()
-    gql_id_to_update = encode_gql_id(PetType.__name__, id_to_update)
+    gql_id_to_update = ResolvedGlobalId(PetType.__name__, id_to_update).encode()
     new_name = "New name"
 
     result = await schema.execute_async(
@@ -454,7 +454,7 @@ async def test_update_mutation_rename_value(session):
     """
 
     id_to_update = (await session.execute(sa.select(Pet.id))).scalars().first()
-    gql_id_to_update = encode_gql_id(PetType.__name__, id_to_update)
+    gql_id_to_update = ResolvedGlobalId(PetType.__name__, id_to_update).encode()
     new_name = "New name"
 
     result = await schema.execute_async(
