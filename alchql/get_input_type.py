@@ -1,4 +1,4 @@
-from typing import List, Type
+from typing import Iterable, List, Type, Union
 
 import graphene
 import sqlalchemy as sa
@@ -46,23 +46,27 @@ def convert_sqlalchemy_type_mutation(column):
 
 def get_input_fields(
     model: Type[DeclarativeMeta],
-    only_fields: List = (),
-    exclude_fields: List = (),
-    required_fields: List = (),
+    only_fields: Iterable[str] = (),
+    exclude_fields: Iterable[str] = (),
+    required_fields: Iterable[str] = (),
 ) -> dict:
+    only_fields = set(only_fields)
+    exclude_fields = set(exclude_fields)
+    required_fields = set(required_fields)
+
     if only_fields and exclude_fields:
         raise ValueError(
             "The options 'only_fields' and 'exclude_fields' cannot be both set on the same type."
         )
 
     table = sa.inspect(model).persist_selectable
-
     fields = {}
     for name, column in dict(table.columns).items():
-        if only_fields and name not in only_fields:
-            continue
-        if exclude_fields and name in exclude_fields:
-            continue
+        if name not in required_fields:
+            if only_fields and name not in only_fields:
+                continue
+            if exclude_fields and name in exclude_fields:
+                continue
 
         field = convert_sqlalchemy_type_mutation(column)
 
