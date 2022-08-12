@@ -12,6 +12,50 @@ from .query_helper import QueryHelper
 from .utils import EnumValue, filter_requested_fields_for_object, table_to_class
 
 
+def get_join(relation: RelationshipProperty):
+    if relation.primaryjoin is not None:
+        l = relation.primaryjoin.left.table
+        r = relation.primaryjoin.right.table
+
+        base_table = l
+        join_table = r
+        join_table2 = None
+
+        if relation.secondaryjoin is not None:
+            l2 = relation.secondaryjoin.right.table
+            r2 = relation.secondaryjoin.left.table
+            if l == l2:
+                base_table = l
+                join_table = r
+                join_table2 = r2
+            elif r == r2:
+                base_table = r
+                join_table = l
+                join_table2 = l2
+            elif l == r2:
+                base_table = l
+                join_table = r
+                join_table2 = l2
+            elif r == l2:
+                base_table = r
+                join_table = l
+                join_table2 = r2
+
+        sf = sa.outerjoin(
+            base_table,
+            join_table,
+            relation.primaryjoin,
+        )
+
+        if join_table2 is not None:
+            sf = sf.outerjoin(
+                join_table2,
+                relation.secondaryjoin,
+            )
+
+        return sf
+
+
 def generate_loader_by_relationship(relation: RelationshipProperty):
     class Loader(DataLoader):
         def __init__(
@@ -71,10 +115,9 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                 f.label("_batch_key"),
             )
 
-            if relation.primaryjoin is not None:
-                q = q.where(relation.primaryjoin)
-            if relation.secondaryjoin is not None:
-                q = q.where(relation.secondaryjoin)
+            join = get_join(relation)
+            if join is not None:
+                q = q.select_from(join)
 
             q = q.where(f.in_(keys))
 
@@ -96,7 +139,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
-            for result in await self.session.execute(q.distinct()):
+            for result in await self.session.execute(q):
                 _data = dict(**result)
                 _batch_key = _data.pop("_batch_key")
                 _data = filter_requested_fields_for_object(_data, conversion_type)
@@ -198,7 +241,7 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or table_to_class(target)
-            results = list(map(dict, await self.session.execute(q.distinct())))
+            results = list(map(dict, await self.session.execute(q)))
             for _data in results:
                 _batch_key = _data.pop("_batch_key")
                 _data = filter_requested_fields_for_object(_data, conversion_type)
