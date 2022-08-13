@@ -241,7 +241,7 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or table_to_class(target)
-            results = list(map(dict, await self.session.execute(q)))
+            results = list(map(dict, await self.session.execute(q.distinct())))
             for _data in results:
                 _batch_key = _data.pop("_batch_key")
                 _data = filter_requested_fields_for_object(_data, conversion_type)
