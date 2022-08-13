@@ -139,7 +139,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
-            for result in map(dict, await self.session.execute(q)):
+            for result in map(dict, await self.session.execute(q.distinct())):
                 _batch_key = result.pop("_batch_key")
                 _data = filter_requested_fields_for_object(result, conversion_type)
                 results_by_ids[_batch_key].append(conversion_type(**_data))
