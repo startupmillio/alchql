@@ -139,10 +139,9 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or target
-            for result in await self.session.execute(q):
-                _data = dict(**result)
-                _batch_key = _data.pop("_batch_key")
-                _data = filter_requested_fields_for_object(_data, conversion_type)
+            for result in map(dict, await self.session.execute(q)):
+                _batch_key = result.pop("_batch_key")
+                _data = filter_requested_fields_for_object(result, conversion_type)
                 results_by_ids[_batch_key].append(conversion_type(**_data))
 
             return [results_by_ids.get(id, []) for id in keys]
@@ -241,9 +240,9 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
             results_by_ids = defaultdict(list)
 
             conversion_type = object_type or table_to_class(target)
-            for _data in map(dict, await self.session.execute(q.distinct())):
-                _batch_key = _data.pop("_batch_key")
-                _data = filter_requested_fields_for_object(_data, conversion_type)
+            for result in map(dict, await self.session.execute(q.distinct())):
+                _batch_key = result.pop("_batch_key")
+                _data = filter_requested_fields_for_object(result, conversion_type)
                 results_by_ids[_batch_key].append(conversion_type(**_data))
 
             return [results_by_ids.get(id, []) for id in keys]
