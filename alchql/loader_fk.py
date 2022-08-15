@@ -217,7 +217,7 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
                 target_field.label("_batch_key"),
             ).where(target_field.in_(keys))
 
-            if target != source:
+            if target != source and any(i.table == source for i in selected_fields):
                 q = q.select_from(
                     sa.outerjoin(
                         target,
