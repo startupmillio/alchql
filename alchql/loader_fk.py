@@ -166,14 +166,10 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
         async def batch_load_fn(self, keys):
             if not reverse:
                 target_field = fk.column
-                source_field = fk.parent
                 target: Table = target_field.table
-                source: Table = source_field.table
             else:
                 target_field = fk.parent
-                source_field = fk.column
                 target: Table = target_field.table
-                source: Table = source_field.table
 
             object_types = getattr(self.info.context, "object_types", {})
             setattr(self.info.context, "keys", keys)
@@ -217,20 +213,9 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
                 target_field.label("_batch_key"),
             ).where(target_field.in_(keys))
 
-            if target != source and any(i.table == source for i in selected_fields):
-                q = q.select_from(
-                    sa.outerjoin(
-                        target,
-                        source,
-                        target_field == source_field,
-                    )
-                )
-
             if object_type and hasattr(object_type, "set_select_from"):
                 setattr(self.info.context, "keys", keys)
                 q = await object_type.set_select_from(self.info, q, gql_field.values)
-                if list(q._group_by_clause):
-                    q = q.group_by(source_field)
 
             if filters:
                 q = q.where(sa.and_(*filters))
