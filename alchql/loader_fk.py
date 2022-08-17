@@ -41,14 +41,14 @@ def get_join(relation: RelationshipProperty):
                 join_table = l
                 join_table2 = r2
 
-        sf = sa.outerjoin(
+        sf = sa.join(
             base_table,
             join_table,
             relation.primaryjoin,
         )
 
         if join_table2 is not None:
-            sf = sf.outerjoin(
+            sf = sf.join(
                 join_table2,
                 relation.secondaryjoin,
             )
