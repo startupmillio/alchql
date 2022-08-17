@@ -1,4 +1,3 @@
-import asyncio
 import graphene
 import pytest
 import sqlalchemy as sa
