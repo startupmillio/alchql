@@ -1,14 +1,16 @@
 import contextlib
 import logging
+from unittest.mock import patch
 
 import graphene
 import pytest
 import sqlalchemy as sa
-from graphene import Context, relay
+from graphene import Context
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from alchql.middlewares import LoaderMiddleware
+from alchql.node import AsyncNode
 from alchql.types import SQLAlchemyObjectType
-
 from .models import Article, HairKind, Pet, Reporter, association_table
 from .utils import to_std_dicts
 
@@ -44,17 +46,17 @@ def get_schema():
     class ReporterType(SQLAlchemyObjectType):
         class Meta:
             model = Reporter
-            interfaces = (relay.Node,)
+            interfaces = (AsyncNode,)
 
     class ArticleType(SQLAlchemyObjectType):
         class Meta:
             model = Article
-            interfaces = (relay.Node,)
+            interfaces = (AsyncNode,)
 
     class PetType(SQLAlchemyObjectType):
         class Meta:
             model = Pet
-            interfaces = (relay.Node,)
+            interfaces = (AsyncNode,)
 
     class Query(graphene.ObjectType):
         articles = graphene.Field(graphene.List(ArticleType))
@@ -450,35 +452,6 @@ async def test_one_to_many_sorted(session, raise_graphql):
         )
     )
 
-    expected_result = {
-        "reporters": [
-            {
-                "firstName": "Reporter_1",
-                "articles": {
-                    "edges": [
-                        {"node": {"headline": "Article_2"}},
-                        {"node": {"headline": "Article_1"}},
-                    ],
-                },
-            },
-            {
-                "firstName": "Reporter_2",
-                "articles": {
-                    "edges": [
-                        {"node": {"headline": "Article_4"}},
-                        {"node": {"headline": "Article_3"}},
-                    ],
-                },
-            },
-            {
-                "firstName": "Reporter_3",
-                "articles": {
-                    "edges": [],
-                },
-            },
-        ],
-    }
-
     schema = get_schema()
 
     # Passing sort inside the query
@@ -509,7 +482,35 @@ async def test_one_to_many_sorted(session, raise_graphql):
 
     assert not result.errors
     result = to_std_dicts(result.data)
-    assert expected_result == result
+    expected_result = {
+        "reporters": [
+            {
+                "firstName": "Reporter_1",
+                "articles": {
+                    "edges": [
+                        {"node": {"headline": "Article_2"}},
+                        {"node": {"headline": "Article_1"}},
+                    ],
+                },
+            },
+            {
+                "firstName": "Reporter_2",
+                "articles": {
+                    "edges": [
+                        {"node": {"headline": "Article_4"}},
+                        {"node": {"headline": "Article_3"}},
+                    ],
+                },
+            },
+            {
+                "firstName": "Reporter_3",
+                "articles": {
+                    "edges": [],
+                },
+            },
+        ],
+    }
+    assert result == expected_result
 
     # Passing sort in variables
     with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
@@ -825,3 +826,91 @@ async def test_many_to_many_sorted(session):
     assert not result.errors
     result = to_std_dicts(result.data)
     assert result == expected_result
+
+
+@pytest.mark.asyncio
+async def test_only_ids(session, raise_graphql):
+    await session.execute(
+        sa.insert(Reporter),
+        [
+            {Reporter.first_name.key: "Reporter_1"},
+            {Reporter.first_name.key: "Reporter_2"},
+            {Reporter.first_name.key: "Reporter_3"},
+        ],
+    )
+
+    reporter_1_id = (
+        await session.execute(
+            sa.select(Reporter.id).where(Reporter.first_name == "Reporter_1")
+        )
+    ).scalar()
+    reporter_2_id = (
+        await session.execute(
+            sa.select(Reporter.id).where(Reporter.first_name == "Reporter_2")
+        )
+    ).scalar()
+
+    await session.execute(
+        sa.insert(Article).values(
+            [
+                {Article.headline: "Article_1", Article.reporter_id: reporter_1_id},
+                {Article.headline: "Article_2", Article.reporter_id: reporter_1_id},
+                {Article.headline: "Article_3", Article.reporter_id: reporter_2_id},
+                {Article.headline: "Article_4", Article.reporter_id: reporter_2_id},
+            ]
+        )
+    )
+
+    schema = get_schema()
+
+    old_exec = AsyncSession.execute
+
+    async def execute_mock(self, command):
+        return await old_exec(self, command)
+
+    with patch.object(AsyncSession, "execute", execute_mock) as execute:
+        result = await schema.execute_async(
+            """
+            query {
+                reporters {
+                    articles(first: 2, sort: HEADLINE_DESC) {
+                        edges {
+                            node {
+                                id
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Reporter, Article]),
+            ],
+        )
+
+    assert not result.errors
+
+    assert not result.errors
+    result = to_std_dicts(result.data)
+    assert result == {
+        "reporters": [
+            {
+                "articles": {
+                    "edges": [
+                        {"node": {"id": "QXJ0aWNsZVR5cGU6Mg=="}},
+                        {"node": {"id": "QXJ0aWNsZVR5cGU6MQ=="}},
+                    ]
+                }
+            },
+            {
+                "articles": {
+                    "edges": [
+                        {"node": {"id": "QXJ0aWNsZVR5cGU6NA=="}},
+                        {"node": {"id": "QXJ0aWNsZVR5cGU6Mw=="}},
+                    ]
+                }
+            },
+            {"articles": {"edges": []}},
+        ]
+    }
