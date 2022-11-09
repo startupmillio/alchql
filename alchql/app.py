@@ -27,6 +27,7 @@ class SessionQLApp(GraphQLApp):
             Callable[[Request], Union[Response, Awaitable[Response]]]
         ] = DEFAULT_GET,
         extensions: List[Type[Extension]] = (),
+        raise_exceptions: List[Type[Exception]] = (),
         *args,
         **kwargs,
     ):
@@ -55,6 +56,7 @@ class SessionQLApp(GraphQLApp):
             )
 
         self.extensions = extensions or ()
+        self.raise_exceptions = tuple(raise_exceptions) or ()
         super().__init__(context_value=context_value, on_get=on_get, *args, **kwargs)
 
     async def _handle_http_request(self, request: Request) -> JSONResponse:
@@ -104,6 +106,8 @@ class SessionQLApp(GraphQLApp):
                         "An exception occurred in resolvers",
                         exc_info=error.original_error,
                     )
+                    if isinstance(error.original_error, self.raise_exceptions):
+                        raise error.original_error
             response["errors"] = [
                 self.error_formatter(error) for error in result.errors
             ]
