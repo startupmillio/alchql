@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from inspect import isawaitable
-from typing import Any, Awaitable, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, Union
 
 from graphene import Context
 from graphql import ExecutionResult, graphql
@@ -13,7 +13,6 @@ from starlette_graphene3 import (
     _get_operation_from_request,
 )
 
-from .exceptions import HTTPException
 from .extensions import Extension, ExtensionManager
 
 DEFAULT_GET = object()
@@ -28,7 +27,7 @@ class SessionQLApp(GraphQLApp):
             Callable[[Request], Union[Response, Awaitable[Response]]]
         ] = DEFAULT_GET,
         extensions: List[Type[Extension]] = (),
-        raise_exceptions: Tuple[Type[HTTPException]] = (),
+        raise_exceptions: List[Type[Exception]] = (),
         *args,
         **kwargs,
     ):
@@ -57,7 +56,7 @@ class SessionQLApp(GraphQLApp):
             )
 
         self.extensions = extensions or ()
-        self.raise_exceptions = raise_exceptions or ()
+        self.raise_exceptions = tuple(raise_exceptions) or ()
         super().__init__(context_value=context_value, on_get=on_get, *args, **kwargs)
 
     async def _handle_http_request(self, request: Request) -> JSONResponse:
