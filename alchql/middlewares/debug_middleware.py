@@ -60,5 +60,7 @@ class BreadcrumbMiddleware(BaseDebugMiddleware):
                 )
             if full_query.get("variables"):
                 self.logger(
-                    category="graphql", message=json.dumps(full_query["variables"]), level="info"
+                    category="graphql",
+                    message=json.dumps(full_query["variables"]),
+                    level="info",
                 )
