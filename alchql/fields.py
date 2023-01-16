@@ -303,10 +303,10 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
         filters = QueryHelper.get_filters(info)
         select_fields = QueryHelper.get_selected_fields(info, model, sort)
-        gql_field = QueryHelper.get_current_field(info)
         query = sa.select(*select_fields).select_from(model)
 
         if object_type and hasattr(object_type, "set_select_from"):
+            gql_field = QueryHelper.get_current_field(info)
             query = await object_type.set_select_from(info, query, gql_field.values)
         if filters:
             query = query.where(sa.and_(*filters))
