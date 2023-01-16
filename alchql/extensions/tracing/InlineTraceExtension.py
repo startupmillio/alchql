@@ -39,7 +39,7 @@ class InlineTraceExtension(Extension):
         self.tree_builder.did_encounter_errors(errors, context)
 
     def format(self, context: Context):
-        if self.should_trace:
+        if self.should_trace and self.tree_builder.start_hr_time is not None:
             self.tree_builder.stop_timing()
             self.tree_builder.add_nodes_to_trace()
 
