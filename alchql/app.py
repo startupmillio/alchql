@@ -23,7 +23,6 @@ class SessionQLApp(GraphQLApp):
     def __init__(
         self,
         engine: AsyncEngine,
-        ro_engine: AsyncEngine = None,
         context_value: Callable = Context,
         on_get: Optional[
             Callable[[Request], Union[Response, Awaitable[Response]]]
@@ -33,8 +32,7 @@ class SessionQLApp(GraphQLApp):
         *args,
         **kwargs,
     ):
-        self.rw_engine = engine
-        self.ro_engine = ro_engine or engine
+        self.engine = engine
         if on_get == DEFAULT_GET:
             on_get = lambda request: HTMLResponse(
                 f"""
@@ -127,8 +125,10 @@ class SessionQLApp(GraphQLApp):
 
     @asynccontextmanager
     async def _get_context_value(self, request: HTTPConnection, is_ro_operation: bool) -> Context:
-        async with AsyncSession(self.ro_engine if is_ro_operation else self.rw_engine) as session:
+        async with AsyncSession(self.engine) as session:
             async with session.begin():
+                if is_ro_operation:
+                    await session.connection(execution_options={"isolation_level": "AUTOCOMMIT"})
                 if callable(self.context_value):
                     context = self.context_value(
                         request=request,
