@@ -81,7 +81,9 @@ class SessionQLApp(GraphQLApp):
 
         query_operation = QUERY_REGEX.match(query)
 
-        async with self._get_context_value(request, query_operation is not None) as context_value:
+        async with self._get_context_value(
+            request, query_operation is not None
+        ) as context_value:
             middleware = self.middleware or ()
             extension_manager = ExtensionManager(self.extensions, context=context_value)
 
@@ -126,11 +128,15 @@ class SessionQLApp(GraphQLApp):
         )
 
     @asynccontextmanager
-    async def _get_context_value(self, request: HTTPConnection, is_ro_operation: bool) -> Context:
+    async def _get_context_value(
+        self, request: HTTPConnection, is_ro_operation: bool
+    ) -> Context:
         async with AsyncSession(self.engine) as session:
             async with session.begin():
                 if is_ro_operation:
-                    await session.connection(execution_options={"isolation_level": "AUTOCOMMIT"})
+                    await session.connection(
+                        execution_options={"isolation_level": "AUTOCOMMIT"}
+                    )
                 if callable(self.context_value):
                     context = self.context_value(
                         request=request,
