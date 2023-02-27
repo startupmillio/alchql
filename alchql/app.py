@@ -18,7 +18,7 @@ from .extensions import Extension, ExtensionManager
 
 DEFAULT_GET = object()
 
-OPERATION_REGEX = re.compile("^\\s*?(mutation|query)")
+OPERATION_REGEX = re.compile(r"^\s*?(query)")
 
 
 class SessionQLApp(GraphQLApp):
