@@ -18,6 +18,8 @@ from .extensions import Extension, ExtensionManager
 
 DEFAULT_GET = object()
 
+OPERATION_REGEX = re.compile("^\\s*?(mutation|query)")
+
 
 class SessionQLApp(GraphQLApp):
     def __init__(
@@ -77,7 +79,8 @@ class SessionQLApp(GraphQLApp):
         variable_values = operation.get("variables")
         operation_name = operation.get("operationName")
 
-        is_ro_operation = re.findall("[.\\s]*?(mutation|query)|$", query)[0] == "query"
+        operation = OPERATION_REGEX.match(query)
+        is_ro_operation = operation is not None and operation.groups()[0] == "query"
 
         async with self._get_context_value(request, is_ro_operation) as context_value:
             middleware = self.middleware or ()
