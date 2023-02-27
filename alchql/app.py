@@ -1,3 +1,4 @@
+import re
 from contextlib import asynccontextmanager
 from inspect import isawaitable
 from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, Union
@@ -22,6 +23,7 @@ class SessionQLApp(GraphQLApp):
     def __init__(
         self,
         engine: AsyncEngine,
+        ro_engine: AsyncEngine = None,
         context_value: Callable = Context,
         on_get: Optional[
             Callable[[Request], Union[Response, Awaitable[Response]]]
@@ -31,7 +33,8 @@ class SessionQLApp(GraphQLApp):
         *args,
         **kwargs,
     ):
-        self.engine = engine
+        self.rw_engine = engine
+        self.ro_engine = ro_engine or engine
         if on_get == DEFAULT_GET:
             on_get = lambda request: HTMLResponse(
                 f"""
@@ -76,7 +79,9 @@ class SessionQLApp(GraphQLApp):
         variable_values = operation.get("variables")
         operation_name = operation.get("operationName")
 
-        async with self._get_context_value(request) as context_value:
+        is_ro_operation = re.findall("[.\\s]*?(mutation|query)|$", query)[0] == "query"
+
+        async with self._get_context_value(request, is_ro_operation) as context_value:
             middleware = self.middleware or ()
             extension_manager = ExtensionManager(self.extensions, context=context_value)
 
@@ -121,8 +126,8 @@ class SessionQLApp(GraphQLApp):
         )
 
     @asynccontextmanager
-    async def _get_context_value(self, request: HTTPConnection) -> Context:
-        async with AsyncSession(self.engine) as session:
+    async def _get_context_value(self, request: HTTPConnection, is_ro_operation: bool) -> Context:
+        async with AsyncSession(self.ro_engine if is_ro_operation else self.rw_engine) as session:
             async with session.begin():
                 if callable(self.context_value):
                     context = self.context_value(
