@@ -18,7 +18,7 @@ from .extensions import Extension, ExtensionManager
 
 DEFAULT_GET = object()
 
-QUERY_REGEX = re.compile(r"^\s*?(query)")
+QUERY_REGEX = re.compile(r"^\s*?(query)", flags=re.M)
 
 
 class SessionQLApp(GraphQLApp):
@@ -79,7 +79,7 @@ class SessionQLApp(GraphQLApp):
         variable_values = operation.get("variables")
         operation_name = operation.get("operationName")
 
-        query_operation = QUERY_REGEX.match(query)
+        query_operation = QUERY_REGEX.search(query)
 
         async with self._get_context_value(
             request, query_operation is not None
