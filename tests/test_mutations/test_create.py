@@ -347,3 +347,76 @@ async def test_create_mutation_rename_value(session, raise_graphql):
     )
 
     assert not result.errors
+
+
+@pytest.mark.asyncio
+async def test_session_rollback(session, engine):
+    await add_test_data(session)
+
+    class PetType(SQLAlchemyObjectType):
+        class Meta:
+            model = m.Pet
+            interfaces = (AsyncNode,)
+
+    class MutationInsertPet(SQLAlchemyCreateMutation):
+        class Meta:
+            model = m.Pet
+            output = PetType
+
+        @classmethod
+        async def mutate(cls, root, info, value: dict):
+            await super().mutate(root, info, value)
+            raise Exception("Test error")
+
+    class Query(graphene.ObjectType):
+        node = AsyncNode.Field()
+        all_pets = SQLAlchemyConnectionField(PetType.connection)
+
+    class Mutation(graphene.ObjectType):
+        insert_pet = MutationInsertPet.Field()
+
+    schema = graphene.Schema(
+        query=Query,
+        mutation=Mutation,
+    )
+
+    all_pets = await get_all_pets(session, schema)
+
+    assert {i["name"] for i in all_pets} == {
+        "Garfield",
+        "Lassie",
+    }
+
+    nested = session.begin_nested()
+    query = """
+        mutation UpdatePet($value: MutationInsertPetInputType!) {
+            insertPet(value: $value) {
+                name
+            }
+        }
+    """
+    variables = {
+        "value": {
+            "name": "Odin",
+            "petKind": "CAT",
+            "hairKind": "SHORT",
+        },
+    }
+
+    result = await schema.execute_async(
+        query,
+        variables=variables,
+        context_value=Context(session=nested),
+        middleware=[
+            LoaderMiddleware([m.Pet]),
+        ],
+    )
+
+    assert result.errors
+
+    all_pets = await get_all_pets(session, schema)
+
+    assert {i["name"] for i in all_pets} == {
+        "Garfield",
+        "Lassie",
+    }

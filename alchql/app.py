@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable, Dict, List, Optional, Type, Union
 
 from graphene import Context
 from graphql import ExecutionResult, graphql
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, AsyncSessionTransaction
 from starlette.background import BackgroundTasks
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
@@ -79,11 +79,13 @@ class SessionQLApp(GraphQLApp):
         variable_values = operation.get("variables")
         operation_name = operation.get("operationName")
 
-        query_operation = QUERY_REGEX.search(query)
+        is_ro_operation = QUERY_REGEX.search(query) is not None
 
         async with self._get_context_value(
-            request, query_operation is not None
-        ) as context_value:
+            request
+        ) as context_value, self._get_transaction(is_ro_operation) as transaction:
+            context_value.session = transaction.session
+
             middleware = self.middleware or ()
             extension_manager = ExtensionManager(self.extensions, context=context_value)
 
@@ -98,6 +100,9 @@ class SessionQLApp(GraphQLApp):
                     operation_name=operation_name,
                     execution_context_class=self.execution_context_class,
                 )
+
+            if result.errors:
+                await transaction.rollback()
 
             extension_results = extension_manager.format()
             if extension_results:
@@ -128,27 +133,34 @@ class SessionQLApp(GraphQLApp):
         )
 
     @asynccontextmanager
-    async def _get_context_value(
-        self, request: HTTPConnection, is_ro_operation: bool
-    ) -> Context:
-        async with AsyncSession(self.engine) as session:
-            async with session.begin():
-                if is_ro_operation:
-                    await session.connection(
-                        execution_options={"isolation_level": "AUTOCOMMIT"}
-                    )
-                if callable(self.context_value):
-                    context = self.context_value(
-                        request=request,
-                        background=BackgroundTasks(),
-                        session=session,
-                    )
-                    if isawaitable(context):
-                        context = await context
-                    yield context
-                else:
-                    yield self.context_value or Context(
-                        request=request,
-                        background=BackgroundTasks(),
-                        session=session,
-                    )
+    async def _get_context_value(self, request: HTTPConnection) -> Context:
+        if callable(self.context_value):
+            context = self.context_value(
+                request=request,
+                background=BackgroundTasks(),
+            )
+            if isawaitable(context):
+                context = await context
+            yield context
+        else:
+            yield self.context_value or Context(
+                request=request,
+                background=BackgroundTasks(),
+            )
+
+    @asynccontextmanager
+    async def _get_transaction(self, is_ro_operation: bool) -> AsyncSessionTransaction:
+        async with AsyncSession(self.engine) as session, session.begin() as transaction:
+            execution_options = {}
+
+            if is_ro_operation:
+                execution_options["isolation_level"] = "AUTOCOMMIT"
+                # does not work with AUTOCOMMIT
+                # if getattr(session.bind, "name", "") == "postgresql":
+                #     execution_options["postgresql_readonly"] = True
+                #     execution_options["postgresql_deferrable"] = True
+
+            if execution_options:
+                await session.connection(execution_options=execution_options)
+
+            yield transaction
