@@ -25,6 +25,7 @@ requirements = [
 tests_require = [
     "pytest>=6.2.0,<7.0",
     "coverage[toml]",
+    "starlette",
     "sqlalchemy_utils>=0.37.0,<1.0",
     "pytest-benchmark>=3.4.0,<4.0",
     "pytest-asyncio>=0.17.2,<0.18",
