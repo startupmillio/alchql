@@ -17,7 +17,7 @@ requirements = [
     "graphene>=3.0",
     "promise>=2.3",
     "SQLAlchemy>=1.4,<2",
-    "aiodataloader == 0.2.1",
+    "aiodataloader == 0.4",
     "protobuf",
     "setuptools>=v49.0.0",
 ]
