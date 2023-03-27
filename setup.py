@@ -31,6 +31,7 @@ tests_require = [
     "pytest-asyncio>=0.17.2,<0.18",
     "aiosqlite>=0.17.0,<0.18",
     "pytest-cov",
+    "starlette_graphene3",
 ]
 
 setup(
