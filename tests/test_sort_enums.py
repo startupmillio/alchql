@@ -42,9 +42,9 @@ def test_sort_enum():
         "REPORTER_ID_ASC",
         "REPORTER_ID_DESC",
     ]
-    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS FIRST"
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS LAST"
     assert str(sort_enum.ID_DESC.value) == "pets.id DESC NULLS LAST"
-    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC NULLS FIRST"
+    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC NULLS LAST"
     assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC NULLS LAST"
 
 
@@ -136,13 +136,13 @@ def test_sort_argument():
         "REPORTER_ID_ASC",
         "REPORTER_ID_DESC",
     ]
-    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS FIRST"
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS LAST"
     assert str(sort_enum.ID_DESC.value) == "pets.id DESC NULLS LAST"
-    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC NULLS FIRST"
+    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC NULLS LAST"
     assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC NULLS LAST"
 
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS FIRST"]
-    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS FIRST"
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS LAST"
 
 
 def test_sort_argument_with_excluded_fields_in_object_type():
@@ -161,7 +161,7 @@ def test_sort_argument_with_excluded_fields_in_object_type():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS FIRST"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
 
 
 def test_sort_argument_only_fields():
@@ -178,7 +178,7 @@ def test_sort_argument_only_fields():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS FIRST"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
 
 
 def test_sort_argument_for_multi_column_pk():
@@ -193,8 +193,8 @@ def test_sort_argument_for_multi_column_pk():
 
     sort_arg = MultiPkTestType.sort_argument()
     assert list(map(str, sort_arg.default_value)) == [
-        "multi_pk_test_table.foo ASC NULLS FIRST",
-        "multi_pk_test_table.bar ASC NULLS FIRST",
+        "multi_pk_test_table.foo ASC NULLS LAST",
+        "multi_pk_test_table.bar ASC NULLS LAST",
     ]
 
 
@@ -217,7 +217,9 @@ def test_sort_argument_only_indexed():
         "BAR_ASC",
         "BAR_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["indexed_test_table.id ASC NULLS FIRST"]
+    assert list(map(str, sort_arg.default_value)) == [
+        "indexed_test_table.id ASC NULLS LAST"
+    ]
 
 
 def test_sort_argument_with_custom_symbol_names():
@@ -242,7 +244,7 @@ def test_sort_argument_with_custom_symbol_names():
         "ReporterIdUp",
         "ReporterIdDown",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS FIRST"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
 
 
 @pytest.mark.asyncio
@@ -321,11 +323,25 @@ async def test_sort_query(session):
 
     expected = {
         "defaultSort": makeNodes(
-            [{"name": "Lassie"}, {"name": "Barf"}, {"name": "Alf"}]
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+            ]
         ),
-        "nameSort": makeNodes([{"name": "Alf"}, {"name": "Barf"}, {"name": "Lassie"}]),
+        "nameSort": makeNodes(
+            [
+                {"name": "Alf"},
+                {"name": "Barf"},
+                {"name": "Lassie"},
+            ]
+        ),
         "noDefaultSort": makeNodes(
-            [{"name": "Alf"}, {"name": "Barf"}, {"name": "Lassie"}]
+            [
+                {"name": "Alf"},
+                {"name": "Barf"},
+                {"name": "Lassie"},
+            ]
         ),
         "multipleSort": makeNodes(
             [
@@ -334,9 +350,19 @@ async def test_sort_query(session):
                 {"name": "Barf", "petKind": "DOG"},
             ]
         ),
-        "descSort": makeNodes([{"name": "Lassie"}, {"name": "Barf"}, {"name": "Alf"}]),
+        "descSort": makeNodes(
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+            ]
+        ),
         "singleColumnSort": makeNodes(
-            [{"name": "Lassie"}, {"name": "Barf"}, {"name": "Alf"}]
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+            ]
         ),
     }
 
@@ -446,18 +472,18 @@ async def test_sort_query_nulls(session):
         ),
         "nameSort": makeNodes(
             [
-                {"name": None},
                 {"name": "Alf"},
                 {"name": "Barf"},
                 {"name": "Lassie"},
+                {"name": None},
             ]
         ),
         "noDefaultSort": makeNodes(
             [
-                {"name": None},
                 {"name": "Alf"},
                 {"name": "Barf"},
                 {"name": "Lassie"},
+                {"name": None},
             ]
         ),
         "multipleSort": makeNodes(
