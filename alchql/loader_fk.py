@@ -102,7 +102,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                     sort = new_sort
 
                 for item in sort:
-                    sort_args.append(item.nullslast())
+                    sort_args.append(item)
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort
@@ -134,7 +134,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
 
             if relation.order_by:
                 for ob in relation.order_by:
-                    q = q.order_by(ob.nullslast())
+                    q = q.order_by(ob)
 
             results_by_ids = defaultdict(list)
 
@@ -199,7 +199,7 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
                     sort = new_sort
 
                 for item in sort:
-                    sort_args.append(item.nullslast())
+                    sort_args.append(item)
 
             selected_fields = QueryHelper.get_selected_fields(
                 self.info, model=target, sort=sort

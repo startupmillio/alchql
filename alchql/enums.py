@@ -143,9 +143,9 @@ def sort_enum_for_object_type(
             if only_indexed and not (column.primary_key or column.index):
                 continue
             asc_name = get_name(field_name, True)
-            asc_value = column.asc()
+            asc_value = column.asc().nullslast()
             desc_name = get_name(field_name, False)
-            desc_value = column.desc()
+            desc_value = column.desc().nullslast()
             if column.primary_key:
                 default.append(asc_value)
             members.update({asc_name: asc_value, desc_name: desc_value})
@@ -156,9 +156,9 @@ def sort_enum_for_object_type(
                 column = getattr(attr, "model_field", None)
                 if column is not None:
                     asc_name = get_name(field_name, True)
-                    asc_value = column.asc()
+                    asc_value = column.asc().nullslast()
                     desc_name = get_name(field_name, False)
-                    desc_value = column.desc()
+                    desc_value = column.desc().nullslast()
                     if column.primary_key:
                         default.append(asc_value)
                     members.update({asc_name: asc_value, desc_name: desc_value})
