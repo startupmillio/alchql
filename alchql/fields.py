@@ -322,8 +322,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
                 else:
                     sort_args.append(item)
 
-            if hasattr(model, "id"):
-                sort_args.append(model.id)
+            sort_args.extend(sa.inspect(model).primary_key)
 
             query = query.order_by(*sort_args)
         return query

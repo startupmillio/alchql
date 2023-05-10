@@ -22,7 +22,6 @@ class InlineTraceExtension(Extension):
             self.tree_builder.start_timing()
 
         if self.should_trace and not self.tree_builder.stopped:
-
             end_node_trace = self.tree_builder.will_resolve_field(info)
         else:
             end_node_trace = lambda: None

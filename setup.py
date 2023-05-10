@@ -19,7 +19,7 @@ requirements = [
     "SQLAlchemy>=1.4,<2",
     "aiodataloader == 0.4",
     "protobuf",
-    "setuptools>=v49.0.0",
+    "setuptools>v62.1.0",
 ]
 
 tests_require = [
