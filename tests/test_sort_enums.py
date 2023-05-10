@@ -3,12 +3,12 @@ import sqlalchemy as sa
 from graphene import Argument, Context, Enum, List, ObjectType, Schema
 from graphene.relay import Node
 
-from .models import Base, HairKind, Pet
-from .test_query import to_std_dicts
 from alchql.fields import SQLAlchemyConnectionField
 from alchql.middlewares import LoaderMiddleware
 from alchql.types import SQLAlchemyObjectType
 from alchql.utils import to_type_name
+from .models import Base, HairKind, Pet
+from .test_query import to_std_dicts
 
 
 async def add_pets(session):
@@ -42,10 +42,10 @@ def test_sort_enum():
         "REPORTER_ID_ASC",
         "REPORTER_ID_DESC",
     ]
-    assert str(sort_enum.ID_ASC.value) == "pets.id ASC"
-    assert str(sort_enum.ID_DESC.value) == "pets.id DESC"
-    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC"
-    assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC"
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS LAST"
+    assert str(sort_enum.ID_DESC.value) == "pets.id DESC NULLS LAST"
+    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC NULLS LAST"
+    assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC NULLS LAST"
 
 
 def test_sort_enum_with_custom_name():
@@ -136,13 +136,13 @@ def test_sort_argument():
         "REPORTER_ID_ASC",
         "REPORTER_ID_DESC",
     ]
-    assert str(sort_enum.ID_ASC.value) == "pets.id ASC"
-    assert str(sort_enum.ID_DESC.value) == "pets.id DESC"
-    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC"
-    assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC"
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS LAST"
+    assert str(sort_enum.ID_DESC.value) == "pets.id DESC NULLS LAST"
+    assert str(sort_enum.HAIR_KIND_ASC.value) == "pets.hair_kind ASC NULLS LAST"
+    assert str(sort_enum.HAIR_KIND_DESC.value) == "pets.hair_kind DESC NULLS LAST"
 
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
-    assert str(sort_enum.ID_ASC.value) == "pets.id ASC"
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
+    assert str(sort_enum.ID_ASC.value) == "pets.id ASC NULLS LAST"
 
 
 def test_sort_argument_with_excluded_fields_in_object_type():
@@ -161,7 +161,7 @@ def test_sort_argument_with_excluded_fields_in_object_type():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
 
 
 def test_sort_argument_only_fields():
@@ -178,7 +178,7 @@ def test_sort_argument_only_fields():
         "PET_KIND_ASC",
         "PET_KIND_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
 
 
 def test_sort_argument_for_multi_column_pk():
@@ -193,8 +193,8 @@ def test_sort_argument_for_multi_column_pk():
 
     sort_arg = MultiPkTestType.sort_argument()
     assert list(map(str, sort_arg.default_value)) == [
-        "multi_pk_test_table.foo ASC",
-        "multi_pk_test_table.bar ASC",
+        "multi_pk_test_table.foo ASC NULLS LAST",
+        "multi_pk_test_table.bar ASC NULLS LAST",
     ]
 
 
@@ -217,7 +217,9 @@ def test_sort_argument_only_indexed():
         "BAR_ASC",
         "BAR_DESC",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["indexed_test_table.id ASC"]
+    assert list(map(str, sort_arg.default_value)) == [
+        "indexed_test_table.id ASC NULLS LAST"
+    ]
 
 
 def test_sort_argument_with_custom_symbol_names():
@@ -242,7 +244,7 @@ def test_sort_argument_with_custom_symbol_names():
         "ReporterIdUp",
         "ReporterIdDown",
     ]
-    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC"]
+    assert list(map(str, sort_arg.default_value)) == ["pets.id ASC NULLS LAST"]
 
 
 @pytest.mark.asyncio
@@ -321,11 +323,25 @@ async def test_sort_query(session):
 
     expected = {
         "defaultSort": makeNodes(
-            [{"name": "Lassie"}, {"name": "Barf"}, {"name": "Alf"}]
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+            ]
         ),
-        "nameSort": makeNodes([{"name": "Alf"}, {"name": "Barf"}, {"name": "Lassie"}]),
+        "nameSort": makeNodes(
+            [
+                {"name": "Alf"},
+                {"name": "Barf"},
+                {"name": "Lassie"},
+            ]
+        ),
         "noDefaultSort": makeNodes(
-            [{"name": "Alf"}, {"name": "Barf"}, {"name": "Lassie"}]
+            [
+                {"name": "Alf"},
+                {"name": "Barf"},
+                {"name": "Lassie"},
+            ]
         ),
         "multipleSort": makeNodes(
             [
@@ -334,11 +350,21 @@ async def test_sort_query(session):
                 {"name": "Barf", "petKind": "DOG"},
             ]
         ),
-        "descSort": makeNodes([{"name": "Lassie"}, {"name": "Barf"}, {"name": "Alf"}]),
-        "singleColumnSort": makeNodes(
-            [{"name": "Lassie"}, {"name": "Barf"}, {"name": "Alf"}]
+        "descSort": makeNodes(
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+            ]
         ),
-    }  # yapf: disable
+        "singleColumnSort": makeNodes(
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+            ]
+        ),
+    }
 
     schema = Schema(query=Query)
     result = await schema.execute_async(
@@ -352,37 +378,76 @@ async def test_sort_query(session):
     result = to_std_dicts(result.data)
     assert result == expected
 
-    queryError = """
-        query sortTest {
-            singleColumnSort(sort: [PET_KIND_ASC, NAME_DESC]) {
-                edges {
-                    node {
-                        name
-                    }
-                }
-            }
-        }
-    """
-    result = await schema.execute_async(
-        queryError,
-        context_value=Context(session=session),
-        middleware=[
-            LoaderMiddleware([Pet]),
-        ],
+
+@pytest.mark.asyncio
+async def test_sort_query_nulls(session):
+    q = sa.insert(Pet).values(
+        [
+            {"id": 1, "name": "Lassie", "pet_kind": "dog", "hair_kind": HairKind.LONG},
+            {"id": 2, "name": "Barf", "pet_kind": "dog", "hair_kind": HairKind.LONG},
+            {"id": 3, "name": "Alf", "pet_kind": "cat", "hair_kind": HairKind.LONG},
+            {"id": 4, "name": None, "pet_kind": "cat", "hair_kind": HairKind.LONG},
+        ]
     )
-    assert result.errors is not None
-    assert "cannot represent non-enum value:" in result.errors[0].message
+    await session.execute(q)
 
-    queryNoSort = """
+    class PetNode(SQLAlchemyObjectType):
+        class Meta:
+            model = Pet
+            interfaces = (Node,)
+
+    class Query(ObjectType):
+        defaultSort = SQLAlchemyConnectionField(PetNode.connection)
+        nameSort = SQLAlchemyConnectionField(PetNode.connection)
+        multipleSort = SQLAlchemyConnectionField(PetNode.connection)
+        descSort = SQLAlchemyConnectionField(PetNode.connection)
+        singleColumnSort = SQLAlchemyConnectionField(
+            PetNode.connection, sort=Argument(PetNode.sort_enum())
+        )
+        noDefaultSort = SQLAlchemyConnectionField(
+            PetNode.connection, sort=PetNode.sort_argument(has_default=False)
+        )
+        noSort = SQLAlchemyConnectionField(PetNode.connection, sort=None)
+
+    query = """
         query sortTest {
-            noDefaultSort {
+            defaultSort {
                 edges {
                     node {
                         name
                     }
                 }
             }
-            noSort {
+            nameSort(sort: NAME_ASC) {
+                edges {
+                    node {
+                        name
+                    }
+                }
+            }
+            multipleSort(sort: [PET_KIND_ASC, NAME_DESC]) {
+                edges {
+                    node {
+                        name
+                        petKind
+                    }
+                }
+            }
+            descSort(sort: [NAME_DESC]) {
+                edges {
+                    node {
+                        name
+                    }
+                }
+            }
+            singleColumnSort(sort: NAME_DESC) {
+                edges {
+                    node {
+                        name
+                    }
+                }
+            }
+            noDefaultSort(sort: NAME_ASC) {
                 edges {
                     node {
                         name
@@ -392,17 +457,69 @@ async def test_sort_query(session):
         }
     """
 
+    def makeNodes(nodeList):
+        nodes = [{"node": item} for item in nodeList]
+        return {"edges": nodes}
+
+    expected = {
+        "defaultSort": makeNodes(
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+                {"name": None},
+            ]
+        ),
+        "nameSort": makeNodes(
+            [
+                {"name": "Alf"},
+                {"name": "Barf"},
+                {"name": "Lassie"},
+                {"name": None},
+            ]
+        ),
+        "noDefaultSort": makeNodes(
+            [
+                {"name": "Alf"},
+                {"name": "Barf"},
+                {"name": "Lassie"},
+                {"name": None},
+            ]
+        ),
+        "multipleSort": makeNodes(
+            [
+                {"name": "Alf", "petKind": "CAT"},
+                {"name": None, "petKind": "CAT"},
+                {"name": "Lassie", "petKind": "DOG"},
+                {"name": "Barf", "petKind": "DOG"},
+            ]
+        ),
+        "descSort": makeNodes(
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+                {"name": None},
+            ]
+        ),
+        "singleColumnSort": makeNodes(
+            [
+                {"name": "Lassie"},
+                {"name": "Barf"},
+                {"name": "Alf"},
+                {"name": None},
+            ]
+        ),
+    }
+
+    schema = Schema(query=Query)
     result = await schema.execute_async(
-        queryNoSort,
+        query,
         context_value=Context(session=session),
         middleware=[
             LoaderMiddleware([Pet]),
         ],
     )
     assert not result.errors
-    # TODO: SQLite usually returns the results ordered by primary key,
-    # so we cannot test this way whether sorting actually happens or not.
-    # Also, no sort order is guaranteed by SQLite if "no order" by is used.
-    assert [node["node"]["name"] for node in result.data["noSort"]["edges"]] == [
-        node["node"]["name"] for node in result.data["noDefaultSort"]["edges"]
-    ]
+    result = to_std_dicts(result.data)
+    assert result == expected
