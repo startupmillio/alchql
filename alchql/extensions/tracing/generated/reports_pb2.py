@@ -444,7 +444,6 @@ _sym_db.RegisterMessage(TracesAndStats)
 _sym_db.RegisterMessage(TracesAndStats.ReferencedFieldsByTypeEntry)
 
 if _descriptor._USE_C_DESCRIPTORS == False:
-
     DESCRIPTOR._options = None
     _TRACE_DETAILS_VARIABLESJSONENTRY._options = None
     _TRACE_DETAILS_VARIABLESJSONENTRY._serialized_options = b"8\001"

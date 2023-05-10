@@ -29,7 +29,6 @@ async def init_db():
 
     async with db_session() as session:
         async with session.begin():
-
             # Create the fixtures
             engineering = Department(name="Engineering")
             db_session.add(engineering)

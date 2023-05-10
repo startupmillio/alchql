@@ -105,7 +105,6 @@ _deprecated_object_type_cache = {}
 
 
 def _deprecated_object_type_for_model(cls, name):
-
     try:
         return _deprecated_object_type_cache[cls, name]
     except KeyError:
