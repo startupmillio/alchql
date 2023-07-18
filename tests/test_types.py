@@ -16,7 +16,8 @@ from graphene import (
     String,
 )
 from graphene.relay import Connection
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy.orm import declarative_base, relationship
 
 from alchql import gql_types
 from alchql.converter import convert_sqlalchemy_composite
@@ -32,7 +33,7 @@ from alchql.types import (
     SQLAlchemyObjectType,
     SQLAlchemyObjectTypeOptions,
 )
-from .models import Article, Base, CompositeFullName, Pet, Reporter
+from .models import Article, CompositeFullName, Pet, Reporter
 
 
 def test_should_raise_if_no_model():
@@ -609,27 +610,37 @@ def test_default_connection_field_factory():
 
 
 def test_custom_connection_field_factory():
+    _Base = declarative_base()
+
     def test_connection_field_factory(relationship, registry):
         model = relationship.mapper.entity
         _type = registry.get_type_for_model(model)
         return _TestSQLAlchemyConnectionField(_type._meta.connection)
 
-    class TestReporter(Base):
+    class _Article(_Base):
+        __tablename__ = "articles"
+
+        id = Column(Integer(), primary_key=True)
+        reporter_id = Column(Integer(), ForeignKey("reporters.id"))
+
+    class _Reporter(_Base):
         __tablename__ = "reporters"
 
-        articles = relationship(Article, backref="reporter")
+        id = Column(Integer(), primary_key=True)
+        articles = relationship(_Article, backref="reporter")
 
     class ReporterType(SQLAlchemyObjectType):
         class Meta:
-            model = TestReporter
+            model = _Reporter
             interfaces = (Node,)
             connection_field_factory = test_connection_field_factory
 
     class ArticleType(SQLAlchemyObjectType):
         class Meta:
-            model = Article
+            model = _Article
             interfaces = (Node,)
 
     assert isinstance(
-        ReporterType._meta.fields["articles"].type(), _TestSQLAlchemyConnectionField
+        ReporterType._meta.fields["articles"].type(),
+        _TestSQLAlchemyConnectionField,
     )

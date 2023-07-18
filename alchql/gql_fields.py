@@ -25,7 +25,7 @@ import re
 from typing import Union
 
 import sqlalchemy
-from graphene import ResolveInfo
+from graphene import Dynamic, ResolveInfo
 from graphql import FieldNode, FragmentDefinitionNode
 
 from .registry import get_global_registry
@@ -138,7 +138,12 @@ def get_fields(model, info: ResolveInfo, cls_name=None):
 
             for k, v in type_._meta.fields.items():
                 if getattr(v, "name", None) in model_names or k in model_names:
-                    ex = getattr(type_, k).model_field.expression
+                    if isinstance(v, Dynamic):
+                        field = v.get_type()
+                    else:
+                        field = getattr(type_, k)
+
+                    ex = field.model_field.expression
                     if k != ex.key:
                         ex = ex.label(k)
                     break

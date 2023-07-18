@@ -204,7 +204,7 @@ async def test_create_mutation_fk_with_relation(session):
             insertPet(value: $value) {
                 name
                 reporterId
-                reporter{
+                reporter {
                     id
                 }
             }
@@ -229,7 +229,7 @@ async def test_create_mutation_fk_with_relation(session):
         ],
     )
 
-    assert not result.errors
+    assert not result.errors, result.errors[0]
 
 
 @pytest.mark.asyncio
