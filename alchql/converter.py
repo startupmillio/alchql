@@ -5,7 +5,7 @@ from sqlalchemy import Column, ForeignKey
 from sqlalchemy.orm import ColumnProperty, RelationshipProperty, interfaces
 
 from .batching import get_batch_resolver, get_fk_resolver
-from .fields import BatchSQLAlchemyConnectionField, ModelField
+from .fields import BatchSQLAlchemyConnectionField, ModelField, RelationModelField
 from .registry import Registry
 from .resolvers import get_custom_resolver
 from .sqlalchemy_converter import convert_sqlalchemy_type
@@ -82,7 +82,12 @@ def convert_sqlalchemy_fk(
         if resolver is None:
             resolver = get_fk_resolver(fk, single=True)
 
-        return Field(child_type, resolver=resolver)
+        return ModelField(
+            child_type,
+            model_field=fk.parent,
+            resolver=resolver,
+            use_label=False,
+        )
 
     return Dynamic(dynamic_type)
 
