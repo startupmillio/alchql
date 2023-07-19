@@ -68,8 +68,18 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         resolved,
     ):
         if resolved is None:
+            edge_type = connection_type.Edge
+            node_type = edge_type.node.type
+
+            query = await cls.get_query(
+                model=model,
+                info=info,
+                cls_name=node_type.__name__,
+                **args,
+            )
+
             connection = await connection_from_query(
-                cls,
+                query,
                 info=info,
                 model=model,
                 args=args,

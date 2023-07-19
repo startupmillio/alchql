@@ -1,11 +1,12 @@
 import logging
-from typing import Optional, TYPE_CHECKING, Type
+from typing import Optional, Type
 
 import sqlalchemy as sa
 from graphene import Connection, PageInfo
 from graphene.types import ResolveInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import DeclarativeMeta
+from sqlalchemy.sql import Select
 
 from .utils import (
     get_offset_with_default,
@@ -14,16 +15,14 @@ from .utils import (
 from ..query_helper import QueryHelper
 from ..utils import filter_requested_fields_for_object
 
-if TYPE_CHECKING:
-    from ..fields import UnsortedSQLAlchemyConnectionField
 DEFAULT_LIMIT = 1000
 
 
-def get_count_query(query, model):
+def get_count_query(query: Select, model):
     only_q = query.with_only_columns(
         *sa.inspect(model).primary_key,
     ).order_by(None)
-    return sa.select([sa.func.count()]).select_from(only_q.alias())
+    return sa.select(sa.func.count()).select_from(only_q.alias())
 
 
 def construct_page_info(
@@ -55,7 +54,7 @@ def construct_page_info(
 
 
 async def connection_from_query(
-    cls: Type["UnsortedSQLAlchemyConnectionField"],
+    query: Select,
     model: Type[DeclarativeMeta],
     info: ResolveInfo,
     args: Optional[dict] = None,
@@ -93,13 +92,6 @@ async def connection_from_query(
     if (before, after, first, last) == (None, None, None, None):
         first = DEFAULT_LIMIT
         logging.warning(f"Query without border, {first=}")
-
-    query = await cls.get_query(
-        model=model,
-        info=info,
-        cls_name=node_type.__name__,
-        **args,
-    )
 
     total_count = None
     # TODO: Move total_count to PageInfo
