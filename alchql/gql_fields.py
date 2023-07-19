@@ -144,7 +144,7 @@ def get_fields(model, info: ResolveInfo, cls_name=None):
                         field = getattr(type_, k)
 
                     ex = field.model_field.expression
-                    if k != ex.key:
+                    if k != ex.key and getattr(field, 'use_label', True):
                         ex = ex.label(k)
                     break
             else:
