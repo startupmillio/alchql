@@ -7,7 +7,7 @@ from .sql_mutation import (
 from .types import SQLAlchemyObjectType
 from .utils import get_query
 
-__version__ = "3.3.3"
+__version__ = "3.4.0"
 
 __all__ = [
     "__version__",

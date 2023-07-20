@@ -29,6 +29,10 @@ def get_join(relation: RelationshipProperty):
                 base_table = l
                 join_table = r
                 join_table2 = r2
+            elif r == l2:
+                base_table = r
+                join_table = l
+                join_table2 = r2
             elif r == r2:
                 base_table = r
                 join_table = l
@@ -37,10 +41,6 @@ def get_join(relation: RelationshipProperty):
                 base_table = l
                 join_table = r
                 join_table2 = l2
-            elif r == l2:
-                base_table = r
-                join_table = l
-                join_table2 = r2
 
         join = sa.join(
             base_table,
