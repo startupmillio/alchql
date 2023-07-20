@@ -110,8 +110,6 @@ async def test_many_to_one(session, raise_graphql):
     schema = get_schema()
 
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
-        # session = session_factory()
         result = await schema.execute_async(
             """
               query {
@@ -194,7 +192,6 @@ async def test_one_to_one(session):
     schema = get_schema()
 
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
               query {
@@ -291,7 +288,6 @@ async def test_one_to_many(session, raise_graphql):
     schema = get_schema()
 
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
             query {
@@ -312,31 +308,9 @@ async def test_one_to_many(session, raise_graphql):
                 LoaderMiddleware([Article, Reporter]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
     assert not result.errors, result.errors
     assert execute.call_count == 2
-
-    # assert messages == [
-    #     'BEGIN (implicit)',
-    #
-    #     'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-    #     'reporters.id AS reporters_id, '
-    #     'reporters.first_name AS reporters_first_name, '
-    #     'reporters.last_name AS reporters_last_name, '
-    #     'reporters.email AS reporters_email, '
-    #     'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-    #     'FROM reporters',
-    #     '()',
-    #
-    #     'SELECT articles.reporter_id AS articles_reporter_id, '
-    #     'articles.id AS articles_id, '
-    #     'articles.headline AS articles_headline, '
-    #     'articles.pub_date AS articles_pub_date \n'
-    #     'FROM articles \n'
-    #     'WHERE articles.reporter_id IN (?, ?)',
-    #     '(1, 2)'
-    # ]
 
     assert not result.errors
     result = to_std_dicts(result.data)
@@ -417,7 +391,6 @@ async def test_one_to_many_sorted(session, raise_graphql):
 
     # Passing sort inside the query
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
             query {
@@ -475,7 +448,6 @@ async def test_one_to_many_sorted(session, raise_graphql):
 
     # Passing sort in variables
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
             query($sort: [ArticleTypeSortEnum]) {
@@ -570,7 +542,6 @@ async def test_many_to_many(session):
     schema = get_schema()
 
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
               query {
@@ -591,7 +562,6 @@ async def test_many_to_many(session):
                 LoaderMiddleware([Article, Reporter, Pet]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
     assert execute.call_count == 2
 
@@ -621,7 +591,6 @@ async def test_many_to_many(session):
     }
 
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
               query {
@@ -642,10 +611,9 @@ async def test_many_to_many(session):
                 LoaderMiddleware([Article, Reporter, Pet]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
     assert not result.errors, result.errors[0]
-    # assert execute.call_count == 2
+    assert execute.call_count == 2
 
     result = to_std_dicts(result.data)
     assert result == {
@@ -740,7 +708,6 @@ async def test_many_to_many_sorted(session):
 
     # Passing sort inside the query
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
               query {
@@ -770,7 +737,6 @@ async def test_many_to_many_sorted(session):
 
     # Passing sort in variables
     with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
-        # Starts new session to fully reset the engine / connection logging level
         result = await schema.execute_async(
             """
               query($sort: [PetTypeSortEnum]) {
