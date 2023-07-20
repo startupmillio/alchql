@@ -61,15 +61,21 @@ def get_schema():
     class Query(graphene.ObjectType):
         articles = graphene.Field(graphene.List(ArticleType))
         reporters = graphene.Field(graphene.List(ReporterType))
+        pets = graphene.Field(graphene.List(PetType))
 
         async def resolve_articles(self, info):
             session = info.context.session
             result = await session.execute(sa.select(Article))
-            return result.scalars()
+            return result.scalars().all()
 
         async def resolve_reporters(self, info):
             session = info.context.session
             result = await session.execute(sa.select(Reporter))
+            return result.scalars().all()
+
+        async def resolve_pets(self, info):
+            session = info.context.session
+            result = await session.execute(sa.select(Pet))
             return result.scalars().all()
 
     return graphene.Schema(query=Query)
@@ -597,16 +603,8 @@ async def test_many_to_many(session):
                 "firstName": "Reporter_1",
                 "pets": {
                     "edges": [
-                        {
-                            "node": {
-                                "name": "Pet_1",
-                            },
-                        },
-                        {
-                            "node": {
-                                "name": "Pet_2",
-                            },
-                        },
+                        {"node": {"name": "Pet_1"}},
+                        {"node": {"name": "Pet_2"}},
                     ],
                 },
             },
@@ -614,20 +612,61 @@ async def test_many_to_many(session):
                 "firstName": "Reporter_2",
                 "pets": {
                     "edges": [
-                        {
-                            "node": {
-                                "name": "Pet_3",
-                            },
-                        },
-                        {
-                            "node": {
-                                "name": "Pet_4",
-                            },
-                        },
+                        {"node": {"name": "Pet_3"}},
+                        {"node": {"name": "Pet_4"}},
                     ],
                 },
             },
         ],
+    }
+
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
+        # Starts new session to fully reset the engine / connection logging level
+        result = await schema.execute_async(
+            """
+              query {
+                pets {
+                  name
+                  reporters(first: 2) {
+                    edges {
+                      node {
+                        firstName
+                      }
+                    }
+                  }
+                }
+              }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter, Pet]),
+            ],
+        )
+        # messages = sqlalchemy_logging_handler.messages
+
+    assert not result.errors, result.errors[0]
+    # assert execute.call_count == 2
+
+    result = to_std_dicts(result.data)
+    assert result == {
+        "pets": [
+            {
+                "name": "Pet_1",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_1"}}]},
+            },
+            {
+                "name": "Pet_2",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_1"}}]},
+            },
+            {
+                "name": "Pet_3",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_2"}}]},
+            },
+            {
+                "name": "Pet_4",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_2"}}]},
+            },
+        ]
     }
 
 
