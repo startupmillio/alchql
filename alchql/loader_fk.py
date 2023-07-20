@@ -115,10 +115,21 @@ class BaseLoader(DataLoader):
         gql_field = QueryHelper.get_current_field(self.info)
         sort_args = self.get_sort_args(gql_field, object_type)
 
-        q = await object_type.get_query(self.info)
-        q = q.add_columns(self.target_field.label("_batch_key")).where(
-            self.target_field.in_(keys)
+        selected_fields = QueryHelper.get_selected_fields(
+            self.info, model=self.target, object_type=object_type, sort=sort_args
         )
+        if not selected_fields:
+            selected_fields = self.fields or self.target.__table__.columns
+
+        q = (
+            sa.select(
+                *selected_fields,
+                self.target_field.label("_batch_key"),
+            )
+            .where(self.target_field.in_(keys))
+            .order_by(*sort_args)
+        )
+        q = self.prepare_query(q)
 
         if object_type and hasattr(object_type, "set_select_from"):
             setattr(self.info.context, "keys", keys)
@@ -128,10 +139,6 @@ class BaseLoader(DataLoader):
 
         if filters:
             q = q.where(sa.and_(*filters))
-
-        q = q.order_by(*sort_args)
-
-        q = self.prepare_query(q)
 
         results_by_ids = defaultdict(list)
 
@@ -150,7 +157,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
     _target_field = next(iter(relation.local_columns))
     _target = relation.mapper.entity
 
-    class Loader(BaseLoader):
+    class RelationLoader(BaseLoader):
         target = _target
         target_field = _target_field
 
@@ -165,7 +172,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
 
             return q
 
-    return Loader
+    return RelationLoader
 
 
 def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
@@ -176,8 +183,8 @@ def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
         _target_field = fk.parent
         _target = table_to_class(_target_field.table)
 
-    class Loader(BaseLoader):
+    class FkLoader(BaseLoader):
         target = _target
         target_field = _target_field
 
-    return Loader
+    return FkLoader

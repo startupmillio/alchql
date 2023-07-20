@@ -109,13 +109,7 @@ class QueryHelper:
         # return info.context.parsed_query[info.field_name].copy()
 
     @classmethod
-    def get_selected_fields(cls, info, model, sort=None):
-        object_types = getattr(info.context, "object_types", {})
-        object_type = object_types.get(info.field_name)
-
-        if not object_type:
-            return
-
+    def get_selected_fields(cls, info, model, object_type, sort=None):
         gql_field = cls.get_current_field(info)
 
         object_type_fields = {}
@@ -131,8 +125,7 @@ class QueryHelper:
                 else:
                     object_type_fields[_name] = attr
 
-        type_ = info.context.object_types[info.field_name]
-        meta_fields = type_._meta.fields
+        meta_fields = object_type._meta.fields
 
         select_fields = set()
         if isinstance(model, Table):

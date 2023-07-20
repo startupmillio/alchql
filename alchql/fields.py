@@ -309,17 +309,20 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         cls, model: Type[DeclarativeMeta], info: ResolveInfo, sort=None, **args
     ):
         object_types = getattr(info.context, "object_types", {})
-        object_type = object_types.get(info.field_name)
+        object_type = object_types[info.field_name]
 
         filters = QueryHelper.get_filters(info)
-        select_fields = QueryHelper.get_selected_fields(info, model, sort)
+
+        select_fields = QueryHelper.get_selected_fields(info, model, object_type, sort)
         query = sa.select(*select_fields).select_from(model)
 
         if object_type and hasattr(object_type, "set_select_from"):
             gql_field = QueryHelper.get_current_field(info)
             query = await object_type.set_select_from(info, query, gql_field.values)
+
         if filters:
             query = query.where(sa.and_(*filters))
+
         if sort is not None:
             if not isinstance(sort, list):
                 sort = [sort]
@@ -335,6 +338,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
             sort_args.extend(sa.inspect(model).primary_key)
 
             query = query.order_by(*sort_args)
+
         return query
 
 
