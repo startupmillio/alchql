@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from alchql.middlewares import LoaderMiddleware
 from alchql.node import AsyncNode
 from alchql.types import SQLAlchemyObjectType
-from .models import Article, HairKind, Pet, Reporter, association_table
+from .models import Article, association_table, HairKind, Pet, Reporter
 from .utils import to_std_dicts
 
 
@@ -61,15 +61,21 @@ def get_schema():
     class Query(graphene.ObjectType):
         articles = graphene.Field(graphene.List(ArticleType))
         reporters = graphene.Field(graphene.List(ReporterType))
+        pets = graphene.Field(graphene.List(PetType))
 
         async def resolve_articles(self, info):
             session = info.context.session
             result = await session.execute(sa.select(Article))
-            return result.scalars()
+            return result.scalars().all()
 
         async def resolve_reporters(self, info):
             session = info.context.session
             result = await session.execute(sa.select(Reporter))
+            return result.scalars().all()
+
+        async def resolve_pets(self, info):
+            session = info.context.session
+            result = await session.execute(sa.select(Pet))
             return result.scalars().all()
 
     return graphene.Schema(query=Query)
@@ -103,9 +109,7 @@ async def test_many_to_one(session, raise_graphql):
 
     schema = get_schema()
 
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
-        # session = session_factory()
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
               query {
@@ -129,31 +133,8 @@ async def test_many_to_one(session, raise_graphql):
                 LoaderMiddleware([Article, Reporter]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
-    assert not result.errors
-    # assert len(messages) == 5
-
-    # assert messages == [
-    #     'BEGIN (implicit)',
-    #
-    #     'SELECT articles.id AS articles_id, '
-    #     'articles.headline AS articles_headline, '
-    #     'articles.pub_date AS articles_pub_date, '
-    #     'articles.reporter_id AS articles_reporter_id \n'
-    #     'FROM articles',
-    #     '()',
-    #
-    #     'SELECT reporters.id AS reporters_id, '
-    #     '(SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-    #     'reporters.first_name AS reporters_first_name, '
-    #     'reporters.last_name AS reporters_last_name, '
-    #     'reporters.email AS reporters_email, '
-    #     'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-    #     'FROM reporters \n'
-    #     'WHERE reporters.id IN (?, ?)',
-    #     '(1, 2)',
-    # ]
+    assert execute.call_count == 3
 
     assert not result.errors
     result = to_std_dicts(result.data)
@@ -210,8 +191,7 @@ async def test_one_to_one(session):
 
     schema = get_schema()
 
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
               query {
@@ -228,31 +208,9 @@ async def test_one_to_one(session):
                 LoaderMiddleware([Article, Reporter]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
     assert not result.errors, result.errors
-    # assert len(messages) == 5
-
-    # assert messages == [
-    #     'BEGIN (implicit)',
-    #
-    #     'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-    #     'reporters.id AS reporters_id, '
-    #     'reporters.first_name AS reporters_first_name, '
-    #     'reporters.last_name AS reporters_last_name, '
-    #     'reporters.email AS reporters_email, '
-    #     'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-    #     'FROM reporters',
-    #     '()',
-    #
-    #     'SELECT articles.reporter_id AS articles_reporter_id, '
-    #     'articles.id AS articles_id, '
-    #     'articles.headline AS articles_headline, '
-    #     'articles.pub_date AS articles_pub_date \n'
-    #     'FROM articles \n'
-    #     'WHERE articles.reporter_id IN (?, ?)',
-    #     '(1, 2)'
-    # ]
+    assert execute.call_count == 2
 
     assert not result.errors
     result = to_std_dicts(result.data)
@@ -329,8 +287,7 @@ async def test_one_to_many(session, raise_graphql):
 
     schema = get_schema()
 
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
             query {
@@ -351,31 +308,9 @@ async def test_one_to_many(session, raise_graphql):
                 LoaderMiddleware([Article, Reporter]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
     assert not result.errors, result.errors
-    # assert len(messages) == 5
-
-    # assert messages == [
-    #     'BEGIN (implicit)',
-    #
-    #     'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-    #     'reporters.id AS reporters_id, '
-    #     'reporters.first_name AS reporters_first_name, '
-    #     'reporters.last_name AS reporters_last_name, '
-    #     'reporters.email AS reporters_email, '
-    #     'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-    #     'FROM reporters',
-    #     '()',
-    #
-    #     'SELECT articles.reporter_id AS articles_reporter_id, '
-    #     'articles.id AS articles_id, '
-    #     'articles.headline AS articles_headline, '
-    #     'articles.pub_date AS articles_pub_date \n'
-    #     'FROM articles \n'
-    #     'WHERE articles.reporter_id IN (?, ?)',
-    #     '(1, 2)'
-    # ]
+    assert execute.call_count == 2
 
     assert not result.errors
     result = to_std_dicts(result.data)
@@ -455,8 +390,7 @@ async def test_one_to_many_sorted(session, raise_graphql):
     schema = get_schema()
 
     # Passing sort inside the query
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
             query {
@@ -479,8 +413,8 @@ async def test_one_to_many_sorted(session, raise_graphql):
         )
 
     assert not result.errors, result.errors
+    assert execute.call_count == 2
 
-    assert not result.errors
     result = to_std_dicts(result.data)
     expected_result = {
         "reporters": [
@@ -513,8 +447,7 @@ async def test_one_to_many_sorted(session, raise_graphql):
     assert result == expected_result
 
     # Passing sort in variables
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
             query($sort: [ArticleTypeSortEnum]) {
@@ -538,8 +471,8 @@ async def test_one_to_many_sorted(session, raise_graphql):
         )
 
     assert not result.errors, result.errors
+    assert execute.call_count == 2
 
-    assert not result.errors
     result = to_std_dicts(result.data)
     assert expected_result == result
 
@@ -608,8 +541,7 @@ async def test_many_to_many(session):
 
     schema = get_schema()
 
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
               query {
@@ -630,37 +562,10 @@ async def test_many_to_many(session):
                 LoaderMiddleware([Article, Reporter, Pet]),
             ],
         )
-        # messages = sqlalchemy_logging_handler.messages
 
-    # assert len(messages) == 5
+    assert execute.call_count == 2
 
-    # assert messages == [
-    #     'BEGIN (implicit)',
-    #
-    #     'SELECT (SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-    #     'reporters.id AS reporters_id, '
-    #     'reporters.first_name AS reporters_first_name, '
-    #     'reporters.last_name AS reporters_last_name, '
-    #     'reporters.email AS reporters_email, '
-    #     'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-    #     'FROM reporters',
-    #     '()',
-    #
-    #     'SELECT reporters_1.id AS reporters_1_id, '
-    #     'pets.id AS pets_id, '
-    #     'pets.name AS pets_name, '
-    #     'pets.pet_kind AS pets_pet_kind, '
-    #     'pets.hair_kind AS pets_hair_kind, '
-    #     'pets.reporter_id AS pets_reporter_id \n'
-    #     'FROM reporters AS reporters_1 '
-    #     'JOIN association AS association_1 ON reporters_1.id = association_1.reporter_id '
-    #     'JOIN pets ON pets.id = association_1.pet_id \n'
-    #     'WHERE reporters_1.id IN (?, ?) '
-    #     'ORDER BY pets.id',
-    #     '(1, 2)'
-    # ]
-
-    assert not result.errors
+    assert not result.errors, result.errors[0]
     result = to_std_dicts(result.data)
     assert result == {
         "reporters": [
@@ -668,16 +573,8 @@ async def test_many_to_many(session):
                 "firstName": "Reporter_1",
                 "pets": {
                     "edges": [
-                        {
-                            "node": {
-                                "name": "Pet_1",
-                            },
-                        },
-                        {
-                            "node": {
-                                "name": "Pet_2",
-                            },
-                        },
+                        {"node": {"name": "Pet_1"}},
+                        {"node": {"name": "Pet_2"}},
                     ],
                 },
             },
@@ -685,20 +582,59 @@ async def test_many_to_many(session):
                 "firstName": "Reporter_2",
                 "pets": {
                     "edges": [
-                        {
-                            "node": {
-                                "name": "Pet_3",
-                            },
-                        },
-                        {
-                            "node": {
-                                "name": "Pet_4",
-                            },
-                        },
+                        {"node": {"name": "Pet_3"}},
+                        {"node": {"name": "Pet_4"}},
                     ],
                 },
             },
         ],
+    }
+
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
+        result = await schema.execute_async(
+            """
+              query {
+                pets {
+                  name
+                  reporters(first: 2) {
+                    edges {
+                      node {
+                        firstName
+                      }
+                    }
+                  }
+                }
+              }
+            """,
+            context_value=Context(session=session),
+            middleware=[
+                LoaderMiddleware([Article, Reporter, Pet]),
+            ],
+        )
+
+    assert not result.errors, result.errors[0]
+    assert execute.call_count == 2
+
+    result = to_std_dicts(result.data)
+    assert result == {
+        "pets": [
+            {
+                "name": "Pet_1",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_1"}}]},
+            },
+            {
+                "name": "Pet_2",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_1"}}]},
+            },
+            {
+                "name": "Pet_3",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_2"}}]},
+            },
+            {
+                "name": "Pet_4",
+                "reporters": {"edges": [{"node": {"firstName": "Reporter_2"}}]},
+            },
+        ]
     }
 
 
@@ -771,8 +707,7 @@ async def test_many_to_many_sorted(session):
     schema = get_schema()
 
     # Passing sort inside the query
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
               query {
@@ -794,13 +729,14 @@ async def test_many_to_many_sorted(session):
             ],
         )
 
-    assert not result.errors
+    assert not result.errors, result.errors[0]
+    assert execute.call_count == 2
+
     result = to_std_dicts(result.data)
     assert result == expected_result
 
     # Passing sort in variables
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
-        # Starts new session to fully reset the engine / connection logging level
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         result = await schema.execute_async(
             """
               query($sort: [PetTypeSortEnum]) {
@@ -823,7 +759,9 @@ async def test_many_to_many_sorted(session):
             variables={"sort": "NAME_DESC"},
         )
 
-    assert not result.errors
+    assert not result.errors, result.errors[0]
+    assert execute.call_count == 2
+
     result = to_std_dicts(result.data)
     assert result == expected_result
 
