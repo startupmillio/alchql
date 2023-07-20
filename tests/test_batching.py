@@ -103,7 +103,7 @@ async def test_many_to_one(session, raise_graphql):
 
     schema = get_schema()
 
-    with mock_sqlalchemy_logging_handler() as sqlalchemy_logging_handler:
+    with patch.object(AsyncSession, "execute", wraps=session.execute) as execute:
         # Starts new session to fully reset the engine / connection logging level
         # session = session_factory()
         result = await schema.execute_async(
@@ -131,29 +131,7 @@ async def test_many_to_one(session, raise_graphql):
         )
         # messages = sqlalchemy_logging_handler.messages
 
-    assert not result.errors
-    # assert len(messages) == 5
-
-    # assert messages == [
-    #     'BEGIN (implicit)',
-    #
-    #     'SELECT articles.id AS articles_id, '
-    #     'articles.headline AS articles_headline, '
-    #     'articles.pub_date AS articles_pub_date, '
-    #     'articles.reporter_id AS articles_reporter_id \n'
-    #     'FROM articles',
-    #     '()',
-    #
-    #     'SELECT reporters.id AS reporters_id, '
-    #     '(SELECT CAST(count(reporters.id) AS INTEGER) AS anon_2 \nFROM reporters) AS anon_1, '
-    #     'reporters.first_name AS reporters_first_name, '
-    #     'reporters.last_name AS reporters_last_name, '
-    #     'reporters.email AS reporters_email, '
-    #     'reporters.favorite_pet_kind AS reporters_favorite_pet_kind \n'
-    #     'FROM reporters \n'
-    #     'WHERE reporters.id IN (?, ?)',
-    #     '(1, 2)',
-    # ]
+    assert execute.call_count == 3
 
     assert not result.errors
     result = to_std_dicts(result.data)

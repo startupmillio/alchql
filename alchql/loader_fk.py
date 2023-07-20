@@ -4,9 +4,10 @@ from collections import defaultdict
 import sqlalchemy as sa
 from aiodataloader import DataLoader
 from graphene import ResolveInfo
-from sqlalchemy import ForeignKey, Table
+from sqlalchemy import ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import RelationshipProperty
+from sqlalchemy.orm import DeclarativeMeta, RelationshipProperty
+from sqlalchemy.sql import Select
 
 from .query_helper import QueryHelper
 from .utils import EnumValue, filter_requested_fields_for_object, table_to_class
@@ -41,197 +42,142 @@ def get_join(relation: RelationshipProperty):
                 join_table = l
                 join_table2 = r2
 
-        sf = sa.join(
+        join = sa.join(
             base_table,
             join_table,
             relation.primaryjoin,
         )
 
         if join_table2 is not None:
-            sf = sf.join(
+            join = join.join(
                 join_table2,
                 relation.secondaryjoin,
             )
 
-        return sf
+        return join
+
+
+class BaseLoader(DataLoader):
+    target_field: sa.Column
+    target: DeclarativeMeta
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        info: ResolveInfo = None,
+        *args,
+        **kwargs,
+    ):
+        self.session = session
+        self.info = info
+        self.fields = set()
+
+        super().__init__(*args, **kwargs)
+
+    @staticmethod
+    def get_sort_args(gql_field, object_type):
+        sort_args = []
+
+        if gql_field.arguments.get("sort") is not None:
+            sort = gql_field.arguments["sort"]
+            if not isinstance(sort, list):
+                sort = [sort]
+
+            if hasattr(object_type, "sort_argument"):
+                sort_type = object_type.sort_argument().type.of_type
+                new_sort = []
+                for s in sort:
+                    if isinstance(s, (EnumValue, enum.Enum)):
+                        new_sort.append(s.value)
+                    else:
+                        new_sort.append(getattr(sort_type, s).value)
+
+                sort = new_sort
+
+            for item in sort:
+                sort_args.append(item)
+
+        return sort_args
+
+    def prepare_query(self, q: Select) -> Select:
+        return q
+
+    async def batch_load_fn(self, keys):
+        object_types = getattr(self.info.context, "object_types", {})
+        object_type = object_types.get(self.info.field_name)
+
+        if object_type is None:
+            parent_type = self.info.parent_type
+            field = parent_type.fields[self.info.field_name]
+            object_type = field.type.graphene_type
+
+        filters = QueryHelper.get_filters(self.info)
+        gql_field = QueryHelper.get_current_field(self.info)
+        sort_args = self.get_sort_args(gql_field, object_type)
+
+        q = await object_type.get_query(self.info)
+        q = q.add_columns(self.target_field.label("_batch_key")).where(
+            self.target_field.in_(keys)
+        )
+
+        if object_type and hasattr(object_type, "set_select_from"):
+            setattr(self.info.context, "keys", keys)
+            q = await object_type.set_select_from(self.info, q, gql_field.values)
+            if list(q._group_by_clause):
+                q = q.group_by(self.target_field)
+
+        if filters:
+            q = q.where(sa.and_(*filters))
+
+        q = q.order_by(*sort_args)
+
+        q = self.prepare_query(q)
+
+        results_by_ids = defaultdict(list)
+
+        conversion_type = object_type or self.target
+        results = map(dict, await self.session.execute(q))
+
+        for result in results:
+            _batch_key = result.pop("_batch_key")
+            _data = filter_requested_fields_for_object(result, conversion_type)
+            results_by_ids[_batch_key].append(conversion_type(**_data))
+
+        return [results_by_ids.get(key, []) for key in keys]
 
 
 def generate_loader_by_relationship(relation: RelationshipProperty):
-    class Loader(DataLoader):
-        def __init__(
-            self,
-            session: AsyncSession,
-            info: ResolveInfo = None,
-            *args,
-            **kwargs,
-        ):
-            self.session = session
-            self.info = info
-            self.fields = set()
-            super().__init__(*args, **kwargs)
+    _target_field = next(iter(relation.local_columns))
+    _target = relation.mapper.entity
 
-        async def batch_load_fn(self, keys):
-            f = next(iter(relation.local_columns))
-            target = relation.mapper.entity
+    class Loader(BaseLoader):
+        target = _target
+        target_field = _target_field
 
-            object_types = getattr(self.info.context, "object_types", {})
-            setattr(self.info.context, "keys", keys)
-            object_type = object_types.get(self.info.field_name)
-
-            filters = QueryHelper.get_filters(self.info)
-            gql_field = QueryHelper.get_current_field(self.info)
-            sort_args = []
-            sort = []
-            if (
-                "sort" in gql_field.arguments
-                and gql_field.arguments["sort"] is not None
-            ):
-                sort = gql_field.arguments["sort"]
-                if not isinstance(sort, list):
-                    sort = [sort]
-
-                if hasattr(object_type, "sort_argument"):
-                    sort_type = object_type.sort_argument().type.of_type
-                    new_sort = []
-                    for s in sort:
-                        if isinstance(s, (EnumValue, enum.Enum)):
-                            new_sort.append(s.value)
-                        else:
-                            new_sort.append(getattr(sort_type, s).value)
-
-                    sort = new_sort
-
-                for item in sort:
-                    sort_args.append(item)
-
-            selected_fields = QueryHelper.get_selected_fields(
-                self.info, model=target, sort=sort
-            )
-            if not selected_fields:
-                selected_fields = self.fields or target.__table__.columns
-
-            q = sa.select(
-                *selected_fields,
-                f.label("_batch_key"),
-            )
-
+        def prepare_query(self, q: Select) -> Select:
             join = get_join(relation)
             if join is not None:
                 q = q.select_from(join)
-
-            q = q.where(f.in_(keys))
-
-            if object_type and hasattr(object_type, "set_select_from"):
-                setattr(self.info.context, "keys", keys)
-                q = await object_type.set_select_from(self.info, q, gql_field.values)
-                if list(q._group_by_clause):
-                    q = q.group_by(f)
-
-            if filters:
-                q = q.where(sa.and_(*filters))
-
-            q = q.order_by(*sort_args)
-
             if relation.order_by:
                 for ob in relation.order_by:
                     q = q.order_by(ob)
+            q = q.distinct()
 
-            results_by_ids = defaultdict(list)
-
-            conversion_type = object_type or target
-            for result in map(dict, await self.session.execute(q.distinct())):
-                _batch_key = result.pop("_batch_key")
-                _data = filter_requested_fields_for_object(result, conversion_type)
-                results_by_ids[_batch_key].append(conversion_type(**_data))
-
-            return [results_by_ids.get(id, []) for id in keys]
+            return q
 
     return Loader
 
 
 def generate_loader_by_foreign_key(fk: ForeignKey, reverse=False):
-    class Loader(DataLoader):
-        def __init__(
-            self,
-            session: AsyncSession,
-            info: ResolveInfo = None,
-            *args,
-            **kwargs,
-        ):
-            self.session = session
-            self.info = info
-            self.fields = set()
-            super().__init__(*args, **kwargs)
+    if not reverse:
+        _target_field = fk.column
+        _target = table_to_class(_target_field.table)
+    else:
+        _target_field = fk.parent
+        _target = table_to_class(_target_field.table)
 
-        async def batch_load_fn(self, keys):
-            if not reverse:
-                target_field = fk.column
-                target: Table = target_field.table
-            else:
-                target_field = fk.parent
-                target: Table = target_field.table
-
-            object_types = getattr(self.info.context, "object_types", {})
-            setattr(self.info.context, "keys", keys)
-            object_type = object_types.get(self.info.field_name)
-
-            filters = QueryHelper.get_filters(self.info)
-            gql_field = QueryHelper.get_current_field(self.info)
-            sort_args = []
-            sort = []
-            if (
-                "sort" in gql_field.arguments
-                and gql_field.arguments["sort"] is not None
-            ):
-                sort = gql_field.arguments["sort"]
-                if not isinstance(sort, list):
-                    sort = [sort]
-
-                if hasattr(object_type, "sort_argument"):
-                    sort_type = object_type.sort_argument().type.of_type
-                    new_sort = []
-                    for s in sort:
-                        if isinstance(s, (EnumValue, enum.Enum)):
-                            new_sort.append(s.value)
-                        else:
-                            new_sort.append(getattr(sort_type, s).value)
-
-                    sort = new_sort
-
-                for item in sort:
-                    sort_args.append(item)
-
-            selected_fields = QueryHelper.get_selected_fields(
-                self.info, model=target, sort=sort
-            )
-
-            if not selected_fields:
-                selected_fields = self.fields or target.columns
-
-            q = sa.select(
-                *selected_fields,
-                target_field.label("_batch_key"),
-            ).where(target_field.in_(keys))
-
-            if object_type and hasattr(object_type, "set_select_from"):
-                setattr(self.info.context, "keys", keys)
-                q = await object_type.set_select_from(self.info, q, gql_field.values)
-
-            if filters:
-                q = q.where(sa.and_(*filters))
-
-            q = q.order_by(*sort_args)
-
-            results_by_ids = defaultdict(list)
-
-            conversion_type = object_type or table_to_class(target)
-            results = map(dict, await self.session.execute(q))
-
-            for result in results:
-                _batch_key = result.pop("_batch_key")
-                _data = filter_requested_fields_for_object(result, conversion_type)
-                results_by_ids[_batch_key].append(conversion_type(**_data))
-
-            return [results_by_ids.get(id, []) for id in keys]
+    class Loader(BaseLoader):
+        target = _target
+        target_field = _target_field
 
     return Loader
