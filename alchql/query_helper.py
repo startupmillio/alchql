@@ -291,15 +291,21 @@ class QueryHelper:
     @classmethod
     def __set_fragment_fields(cls, parsed_query, fragments) -> list:
         new_values = []
+
+        def _proc_fragment(field_):
+            extra_fields_ = fragments.get(field_.name)
+            for extra_field_ in extra_fields_:
+                if isinstance(extra_field_, FragmentField):
+                    _proc_fragment(extra_field_)
+                elif extra_field_.values:
+                    extra_field_.values = cls.__set_fragment_fields(
+                        parsed_query=extra_field_.values, fragments=fragments
+                    )
+            new_values.extend(extra_fields_)
+
         for field in parsed_query:
             if isinstance(field, FragmentField):
-                extra_fields = fragments.get(field.name)
-                for extra_field in extra_fields:
-                    if extra_field.values:
-                        extra_field.values = cls.__set_fragment_fields(
-                            parsed_query=extra_field.values, fragments=fragments
-                        )
-                new_values.extend(extra_fields)
+                _proc_fragment(field)
             else:
                 if field.values:
                     field.values = cls.__set_fragment_fields(
