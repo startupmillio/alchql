@@ -169,7 +169,7 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
                 for n, ob in enumerate(relation.order_by):
                     q = q.order_by(ob)
                     """fix for bug: for SELECT DISTINCT, ORDER BY expressions must appear in select list"""
-                    q = q.add_columns(ob.label(f'order_by_{n}'))
+                    q = q.add_columns(ob.label(f"order_by_{n}"))
             q = q.distinct()
 
             return q
