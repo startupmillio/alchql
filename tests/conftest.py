@@ -46,7 +46,7 @@ async def engine():
 
 
 @pytest.fixture(scope="function")
-async def session(engine):
+async def session(engine) -> AsyncSession:
     async with AsyncSession(engine) as s:
         yield s
 

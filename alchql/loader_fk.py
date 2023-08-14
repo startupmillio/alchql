@@ -166,8 +166,10 @@ def generate_loader_by_relationship(relation: RelationshipProperty):
             if join is not None:
                 q = q.select_from(join)
             if relation.order_by:
-                for ob in relation.order_by:
+                for n, ob in enumerate(relation.order_by):
                     q = q.order_by(ob)
+                    """fix for bug: for SELECT DISTINCT, ORDER BY expressions must appear in select list"""
+                    q = q.add_columns(ob.label(f'order_by_{n}'))
             q = q.distinct()
 
             return q
