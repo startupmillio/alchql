@@ -19,7 +19,7 @@ from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
 from .query_helper import QueryHelper
 from .registry import Registry, get_global_registry
 from .sqlalchemy_converter import convert_sqlalchemy_type
-from .utils import EnumValue, FilterItem, GlobalFilters, get_query
+from .utils import EnumValue, FilterItem, get_curr_object_type, GlobalFilters, get_query
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -109,9 +109,6 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
         info: ResolveInfo,
         **args,
     ):
-        types = getattr(info.context, "object_types", {})
-        types[info.field_name] = connection_type.Edge.node.type
-        setattr(info.context, "object_types", types)
         resolved = resolver(root, info, **args)
 
         on_resolve = partial(cls.resolve_connection, connection_type, model, info, args)
@@ -308,8 +305,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
     async def get_query(
         cls, model: Type[DeclarativeMeta], info: ResolveInfo, sort=None, **args
     ):
-        object_types = getattr(info.context, "object_types", {})
-        object_type = object_types[info.field_name]
+        object_type = get_curr_object_type(info)
 
         filters = QueryHelper.get_filters(info)
 

@@ -10,7 +10,7 @@ from sqlalchemy.orm import DeclarativeMeta, RelationshipProperty
 from sqlalchemy.sql import Select
 
 from .query_helper import QueryHelper
-from .utils import EnumValue, filter_requested_fields_for_object, table_to_class
+from .utils import EnumValue, filter_requested_fields_for_object, get_curr_object_type, table_to_class
 
 
 def get_join(relation: RelationshipProperty):
@@ -103,13 +103,7 @@ class BaseLoader(DataLoader):
         return q
 
     async def batch_load_fn(self, keys):
-        object_types = getattr(self.info.context, "object_types", {})
-        object_type = object_types.get(self.info.field_name)
-
-        if object_type is None:
-            parent_type = self.info.parent_type
-            field = parent_type.fields[self.info.field_name]
-            object_type = field.type.graphene_type
+        object_type = get_curr_object_type(self.info)
 
         filters = QueryHelper.get_filters(self.info)
         gql_field = QueryHelper.get_current_field(self.info)

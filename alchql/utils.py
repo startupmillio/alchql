@@ -205,3 +205,13 @@ def table_to_class(table: Table) -> DeclarativeMeta:
         for mapper in mapper_registry.mappers:
             if table in mapper.tables:
                 return mapper.entity
+
+
+def get_curr_object_type(info: ResolveInfo):
+    field = info.parent_type.fields[info.field_name]
+    object_type = field.type.graphene_type
+
+    if object_type.__name__.endswith("Connection") and hasattr(object_type, "Edge"):
+        object_type = object_type.Edge.node.type
+
+    return object_type

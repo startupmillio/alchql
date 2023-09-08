@@ -13,7 +13,7 @@ from sqlalchemy.orm import DeclarativeMeta
 
 from .gql_fields import camel_to_snake
 from .gql_id import ResolvedGlobalId
-from .utils import EnumValue, FilterItem, filter_value_to_python
+from .utils import EnumValue, FilterItem, filter_value_to_python, get_curr_object_type
 
 RESERVED_NAMES = ["edges", "node"]
 FRAGMENT = "fragment_spread"
@@ -35,8 +35,7 @@ class FragmentField:
 class QueryHelper:
     @classmethod
     def get_filters(cls, info) -> list:
-        object_types = getattr(info.context, "object_types", {})
-        object_type = object_types.get(info.field_name)
+        object_type = get_curr_object_type(info)
 
         if not object_type:
             return []
@@ -96,8 +95,9 @@ class QueryHelper:
         nodes = info.field_nodes
 
         variables = info.variable_values
-        object_types = getattr(info.context, "object_types", {})
-        object_type = object_types.get(info.field_name)
+
+        object_type = get_curr_object_type(info)
+
         object_type_name = object_type.__name__ if object_type else None
         result = cls.__parse_nodes(nodes, variables, object_type_name)
         fragments = cls.__parse_fragments(info.fragments, variables)
