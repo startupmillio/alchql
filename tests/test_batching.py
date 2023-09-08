@@ -565,7 +565,7 @@ async def test_many_to_many(session):
 
     assert execute.call_count == 2
 
-    assert not result.errors, result.errors[0]
+    assert not result.errors, result.errors[0].message
     result = to_std_dicts(result.data)
     assert result == {
         "reporters": [
