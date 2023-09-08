@@ -143,9 +143,9 @@ def filter_value_to_python(value):
         return value
 
     # Simple values
-    if value in ["true", "True", True]:
+    if value in ("true", "True", True):
         value = True
-    elif value in ["false", "False", False]:
+    elif value in ("false", "False", False):
         value = False
     elif value in ("null", "none", "None", None):
         value = None
