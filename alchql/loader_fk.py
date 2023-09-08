@@ -10,7 +10,12 @@ from sqlalchemy.orm import DeclarativeMeta, RelationshipProperty
 from sqlalchemy.sql import Select
 
 from .query_helper import QueryHelper
-from .utils import EnumValue, filter_requested_fields_for_object, get_curr_object_type, table_to_class
+from .utils import (
+    EnumValue,
+    filter_requested_fields_for_object,
+    get_curr_object_type,
+    table_to_class,
+)
 
 
 def get_join(relation: RelationshipProperty):
