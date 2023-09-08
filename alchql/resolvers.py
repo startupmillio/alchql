@@ -16,8 +16,6 @@ def get_custom_resolver(obj_type: Type["SQLAlchemyObjectType"], orm_field_name):
     if resolver:
         return get_unbound_function(resolver)
 
-    return None
-
 
 def get_attr_resolver(model_attr: str) -> Callable:
     """
