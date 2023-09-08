@@ -400,7 +400,7 @@ class BatchSQLAlchemyConnectionField(FilterConnectionField, ModelField):
         return cls(model_type, resolver=resolver, **field_kwargs)
 
     @classmethod
-    def from_fk(cls, fk: ForeignKey, registry, **field_kwargs):
+    def from_fk(cls, fk: ForeignKey, registry: Registry, **field_kwargs):
         model_type = registry.get_type_for_model(fk.constraint.table)
 
         if not model_type:

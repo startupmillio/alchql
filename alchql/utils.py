@@ -208,10 +208,11 @@ def table_to_class(table: Table) -> DeclarativeMeta:
 
 
 def get_curr_object_type(info: ResolveInfo):
-    field = info.parent_type.fields[info.field_name]
-    object_type = field.type.graphene_type
+    object_type = info.parent_type.fields[info.field_name]
+    if hasattr(object_type.type, "graphene_type"):
+        object_type = object_type.type.graphene_type
 
-    if object_type.__name__.endswith("Connection") and hasattr(object_type, "Edge"):
-        object_type = object_type.Edge.node.type
+        if object_type.__name__.endswith("Connection") and hasattr(object_type, "Edge"):
+            object_type = object_type.Edge.node.type
 
     return object_type

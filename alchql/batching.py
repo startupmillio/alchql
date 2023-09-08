@@ -6,21 +6,23 @@ from sqlalchemy.orm import RelationshipProperty
 
 
 def get_batch_resolver(relationship_prop: RelationshipProperty, single=False):
+    key = (
+        relationship_prop.parent.entity,
+        relationship_prop.mapper.entity,
+        relationship_prop.key,
+    )
+
     async def resolve(root, info: ResolveInfo, **args):
-        key = (
-            relationship_prop.parent.entity,
-            relationship_prop.mapper.entity,
-            relationship_prop.key,
-        )
+        nonlocal key
         _loader = info.context.loaders[key]
 
         _loader.info = info
 
-        key = getattr(root, next(iter(relationship_prop.local_columns)).key)
-        if not key:
+        item_key = getattr(root, next(iter(relationship_prop.local_columns)).key)
+        if not item_key:
             p = None
         else:
-            p = await _loader.load(key)
+            p = await _loader.load(item_key)
 
         if single:
             return p[0] if p else None
@@ -31,21 +33,23 @@ def get_batch_resolver(relationship_prop: RelationshipProperty, single=False):
 
 
 def get_fk_resolver(fk: ForeignKey, single=False):
+    key = (
+        fk.constraint.table,
+        fk.constraint.referred_table,
+        re.sub(r"_(?:id|pk)$", "", fk.parent.key),
+    )
+
     async def resolve(root, info: ResolveInfo, **args):
-        key = (
-            fk.constraint.table,
-            fk.constraint.referred_table,
-            re.sub(r"_(?:id|pk)$", "", fk.parent.key),
-        )
+        nonlocal key
         _loader = info.context.loaders[key]
 
         _loader.info = info
 
-        key = getattr(root, fk.parent.key)
-        if not key:
+        item_key = getattr(root, fk.parent.key)
+        if not item_key:
             p = None
         else:
-            p = await _loader.load(key)
+            p = await _loader.load(item_key)
 
         if single:
             return p[0] if p else None
@@ -56,21 +60,23 @@ def get_fk_resolver(fk: ForeignKey, single=False):
 
 
 def get_fk_resolver_reverse(fk: ForeignKey, single=False):
+    key = (
+        fk.constraint.referred_table,
+        fk.constraint.table,
+        str(fk.constraint.table.fullname),
+    )
+
     async def resolve(root, info: ResolveInfo, **args):
-        key = (
-            fk.constraint.referred_table,
-            fk.constraint.table,
-            str(fk.constraint.table.fullname),
-        )
+        nonlocal key
         _loader = info.context.loaders[key]
 
         _loader.info = info
 
-        key = getattr(root, fk.column.key)
-        if not key:
+        item_key = getattr(root, fk.column.key)
+        if not item_key:
             p = None
         else:
-            p = await _loader.load(key)
+            p = await _loader.load(item_key)
 
         if single:
             return p[0] if p else None
