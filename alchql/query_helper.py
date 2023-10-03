@@ -290,7 +290,7 @@ class QueryHelper:
 
     @classmethod
     def __set_fragment_fields(cls, parsed_query, fragments) -> list:
-        new_values = []
+        new_values = {}
 
         def _proc_fragment(field_):
             extra_fields_ = fragments.get(field_.name)
@@ -301,19 +301,27 @@ class QueryHelper:
                     extra_field_.values = cls.__set_fragment_fields(
                         parsed_query=extra_field_.values, fragments=fragments
                     )
-            new_values.extend(extra_fields_)
+                existing_field: QueryField
+                if existing_field := new_values.get(extra_field_.name):
+                    existing_field.values.extend(extra_field_.values)
+                else:
+                    new_values[extra_field_.name] = extra_field_
 
+        fragment_fields = []
         for field in parsed_query:
             if isinstance(field, FragmentField):
-                _proc_fragment(field)
+                fragment_fields.append(field)
             else:
                 if field.values:
                     field.values = cls.__set_fragment_fields(
                         parsed_query=field.values, fragments=fragments
                     )
 
-                new_values.append(field)
-        return new_values
+                new_values[field.name] = field
+        for field in fragment_fields:
+            _proc_fragment(field)
+
+        return list(new_values.values())
 
     @classmethod
     def __get_query_field_page_info_fields(cls, field) -> Set[str]:
