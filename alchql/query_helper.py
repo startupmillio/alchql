@@ -303,6 +303,8 @@ class QueryHelper:
                     )
                 existing_field: QueryField
                 if existing_field := new_values.get(extra_field_.name):
+                    if existing_field.values is None and extra_field_.values is None:
+                        continue
                     existing_field.values.extend(extra_field_.values)
                 else:
                     new_values[extra_field_.name] = extra_field_
