@@ -87,11 +87,8 @@ class QueryHelper:
 
     @classmethod
     def parse_query(cls, info) -> List[QueryField]:
-        # TODO: cache was removed because of bug with two diff. fragments
-        #  with the same ObjectType and different fields in each fragment
-        # if not hasattr(
-        #     info.context, "parsed_query"
-        # ) or not info.context.parsed_query.get(info.field_name):
+        if hasattr(info.context, "parsed_query"):
+            return info.context.parsed_query
 
         nodes = info.field_nodes
 
@@ -103,10 +100,8 @@ class QueryHelper:
         fragments = cls.__parse_fragments(info.fragments, variables)
 
         result = cls.__set_fragment_fields(result, fragments)
+        setattr(info.context, "parsed_query", result)
         return result
-        # setattr(info.context, "parsed_query", {info.field_name: result})
-
-        # return info.context.parsed_query[info.field_name].copy()
 
     @classmethod
     def get_selected_fields(cls, info, model, object_type, sort=None):
@@ -196,15 +191,26 @@ class QueryHelper:
     @classmethod
     def get_current_field(cls, info) -> Optional[QueryField]:
         gql_fields = cls.parse_query(info)
-        field_name = camel_to_snake(info.field_name)
 
-        while gql_fields:
-            next_field = gql_fields.pop()
-            if next_field.name == field_name:
-                return next_field
+        def __get_prev_field(path, current_field):
+            if path.prev is None:
+                if path.typename == "Mutation":
+                    return current_field
+                return current_field[0]
 
-            if next_field.values:
-                gql_fields.extend(next_field.values)
+            prev_field = __get_prev_field(path.prev, current_field)
+
+            if path.typename is None or path.key in ["edges", "node"]:
+                return prev_field
+            path_name = camel_to_snake(path.key)
+            fields = prev_field if isinstance(prev_field, list) else prev_field.values
+            for field in fields:
+                if field.name == path_name:
+                    return field
+
+        result = __get_prev_field(info.path, gql_fields)
+
+        return result
 
     @classmethod
     def has_arg(cls, info, arg: str):
