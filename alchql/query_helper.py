@@ -85,7 +85,6 @@ class QueryHelper:
                 filters_to_apply.append(field_expr)
         return filters_to_apply
 
-
     @classmethod
     def get_path_root(cls, path):
         if path.prev is None:
@@ -95,7 +94,9 @@ class QueryHelper:
     @classmethod
     def parse_query(cls, info) -> List[QueryField]:
         path_root = cls.get_path_root(info.path)
-        if hasattr(info.context, "parsed_query") and info.context.parsed_query.get(path_root):
+        if hasattr(info.context, "parsed_query") and info.context.parsed_query.get(
+            path_root
+        ):
             return info.context.parsed_query[path_root]
 
         nodes = info.field_nodes
