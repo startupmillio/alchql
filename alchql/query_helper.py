@@ -85,10 +85,18 @@ class QueryHelper:
                 filters_to_apply.append(field_expr)
         return filters_to_apply
 
+
+    @classmethod
+    def get_path_root(cls, path):
+        if path.prev is None:
+            return path.key
+        return cls.get_path_root(path.prev)
+
     @classmethod
     def parse_query(cls, info) -> List[QueryField]:
-        if hasattr(info.context, "parsed_query"):
-            return info.context.parsed_query
+        path_root = cls.get_path_root(info.path)
+        if hasattr(info.context, "parsed_query") and info.context.parsed_query.get(path_root):
+            return info.context.parsed_query[path_root]
 
         nodes = info.field_nodes
 
@@ -100,7 +108,7 @@ class QueryHelper:
         fragments = cls.__parse_fragments(info.fragments, variables)
 
         result = cls.__set_fragment_fields(result, fragments)
-        setattr(info.context, "parsed_query", result)
+        setattr(info.context, "parsed_query", {path_root: result})
         return result
 
     @classmethod
@@ -203,7 +211,13 @@ class QueryHelper:
             if path.typename is None or path.key in ["edges", "node"]:
                 return prev_field
             path_name = camel_to_snake(path.key)
-            fields = prev_field if isinstance(prev_field, list) else prev_field.values
+            if isinstance(prev_field, list):
+                fields = prev_field
+            else:
+                if prev_field.name == path_name:
+                    return prev_field
+
+                fields = prev_field.values
             for field in fields:
                 if field.name == path_name:
                     return field
