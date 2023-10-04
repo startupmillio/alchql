@@ -186,7 +186,7 @@ class QueryHelper:
 
             model_field = getattr(current_field, "model_field", None)
             if model_field is not None:
-                # labled columns could create name conflict
+                # labeled columns could create name conflict
                 if (
                     getattr(current_field, "use_label", True)
                     and field != model_field.key
@@ -222,6 +222,8 @@ class QueryHelper:
             for field in fields:
                 if field.name == path_name:
                     return field
+
+            return prev_field
 
         result = __get_prev_field(info.path, gql_fields)
 
