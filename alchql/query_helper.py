@@ -22,6 +22,7 @@ INLINE_FRAGMENT = "inline_fragment"
 
 @dataclass
 class QueryField:
+    alias: str
     arguments: Optional[dict]
     name: str
     values: Optional[list]
@@ -215,12 +216,12 @@ class QueryHelper:
             if isinstance(prev_field, list):
                 fields = prev_field
             else:
-                if prev_field.name == path_name:
+                if prev_field.name == path_name or prev_field.alias == path_name:
                     return prev_field
 
                 fields = prev_field.values
             for field in fields:
-                if field.name == path_name:
+                if field.name == path_name or field.alias == path_name:
                     return field
 
             return prev_field
@@ -270,6 +271,8 @@ class QueryHelper:
                 values.append(FragmentField(name=name))
                 continue
 
+            alias = camel_to_snake(node.alias.value) if node.alias else None
+
             if node.selection_set:
                 node_values = cls.__parse_nodes(
                     node.selection_set.selections, variables, object_type_name
@@ -296,7 +299,9 @@ class QueryHelper:
                 values.extend(node_values)
             else:
                 values.append(
-                    QueryField(name=name, values=node_values, arguments=arguments)
+                    QueryField(
+                        alias=alias, name=name, values=node_values, arguments=arguments
+                    )
                 )
 
         return values
