@@ -204,8 +204,6 @@ class QueryHelper:
 
         def __get_prev_field(path, current_field):
             if path.prev is None:
-                if path.typename == "Mutation":
-                    return current_field
                 return current_field[0]
 
             prev_field = __get_prev_field(path.prev, current_field)
@@ -325,6 +323,7 @@ class QueryHelper:
             for extra_field_ in extra_fields_:
                 if isinstance(extra_field_, FragmentField):
                     _proc_fragment(extra_field_)
+                    continue
                 elif extra_field_.values:
                     extra_field_.values = cls.__set_fragment_fields(
                         parsed_query=extra_field_.values, fragments=fragments
