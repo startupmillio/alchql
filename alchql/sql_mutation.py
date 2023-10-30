@@ -6,7 +6,6 @@ import graphene
 import sqlalchemy
 import sqlalchemy as sa
 from graphene import Argument, Field, Interface, ObjectType, ResolveInfo
-from graphene.types.mutation import MutationOptions
 from graphene.types.objecttype import ObjectTypeOptions
 from graphene.types.utils import yank_fields_from_attrs
 from graphene.utils.get_unbound_function import get_unbound_function
@@ -16,8 +15,9 @@ from sqlalchemy.orm import DeclarativeMeta
 from .get_input_type import get_input_fields, get_input_type
 from .gql_fields import get_fields
 from .gql_id import ResolvedGlobalId
+from .query_helper import QueryHelper
 from .types import SQLAlchemyObjectType
-from .utils import get_query
+from .utils import filter_requested_fields_for_object, get_query
 
 
 class SQLMutationOptions(ObjectTypeOptions):
@@ -253,7 +253,7 @@ class SQLAlchemyCreateMutation(_BaseMutation):
         output = cls._meta.output
 
         try:
-            field_set = get_fields(model, info, output.__name__)
+            field_set = QueryHelper.get_selected_fields(info, model, output)
         except Exception as e:
             field_set = []
 
@@ -265,7 +265,21 @@ class SQLAlchemyCreateMutation(_BaseMutation):
         )
 
         if field_set and getattr(session.bind, "name", "") != "sqlite":
-            row = (await session.execute(q.returning(*field_set))).first()
+            primary_key = sa.inspect(model).primary_key[0]
+            pk = (await session.execute(q.returning(primary_key))).scalar()
+
+            read_query = (
+                sa.select(*field_set).select_from(model).where(primary_key == pk)
+            )
+
+            if output and hasattr(output, "set_select_from"):
+                gql_field = QueryHelper.get_current_field(info)
+                read_query = await output.set_select_from(
+                    info, read_query, gql_field.values
+                )
+
+            row = (await session.execute(read_query)).first()
+            row = filter_requested_fields_for_object(dict(row), output)
             result = output(**row)
         else:
             id_ = (await session.execute(q)).inserted_primary_key[0]
