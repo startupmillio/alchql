@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Type, Union
+from typing import Type, TYPE_CHECKING, Union
 
 import sqlalchemy as sa
 from graphene import Enum
@@ -98,6 +98,10 @@ registry = None
 
 
 def get_global_registry():
+    """
+    Must be used with construction:
+    registry = registry or get_global_registry()
+    """
     global registry
     if not registry:
         registry = Registry()

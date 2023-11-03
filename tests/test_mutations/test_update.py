@@ -181,7 +181,7 @@ async def test_get_update_mutation_case2(session):
 
 
 @pytest.mark.asyncio
-async def test_get_update_mutation_case3(session):
+async def test_get_update_mutation_case3(session, raise_graphql):
     await add_test_data(session)
 
     class PetType(SQLAlchemyObjectType):

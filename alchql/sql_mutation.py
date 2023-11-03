@@ -16,11 +16,13 @@ from .get_input_type import get_input_fields, get_input_type
 from .gql_fields import get_fields
 from .gql_id import ResolvedGlobalId
 from .query_helper import QueryHelper
+from .registry import get_global_registry, Registry
 from .types import SQLAlchemyObjectType
 from .utils import filter_requested_fields_for_object, get_query
 
 
 class SQLMutationOptions(ObjectTypeOptions):
+    registry: Registry
     model: DeclarativeMeta = None
     arguments: Dict[str, Argument] = None
     output: Type[SQLAlchemyObjectType] = None
@@ -49,7 +51,12 @@ class _BaseMutation(ObjectType):
 
     @classmethod
     async def get_query(cls, info: ResolveInfo):
-        return get_query(cls._meta.model, info, cls.__name__)
+        return get_query(
+            model=cls._meta.model,
+            info=info,
+            cls_name=cls.__name__,
+            registry=cls._meta.registry,
+        )
 
     @classmethod
     async def get_node(cls, info: ResolveInfo, id: int):
@@ -66,6 +73,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
     def __init_subclass_with_meta__(
         cls,
         model: Type[DeclarativeMeta],
+        registry: Registry = None,
         interfaces=(),
         resolver=None,
         output=None,
@@ -128,6 +136,7 @@ class SQLAlchemyUpdateMutation(_BaseMutation):
             _meta.fields.update(fields)
         else:
             _meta.fields = fields
+        _meta.registry = registry or get_global_registry()
         _meta.interfaces = interfaces
         _meta.output = output
         _meta.resolver = resolver

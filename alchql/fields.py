@@ -15,11 +15,11 @@ from sqlalchemy.sql.elements import Label
 from .batching import get_batch_resolver, get_fk_resolver_reverse
 from .connection.from_array_slice import connection_from_array_slice
 from .connection.from_query import connection_from_query
-from .consts import OPERATORS_MAPPING, OP_EQ, OP_IN
+from .consts import OP_EQ, OP_IN, OPERATORS_MAPPING
 from .query_helper import QueryHelper
-from .registry import Registry, get_global_registry
+from .registry import Registry
 from .sqlalchemy_converter import convert_sqlalchemy_type
-from .utils import EnumValue, FilterItem, GlobalFilters, get_query
+from .utils import EnumValue, FilterItem, get_query, GlobalFilters
 
 
 class UnsortedSQLAlchemyConnectionField(ConnectionField):
@@ -54,9 +54,15 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
 
     @classmethod
     async def get_query(
-        cls, model: Type[DeclarativeMeta], info: ResolveInfo, cls_name=None, **args
+        cls,
+        *,
+        model: Type[DeclarativeMeta],
+        info: ResolveInfo,
+        registry: Registry = None,
+        cls_name=None,
+        **args,
     ):
-        return get_query(model, info, cls_name)
+        return get_query(model=model, info=info, cls_name=cls_name, registry=registry)
 
     @classmethod
     async def resolve_connection(
@@ -75,6 +81,7 @@ class UnsortedSQLAlchemyConnectionField(ConnectionField):
                 model=model,
                 info=info,
                 cls_name=node_type.__name__,
+                registry=node_type._meta.registry,
                 **args,
             )
 
@@ -155,9 +162,10 @@ class SQLAlchemyConnectionField(UnsortedSQLAlchemyConnectionField):
         info: ResolveInfo,
         sort=None,
         cls_name=None,
+        registry: Registry = None,
         **args,
     ):
-        query = get_query(model, info, cls_name)
+        query = get_query(model=model, info=info, cls_name=cls_name, registry=registry)
         if sort is not None:
             if not isinstance(sort, list):
                 sort = [sort]
@@ -222,7 +230,7 @@ class FilterConnectionField(SQLAlchemyConnectionField):
             if isinstance(field, InstrumentedAttribute):
                 field_key, field_type = cls.process_instrumented_field(field, type_)
             elif isinstance(field, Label):
-                field_key, field_type = cls.process_label_field(field)
+                field_key, field_type = cls.process_label_field(field, type_)
             elif isinstance(field, sa.Column):
                 field_key, field_type = cls.process_column_field(field, type_)
             else:
@@ -246,11 +254,12 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
     @staticmethod
     def process_instrumented_field(field, type_):
-        registry = get_global_registry()
-        tablename = type_._meta.model.__tablename__
+        _meta = type_._meta
+        registry = _meta.registry
+        tablename = _meta.model.__tablename__
 
         if field.parent.tables[0].name == tablename:
-            gql_field = type_._meta.fields.get(field.key)
+            gql_field = _meta.fields.get(field.key)
             if gql_field and gql_field.name is not None:
                 field_key = gql_field.name
             else:
@@ -268,8 +277,9 @@ class FilterConnectionField(SQLAlchemyConnectionField):
         return field_key, field_type
 
     @staticmethod
-    def process_label_field(field):
-        registry = get_global_registry()
+    def process_label_field(field, type_):
+        _meta = type_._meta
+        registry = _meta.registry
         field_key = field.key
 
         field_type = convert_sqlalchemy_type(
@@ -283,11 +293,12 @@ class FilterConnectionField(SQLAlchemyConnectionField):
 
     @staticmethod
     def process_column_field(field, type_):
-        registry = get_global_registry()
-        tablename = type_._meta.model.__tablename__
+        _meta = type_._meta
+        registry = _meta.registry
+        tablename = _meta.model.__tablename__
 
         if field.table.name == tablename:
-            gql_field = type_._meta.fields.get(field.key)
+            gql_field = _meta.fields.get(field.key)
             if gql_field and gql_field.name is not None:
                 field_key = gql_field.name
             else:

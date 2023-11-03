@@ -28,7 +28,7 @@ import sqlalchemy
 from graphene import Dynamic, ResolveInfo
 from graphql import FieldNode, FragmentDefinitionNode
 
-from .registry import get_global_registry
+from .registry import get_global_registry, Registry
 
 _camel_to_snake_re = re.compile(
     r"((?!^[^A-Z]*)|\b[a-zA-Z][a-z\d]*)([A-Z]\d*[a-z]*|\d+)"
@@ -114,7 +114,7 @@ def get_tree(info: ResolveInfo, cls_name: str = None):
     return collect_fields(node, fragments, cls_name)
 
 
-def get_fields(model, info: ResolveInfo, cls_name=None):
+def get_fields(model, info: ResolveInfo, cls_name=None, registry: Registry = None):
     tree = get_tree(info, cls_name)
 
     if "edges" in tree:
@@ -133,7 +133,7 @@ def get_fields(model, info: ResolveInfo, cls_name=None):
                 ex = getattr(model, model_name).expression
                 break
         else:
-            registry = get_global_registry()
+            registry = registry or get_global_registry()
             type_ = registry.get_type_for_model(model, cls_name)
 
             for k, v in type_._meta.fields.items():

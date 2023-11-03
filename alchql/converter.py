@@ -2,11 +2,11 @@ from typing import Callable, Optional, Type
 
 from graphene import Dynamic, Field, List, String
 from sqlalchemy import Column, ForeignKey
-from sqlalchemy.orm import ColumnProperty, RelationshipProperty, interfaces
+from sqlalchemy.orm import ColumnProperty, interfaces, RelationshipProperty
 
 from .batching import get_batch_resolver, get_fk_resolver
-from .fields import BatchSQLAlchemyConnectionField, ModelField, RelationModelField
-from .registry import Registry
+from .fields import BatchSQLAlchemyConnectionField, ModelField
+from .registry import get_global_registry, Registry
 from .resolvers import get_custom_resolver
 from .sqlalchemy_converter import convert_sqlalchemy_type
 
@@ -179,10 +179,7 @@ def convert_sqlalchemy_composite(composite_prop, registry, resolver):
 
 
 def _register_composite_class(cls, registry: Registry = None):
-    if registry is None:
-        from .registry import get_global_registry
-
-        registry = get_global_registry()
+    registry = registry or get_global_registry()
 
     def inner(fn):
         registry.register_composite_converter(cls, fn)

@@ -30,7 +30,7 @@ from .enums import (
     sort_enum_for_object_type,
 )
 from .node import AsyncNode
-from .registry import Registry, get_global_registry
+from .registry import get_global_registry, Registry
 from .resolvers import get_attr_resolver, get_custom_resolver
 from .utils import get_query, is_mapped_class, is_mapped_instance
 
@@ -264,8 +264,7 @@ class SQLAlchemyObjectType(ObjectType):
             f'{cls.__name__}.Meta, received "{model}".'
         )
 
-        if not registry:
-            registry = get_global_registry()
+        registry = registry or get_global_registry()
 
         assert isinstance(registry, Registry), (
             f"The attribute registry in {cls.__name__} needs to be an instance of "
@@ -345,7 +344,12 @@ class SQLAlchemyObjectType(ObjectType):
 
     @classmethod
     async def get_query(cls, info: ResolveInfo):
-        return get_query(cls._meta.model, info, cls.__name__)
+        return get_query(
+            model=cls._meta.model,
+            info=info,
+            cls_name=cls.__name__,
+            registry=cls._meta.registry,
+        )
 
     @classmethod
     async def get_node(cls, info: ResolveInfo, id):

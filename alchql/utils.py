@@ -9,10 +9,11 @@ from graphene import Field, ResolveInfo, Scalar
 from graphene.types.objecttype import ObjectTypeMeta
 from sqlalchemy import Table
 from sqlalchemy.exc import ArgumentError
-from sqlalchemy.orm import DeclarativeMeta, class_mapper, mapperlib, object_mapper
+from sqlalchemy.orm import class_mapper, DeclarativeMeta, mapperlib, object_mapper
 from sqlalchemy.orm.exc import UnmappedClassError, UnmappedInstanceError
 
 from .gql_fields import get_fields
+from .registry import Registry
 
 
 @dataclass
@@ -33,12 +34,18 @@ class GlobalFilters:
     ID__IN = "id__in"
 
 
-def get_query(model: Type[DeclarativeMeta], info: ResolveInfo, cls_name=None):
+def get_query(
+    *,
+    model: Type[DeclarativeMeta],
+    info: ResolveInfo,
+    registry: Registry,
+    cls_name=None,
+):
     fields = None
 
     if info:
         try:
-            fields = get_fields(model, info, cls_name)
+            fields = get_fields(model, info, cls_name, registry)
         except Exception as e:
             logging.error(e)
 
