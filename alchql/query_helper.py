@@ -96,9 +96,11 @@ class QueryHelper:
     @classmethod
     def parse_query(cls, info) -> List[QueryField]:
         path_root = cls.get_path_root(info.path)
-        if hasattr(info.context, "parsed_query") and info.context.parsed_query.get(
-            path_root
-        ) and path_root != ENTITY_QUERY_NAME:
+        if (
+            hasattr(info.context, "parsed_query")
+            and info.context.parsed_query.get(path_root)
+            and path_root != ENTITY_QUERY_NAME
+        ):
             return info.context.parsed_query[path_root]
 
         nodes = info.field_nodes
